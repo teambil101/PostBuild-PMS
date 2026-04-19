@@ -37,12 +37,12 @@ const App = () => (
             <Route path="/properties/:id" element={<Shell><PropertyDetail /></Shell>} />
             <Route path="/people" element={<Shell><People /></Shell>} />
             <Route path="/people/:id" element={<Shell><PersonDetail /></Shell>} />
-            <Route path="/contracts" element={<Shell><ComingSoonRoute k="contracts" /></Shell>} />
-            <Route path="/lifecycle" element={<Shell><ComingSoonRoute k="lifecycle" /></Shell>} />
-            <Route path="/tickets" element={<Shell><ComingSoonRoute k="tickets" /></Shell>} />
-            <Route path="/dashboards" element={<Shell><ComingSoonRoute k="dashboards" /></Shell>} />
-            <Route path="/vendors" element={<Shell><ComingSoonRoute k="vendors" /></Shell>} />
-            <Route path="/services" element={<Shell><ComingSoonRoute k="services" /></Shell>} />
+            <Route path="/contracts" element={<Shell><ComingSoon /></Shell>} />
+            <Route path="/lifecycle" element={<Shell><ComingSoon /></Shell>} />
+            <Route path="/tickets" element={<Shell><ComingSoon /></Shell>} />
+            <Route path="/dashboards" element={<Shell><ComingSoon /></Shell>} />
+            <Route path="/vendors" element={<Shell><ComingSoon /></Shell>} />
+            <Route path="/services" element={<Shell><ComingSoon /></Shell>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
@@ -50,15 +50,5 @@ const App = () => (
     </TooltipProvider>
   </QueryClientProvider>
 );
-
-import { useParams } from "react-router-dom";
-function ComingSoonRoute({ k }: { k: string }) {
-  // Inject the key into ComingSoon via params-like mechanism
-  return <ComingSoonWithKey k={k} />;
-}
-function ComingSoonWithKey({ k }: { k: string }) {
-  // simple wrapper: render ComingSoon with manual key prop via context-less approach
-  return <ComingSoon key={k} />;
-}
 
 export default App;

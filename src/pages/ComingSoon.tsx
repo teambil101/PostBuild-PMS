@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Construction } from "lucide-react";
@@ -7,8 +7,8 @@ import { EmptyState } from "@/components/EmptyState";
 
 export default function ComingSoon() {
   const navigate = useNavigate();
-  const { key } = useParams<{ key: string }>();
-  const mod = MODULES.find((m) => m.key === key);
+  const location = useLocation();
+  const mod = MODULES.find((m) => location.pathname.startsWith(m.path));
 
   return (
     <>
