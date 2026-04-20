@@ -13,6 +13,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { COUNTRY_BY_CODE } from "@/lib/countries";
+import { formatEnumLabel, sqmToSqft } from "@/lib/format";
+import { isStatusLockedByLease } from "@/lib/units";
+import { AlertTriangle } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -34,12 +37,13 @@ interface Unit {
   ref_code: string;
   unit_number: string;
   unit_type: string;
-  status: "vacant" | "occupied" | "maintenance" | "off_market";
+  status: string;
   floor: number | null;
   size_sqm: number | null;
+  size_unit_preference: string | null;
   bedrooms: number | null;
   bathrooms: number | null;
-  monthly_rent: number | null;
+  status_locked_by_lease_id: string | null;
 }
 
 export default function PropertyDetail() {
