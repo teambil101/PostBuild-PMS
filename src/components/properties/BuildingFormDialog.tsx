@@ -264,18 +264,36 @@ export function BuildingFormDialog({ open, onOpenChange, onSaved, initial }: Pro
             {/* Address */}
             <div>
               <Label htmlFor="b-address" className={labelClass}>
-                Address <span className="text-destructive">*</span>
+                Location <span className="text-destructive">*</span>
               </Label>
-              <Textarea
-                id="b-address"
-                ref={addressRef}
-                value={form.address}
-                onChange={(e) => set("address", e.target.value)}
-                placeholder="Street, area, landmark — whatever helps locate the building"
-                rows={2}
-                className={cn("mt-1.5", errors.address && "border-destructive")}
-                aria-invalid={!!errors.address}
-              />
+              <div ref={addressRef} className="mt-1.5">
+                <PlacesAutocomplete
+                  id="b-address"
+                  value={form.address}
+                  onChange={(v) => set("address", v)}
+                  countryBias={form.country ? [form.country.toLowerCase()] : ["ae"]}
+                  placeholder="Search a building, street, or landmark"
+                  invalid={!!errors.address}
+                  onPlaceSelected={(p) => {
+                    setForm((f) => ({
+                      ...f,
+                      address: p.address_formatted,
+                      latitude: p.latitude,
+                      longitude: p.longitude,
+                      place_id: p.place_id,
+                      city: p.city ?? f.city,
+                      country: p.country ?? f.country,
+                      community: p.community ?? f.community,
+                    }));
+                    setErrors((e) => ({ ...e, address: undefined, city: undefined, country: undefined }));
+                  }}
+                />
+              </div>
+              {form.latitude != null && form.longitude != null && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Pinned: {form.latitude.toFixed(5)}, {form.longitude.toFixed(5)}
+                </p>
+              )}
               {errors.address && <p className={errorClass}>{errors.address}</p>}
             </div>
 
