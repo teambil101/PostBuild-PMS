@@ -42,7 +42,7 @@ interface SelfPerson {
 
 interface AdditionalSignatory {
   person: PickedPerson | null;
-  role: "witness" | "guarantor" | "other";
+  role: "guarantor" | "other";
 }
 
 interface FormState {
@@ -207,7 +207,7 @@ export function ManagementAgreementWizard({ open, onOpenChange, editContractId, 
             last_name: p.people.last_name,
             company: p.people.company,
           },
-          role: (["witness", "guarantor"].includes(p.role) ? p.role : "other") as AdditionalSignatory["role"],
+          role: (p.role === "guarantor" ? "guarantor" : "other") as AdditionalSignatory["role"],
         }));
 
       // Resolve subject labels
