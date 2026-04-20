@@ -63,13 +63,18 @@ export function ChangeStatusDialog({
       return;
     }
     setBusy(true);
-    const patch: Record<string, unknown> = { status: next };
+    const patch: Partial<{
+      status: string;
+      waiting_on: string | null;
+      resolved_at: string | null;
+      closed_at: string | null;
+    }> = { status: next };
     if (needsWaitingOn) patch.waiting_on = waitingOn;
     if (next !== "awaiting") patch.waiting_on = null;
     if (next === "resolved") patch.resolved_at = new Date().toISOString();
     if (next === "closed") patch.closed_at = new Date().toISOString();
 
-    const { error } = await supabase.from("tickets").update(patch).eq("id", ticketId);
+    const { error } = await supabase.from("tickets").update(patch as never).eq("id", ticketId);
     if (error) {
       setBusy(false);
       toast.error(error.message);
