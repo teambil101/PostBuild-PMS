@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Truck,
   Wrench,
+  Settings as SettingsIcon,
   type LucideIcon,
 } from "lucide-react";
 
@@ -27,4 +28,5 @@ export const MODULES: ModuleDef[] = [
   { key: "dashboards", label: "Dashboards", path: "/dashboards", icon: LayoutDashboard, active: false },
   { key: "vendors", label: "Vendors", path: "/vendors", icon: Truck, active: false },
   { key: "services", label: "Services", path: "/services", icon: Wrench, active: false },
+  { key: "settings", label: "Settings", path: "/settings", icon: SettingsIcon, active: true },
 ];
