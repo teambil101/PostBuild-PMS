@@ -18,7 +18,7 @@ interface BuildingRow {
   name: string;
   city: string;
   country: string;
-  address: string;
+  location_url: string | null;
   community: string | null;
   building_type: string;
   unit_count?: number;
@@ -38,7 +38,7 @@ export default function Properties() {
     setLoading(true);
     const { data, error } = await supabase
       .from("buildings")
-      .select("id, ref_code, name, city, country, address, community, building_type, units(id)")
+      .select("id, ref_code, name, city, country, location_url, community, building_type, units(id)")
       .order("created_at", { ascending: false });
     if (error) {
       toast.error(error.message);
