@@ -419,7 +419,7 @@ export default function TicketsPage() {
                           {t.ticket_number}
                           {t.is_system_generated && (
                             <span className="text-[9px] uppercase tracking-wider italic text-muted-foreground">
-                              auto
+                              {(t as TicketRow & { generated_by_schedule_id?: string | null }).generated_by_schedule_id ? "scheduled" : "auto"}
                             </span>
                           )}
                           {t.cost_approval_status === "pending" && (
