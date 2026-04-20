@@ -229,6 +229,18 @@ export default function ContractDetail() {
     return `${partyName(parties[0])} ↔ ${partyName(parties[1])}`;
   })();
 
+  // Lease-specific derivations
+  const leaseTenant = (() => {
+    const t = parties.find((p) => p.role === "tenant");
+    return t ? { id: t.person_id, name: partyName(t) } : null;
+  })();
+  const leaseUnit = (() => {
+    const u = subjects.find((s) => s.entity_type === "unit");
+    return u
+      ? { id: u.entity_id, building_id: u.building_id ?? null, label: u.entity_label ?? "(deleted)" }
+      : null;
+  })();
+
   const isImmutable = contract.status === "expired" || contract.status === "cancelled";
   const isActive = contract.status === "active";
   const isDraft = contract.status === "draft";
