@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { CompanyProfileForm } from "@/components/settings/CompanyProfileForm";
+import { TeamMembersSection } from "@/components/settings/TeamMembersSection";
 import { Building2, CreditCard, Bell, Plug, Users, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -13,10 +14,10 @@ interface Section {
 
 const SECTIONS: Section[] = [
   { key: "company", label: "Company Profile", icon: Building2, enabled: true },
+  { key: "team", label: "Team Members", icon: Users, enabled: true },
   { key: "billing", label: "Billing", icon: CreditCard, enabled: false },
   { key: "notifications", label: "Notifications", icon: Bell, enabled: false },
   { key: "integrations", label: "Integrations", icon: Plug, enabled: false },
-  { key: "team", label: "Team members", icon: Users, enabled: false },
 ];
 
 export default function Settings() {
@@ -65,6 +66,7 @@ export default function Settings() {
         {/* Right pane */}
         <div className="min-w-0 max-w-3xl">
           {active === "company" && <CompanyProfileForm />}
+          {active === "team" && <TeamMembersSection />}
         </div>
       </div>
     </>
