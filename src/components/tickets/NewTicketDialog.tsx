@@ -58,6 +58,9 @@ import {
   buildDocPath,
   isPhotoMime,
 } from "@/lib/storage";
+import { VendorPicker, type PickedVendor } from "@/components/vendors/VendorPicker";
+import { maintenanceTypeToSpecialty } from "@/lib/vendors";
+import { Info } from "lucide-react";
 
 export interface PresetTarget {
   entity_type: TicketTargetType;
@@ -65,10 +68,16 @@ export interface PresetTarget {
   entity_label: string;
 }
 
+export interface PresetVendor {
+  vendor_id: string;
+  vendor_label: string;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   presetTarget?: PresetTarget;
+  presetVendor?: PresetVendor;
   /** Called after a ticket is successfully created. Receives the new ticket id. */
   onCreated?: (ticketId: string) => void;
   /** When false, do not navigate to the ticket detail after creation (default true). */
@@ -82,6 +91,7 @@ export function NewTicketDialog({
   open,
   onOpenChange,
   presetTarget,
+  presetVendor,
   onCreated,
   navigateOnCreate = true,
 }: Props) {
@@ -103,6 +113,7 @@ export function NewTicketDialog({
   const [files, setFiles] = useState<File[]>([]);
   const [workflowKey, setWorkflowKey] = useState<WorkflowKey | "__none">("__none");
   const [workflowOverridden, setWorkflowOverridden] = useState(false);
+  const [vendor, setVendor] = useState<PickedVendor | null>(null);
 
   const [people, setPeople] = useState<
     { id: string; first_name: string; last_name: string; company: string | null }[]
