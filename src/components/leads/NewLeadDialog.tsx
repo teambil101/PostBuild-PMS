@@ -402,6 +402,8 @@ export function NewLeadDialog({ open, onOpenChange, editLead, onSaved }: Props) 
                 valueLabel={assignee ? `${assignee.first_name} ${assignee.last_name}`.trim() : ""}
                 onChange={setAssignee}
                 placeholder="Unassigned"
+                roleFilter={["staff"]}
+                hideAddNew
               />
             </Field>
           </Section>
