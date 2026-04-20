@@ -296,6 +296,84 @@ export function ManagementAgreementWizard({ open, onOpenChange, editContractId, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, editContractId, self?.id]);
 
+  /* ---------- Pre-fill from lead (create mode only) ---------- */
+  useEffect(() => {
+    if (!open || editContractId || !presetFromLead) return;
+    let cancelled = false;
+    (async () => {
+      // Resolve landlord person — prefer company_id, fall back to primary_contact_id.
+      const landlordId = presetFromLead.company_id ?? presetFromLead.primary_contact_id;
+      const { data: p } = await supabase
+        .from("people")
+        .select("id, first_name, last_name, company")
+        .eq("id", landlordId)
+        .maybeSingle();
+      if (cancelled) return;
+      const landlord: PickedPerson | null = p
+        ? {
+            id: p.id,
+            first_name: p.first_name,
+            last_name: p.last_name,
+            company: p.company,
+          }
+        : null;
+      const landlordName = landlord
+        ? landlord.company || `${landlord.first_name} ${landlord.last_name}`.trim()
+        : "";
+
+      // Compute end date if a duration was proposed.
+      const start = todayISO();
+      let end = addYears(start, 1);
+      let durationPreset: FormState["durationPreset"] = "1y";
+      if (presetFromLead.proposed_duration_months) {
+        const d = new Date(start);
+        d.setMonth(d.getMonth() + presetFromLead.proposed_duration_months);
+        end = d.toISOString().slice(0, 10);
+        durationPreset =
+          presetFromLead.proposed_duration_months === 12
+            ? "1y"
+            : presetFromLead.proposed_duration_months === 24
+              ? "2y"
+              : presetFromLead.proposed_duration_months === 36
+                ? "3y"
+                : "custom";
+      }
+
+      // Map proposed fee model into the wizard's enum (defensive — extra values fall back).
+      const fm = (FEE_MODELS as readonly string[]).includes(presetFromLead.proposed_fee_model ?? "")
+        ? (presetFromLead.proposed_fee_model as FeeModel)
+        : "percentage_of_rent";
+
+      const validScope = (presetFromLead.proposed_scope_of_services ?? []).filter((s) =>
+        (SCOPE_OF_SERVICES as readonly string[]).includes(s),
+      ) as ScopeService[];
+
+      setForm((prev) => ({
+        ...prev,
+        landlord,
+        title: landlordName ? `Management Agreement — ${landlordName}` : prev.title,
+        startDate: start,
+        endDate: end,
+        durationPreset,
+        feeModel: fm,
+        feeValue:
+          presetFromLead.proposed_fee_value != null
+            ? String(presetFromLead.proposed_fee_value)
+            : prev.feeValue,
+        feeAppliesTo:
+          presetFromLead.proposed_fee_applies_to === "collected_rent"
+            ? "collected_rent"
+            : "contracted_rent",
+        scope: validScope.length > 0 ? validScope : prev.scope,
+        notes: presetFromLead.proposed_terms_notes ?? prev.notes,
+      }));
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, editContractId, presetFromLead?.lead_id]);
+
   // Auto-update title when landlord changes
   useEffect(() => {
     if (isEdit) return; // don't override user-provided title in edit mode
