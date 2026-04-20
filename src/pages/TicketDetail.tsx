@@ -220,7 +220,7 @@ export default function TicketDetail() {
       </TooltipProvider>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+      <div className={cn("grid grid-cols-2 gap-3", hasWorkflow ? "lg:grid-cols-4" : "lg:grid-cols-5") }>
         <SummaryCard label="Status">
           <TicketStatusPill status={ticket.status} />
           {ticket.status === "awaiting" && ticket.waiting_on && (
@@ -234,9 +234,22 @@ export default function TicketDetail() {
             </div>
           )}
         </SummaryCard>
+        {hasWorkflow ? (
+          <WorkflowStageCard ticketId={ticket.id} refreshKey={workflowRefresh} />
+        ) : null}
         <SummaryCard label="Priority">
           <TicketPriorityPill priority={ticket.priority} />
         </SummaryCard>
+        {hasWorkflow ? null : (
+          <SummaryCard label="Assignee">
+            {ticket.assignee_id ? (
+              <div className="text-sm text-architect">{personName(ticket.assignee_id)}</div>
+            ) : (
+              <div className="text-sm text-muted-foreground italic">Unassigned</div>
+            )}
+          </SummaryCard>
+        )}
+        {hasWorkflow && (
         <SummaryCard label="Assignee">
           {ticket.assignee_id ? (
             <div className="text-sm text-architect">{personName(ticket.assignee_id)}</div>
@@ -244,6 +257,7 @@ export default function TicketDetail() {
             <div className="text-sm text-muted-foreground italic">Unassigned</div>
           )}
         </SummaryCard>
+        )}
         <SummaryCard label="Due date">
           {ticket.due_date ? (
             <div className={cn("text-sm", overdue ? "text-destructive font-medium" : "text-architect")}>
