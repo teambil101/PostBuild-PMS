@@ -77,6 +77,10 @@ export default function LifecyclePage() {
     vacant: null, not_ready: null, in_signing: null, active: null, ending_soon: null, recently_ended: null,
   });
 
+  // Cheque action dialogs (still used by table view actions if surfaced elsewhere)
+  const [depositCheque, setDepositCheque] = useState<LifecycleCheque | null>(null);
+  const [bounceCheque, setBounceCheque] = useState<LifecycleCheque | null>(null);
+
   const load = async () => {
     setLoading(true);
     setErr(null);
