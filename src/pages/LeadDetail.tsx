@@ -30,6 +30,7 @@ import { MarkLostDialog } from "@/components/leads/dialogs/MarkLostDialog";
 import { PutOnHoldDialog } from "@/components/leads/dialogs/PutOnHoldDialog";
 import { ResumeFromHoldDialog } from "@/components/leads/dialogs/ResumeFromHoldDialog";
 import { DeleteLeadDialog } from "@/components/leads/dialogs/DeleteLeadDialog";
+import { MarkContractSignedDialog } from "@/components/leads/dialogs/MarkContractSignedDialog";
 import { LeadHistoryTab } from "@/components/leads/tabs/LeadHistoryTab";
 import {
   LEAD_STATUS_LABELS, LEAD_STATUS_STYLES, LEAD_SOURCE_LABELS,
@@ -65,6 +66,7 @@ export default function LeadDetailPage() {
   const [holdOpen, setHoldOpen] = useState(false);
   const [resumeOpen, setResumeOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [signOpen, setSignOpen] = useState(false);
 
   const load = async () => {
     if (!leadId) return;
@@ -174,18 +176,9 @@ export default function LeadDetailPage() {
                 </Button>
               )}
               {!isTerminal && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span>
-                      <Button variant="outline" size="sm" disabled className="opacity-60">
-                        <CheckCircle2 className="h-3.5 w-3.5" /> Mark contract signed
-                      </Button>
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    Conversion flow ships in L2 — opens the management agreement wizard.
-                  </TooltipContent>
-                </Tooltip>
+                <Button variant="gold" size="sm" onClick={() => setSignOpen(true)}>
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Mark contract signed
+                </Button>
               )}
               {!isTerminal && (
                 <Button variant="outline" size="sm" onClick={() => setLostOpen(true)}>
@@ -523,6 +516,12 @@ export default function LeadDetailPage() {
           open={deleteOpen}
           onOpenChange={setDeleteOpen}
           lead={lead}
+        />
+        <MarkContractSignedDialog
+          open={signOpen}
+          onOpenChange={setSignOpen}
+          lead={lead}
+          onConverted={() => { setSignOpen(false); load(); }}
         />
       </div>
     </TooltipProvider>
