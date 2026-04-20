@@ -278,12 +278,47 @@ export default function LeadsPage() {
             />
             Stage-stuck only
           </label>
+          {view === "kanban" && (
+            <label className="flex items-center gap-2 text-xs text-architect cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showOnHold}
+                onChange={(e) => setShowOnHold(e.target.checked)}
+              />
+              Show on-hold leads
+            </label>
+          )}
           {!filtersUntouched && (
             <Button variant="ghost" size="sm" onClick={clearAll} className="text-xs">
               <X className="h-3 w-3 mr-1" />
               Clear all
             </Button>
           )}
+          {/* View toggle */}
+          <div className="ml-auto inline-flex border hairline rounded-sm overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setView("kanban")}
+              className={cn(
+                "px-2.5 py-1 text-[11px] uppercase tracking-wider flex items-center gap-1.5",
+                view === "kanban" ? "bg-architect text-chalk" : "bg-card text-muted-foreground hover:bg-muted/40",
+              )}
+              title="Kanban view"
+            >
+              <LayoutGrid className="h-3 w-3" /> Kanban
+            </button>
+            <button
+              type="button"
+              onClick={() => setView("table")}
+              className={cn(
+                "px-2.5 py-1 text-[11px] uppercase tracking-wider flex items-center gap-1.5",
+                view === "table" ? "bg-architect text-chalk" : "bg-card text-muted-foreground hover:bg-muted/40",
+              )}
+              title="Table view"
+            >
+              <Rows3 className="h-3 w-3" /> Table
+            </button>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-1.5">
