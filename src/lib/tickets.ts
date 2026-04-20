@@ -228,6 +228,7 @@ export const TICKET_TARGET_TYPES = [
   "contract",
   "person",
   "cheque",
+  "vendor",
 ] as const;
 export type TicketTargetType = typeof TICKET_TARGET_TYPES[number];
 
@@ -237,6 +238,7 @@ export const TICKET_TARGET_TYPE_LABELS: Record<TicketTargetType, string> = {
   contract: "Contract",
   person: "Person",
   cheque: "Cheque",
+  vendor: "Vendor",
 };
 
 /* =========================================================
@@ -327,6 +329,8 @@ export function targetPath(target: { type: string; id: string }, opts?: { unitBu
       return `/contracts/${target.id}`;
     case "person":
       return `/people/${target.id}`;
+    case "vendor":
+      return `/vendors/${target.id}`;
     case "cheque":
       return null; // no dedicated page; surfaced inside lease detail
     default:
