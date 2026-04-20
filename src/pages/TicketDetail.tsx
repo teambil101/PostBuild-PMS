@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft, Calendar, User as UserIcon, Activity, AlertTriangle, RefreshCw,
-  DollarSign, RotateCcw, PlusCircle, Coins, Pencil, MoreHorizontal,
+  DollarSign, RotateCcw, PlusCircle, Coins, Pencil, MoreHorizontal, Briefcase,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 
@@ -44,7 +44,7 @@ import { CancelTicketDialog } from "@/components/tickets/actions/CancelTicketDia
 import { DeleteTicketDialog } from "@/components/tickets/actions/DeleteTicketDialog";
 import { CostApprovalBanner } from "@/components/tickets/actions/CostApprovalBanner";
 import { AssignVendorDialog } from "@/components/vendors/AssignVendorDialog";
-import { vendorDisplayName } from "@/lib/vendors";
+import { vendorDisplayName, parseSpecialties, SPECIALTY_LABELS } from "@/lib/vendors";
 import { toast } from "sonner";
 
 interface Ticket {
@@ -121,7 +121,15 @@ export default function TicketDetail() {
   const [changeWfOpen, setChangeWfOpen] = useState(false);
   const [removeWfOpen, setRemoveWfOpen] = useState(false);
   const [vendorOpen, setVendorOpen] = useState(false);
-  const [vendorInfo, setVendorInfo] = useState<{ id: string; legal_name: string; display_name: string | null; vendor_number: string } | null>(null);
+  const [vendorInfo, setVendorInfo] = useState<{
+    id: string;
+    legal_name: string;
+    display_name: string | null;
+    vendor_number: string;
+    is_preferred?: boolean;
+    specialties?: unknown;
+    status?: string;
+  } | null>(null);
   const [stepStatusMap, setStepStatusMap] = useState<Record<string, "pending" | "complete" | "skipped">>({});
 
   useEffect(() => {
@@ -153,6 +161,16 @@ export default function TicketDetail() {
         if (t.target_entity_type === "unit") {
           const { data: u } = await supabase.from("units").select("building_id").eq("id", t.target_entity_id).maybeSingle();
           if (!cancelled) setTargetBuildingId((u as any)?.building_id ?? null);
+        }
+        if (t.vendor_id) {
+          const { data: v } = await supabase
+            .from("vendors")
+            .select("id, legal_name, display_name, vendor_number, is_preferred, specialties, status")
+            .eq("id", t.vendor_id)
+            .maybeSingle();
+          if (!cancelled) setVendorInfo((v as any) ?? null);
+        } else {
+          if (!cancelled) setVendorInfo(null);
         }
       }
       setLoading(false);
@@ -187,6 +205,18 @@ export default function TicketDetail() {
     if (t) setTicket(t as Ticket);
     setEvents((e ?? []) as EventRow[]);
     setWorkflowRefresh((n) => n + 1);
+    // Refresh vendor info to mirror any vendor_id change.
+    const vid = (t as any)?.vendor_id ?? null;
+    if (vid) {
+      const { data: v } = await supabase
+        .from("vendors")
+        .select("id, legal_name, display_name, vendor_number, is_preferred, specialties, status")
+        .eq("id", vid)
+        .maybeSingle();
+      setVendorInfo((v as any) ?? null);
+    } else {
+      setVendorInfo(null);
+    }
   };
 
   const handleReopen = async () => {
