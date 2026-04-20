@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ExternalLink, Building2, Home, User } from "lucide-react";
+import { ExternalLink, Building2, Home, User, Pencil, Check, X, Upload, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   monthlyEquivalent,
   SECURITY_DEPOSIT_STATUS_LABELS, SECURITY_DEPOSIT_STATUS_STYLES, type SecurityDepositStatus,
@@ -28,10 +31,36 @@ interface Props {
   currency: string;
   tenant: { id: string; name: string } | null;
   unit: { id: string; building_id: string | null; label: string } | null;
+  editable?: boolean;
+  onSaveEjariNumber?: (value: string | null) => Promise<void>;
+  onUploadEjariDoc?: () => void;
 }
 
-export function LeaseOverviewBlocks({ lease, currency, tenant, unit }: Props) {
+export function LeaseOverviewBlocks({ lease, currency, tenant, unit, editable, onSaveEjariNumber, onUploadEjariDoc }: Props) {
   const monthly = monthlyEquivalent(Number(lease.annual_rent));
+  const [editingEjari, setEditingEjari] = useState(false);
+  const [ejariDraft, setEjariDraft] = useState(lease.ejari_number ?? "");
+  const [savingEjari, setSavingEjari] = useState(false);
+
+  const startEditEjari = () => {
+    setEjariDraft(lease.ejari_number ?? "");
+    setEditingEjari(true);
+  };
+  const cancelEditEjari = () => {
+    setEditingEjari(false);
+    setEjariDraft(lease.ejari_number ?? "");
+  };
+  const saveEjari = async () => {
+    if (!onSaveEjariNumber) return;
+    const v = ejariDraft.trim();
+    setSavingEjari(true);
+    try {
+      await onSaveEjariNumber(v.length ? v : null);
+      setEditingEjari(false);
+    } finally {
+      setSavingEjari(false);
+    }
+  };
   return (
     <>
       <div className="grid md:grid-cols-2 gap-4">
