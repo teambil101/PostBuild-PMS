@@ -21,7 +21,7 @@ export interface ModuleDef {
 export const MODULES: ModuleDef[] = [
   { key: "properties", label: "Properties", path: "/properties", icon: Building2, active: true },
   { key: "people", label: "People", path: "/people", icon: Users, active: true },
-  { key: "contracts", label: "Contracts", path: "/contracts", icon: FileText, active: false },
+  { key: "contracts", label: "Contracts", path: "/contracts", icon: FileText, active: true },
   { key: "lifecycle", label: "Lease Lifecycle", path: "/lifecycle", icon: GitBranch, active: false },
   { key: "tickets", label: "Tickets & Workflows", path: "/tickets", icon: Ticket, active: false },
   { key: "dashboards", label: "Dashboards", path: "/dashboards", icon: LayoutDashboard, active: false },

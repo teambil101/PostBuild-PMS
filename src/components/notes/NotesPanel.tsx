@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 
-type EntityType = "building" | "unit";
+type EntityType = "building" | "unit" | "contract";
 
 interface Note {
   id: string;
