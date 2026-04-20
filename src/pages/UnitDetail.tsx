@@ -13,7 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { UnitFormDialog } from "@/components/properties/UnitFormDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSearchParams } from "react-router-dom";
-import { EntityTicketsTab } from "@/components/tickets/EntityTicketsTab";
+import { EntityTicketsTab, type TicketSection } from "@/components/tickets/EntityTicketsTab";
 import { PhotoGallery } from "@/components/attachments/PhotoGallery";
 import { DocumentList } from "@/components/attachments/DocumentList";
 import { NotesPanel } from "@/components/notes/NotesPanel";
@@ -388,10 +388,10 @@ export default function UnitDetail() {
 
         {/* TICKETS */}
         <TabsContent value="tickets" className="pt-6">
-          <EntityTicketsTab
-            entityType="unit"
-            entityId={unit.id}
-            entityLabel={`Unit ${unit.unit_number} · ${building.name}`}
+          <UnitTicketsTabSection
+            unitId={unit.id}
+            unitLabel={`Unit ${unit.unit_number} · ${building.name}`}
+            unitNumber={unit.unit_number}
             onActiveCountChange={setTicketCount}
           />
         </TabsContent>
