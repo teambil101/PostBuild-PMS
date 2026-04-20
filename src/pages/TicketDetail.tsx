@@ -266,7 +266,7 @@ export default function TicketDetail() {
           </span>
           {ticket.is_system_generated && (
             <span className="text-[9px] uppercase tracking-wider italic text-muted-foreground border hairline rounded-sm px-1.5">
-              Auto
+              {(ticket as typeof ticket & { generated_by_schedule_id?: string | null }).generated_by_schedule_id ? "Scheduled" : "Auto"}
             </span>
           )}
         </div>
