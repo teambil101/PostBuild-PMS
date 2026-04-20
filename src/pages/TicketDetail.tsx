@@ -449,6 +449,43 @@ export default function TicketDetail() {
             </>
           )}
         </SummaryCard>
+        <SummaryCard label="Vendor">
+          {vendorInfo ? (
+            <button
+              type="button"
+              onClick={() => setVendorOpen(true)}
+              className="w-full text-left group"
+            >
+              <div className="text-sm text-architect group-hover:underline truncate">
+                {vendorDisplayName(vendorInfo)}
+              </div>
+              <div className="text-[11px] text-muted-foreground mono">{vendorInfo.vendor_number}</div>
+              {(() => {
+                const specs = parseSpecialties(vendorInfo.specialties);
+                if (specs.length === 0) return null;
+                return (
+                  <div className="text-[11px] text-muted-foreground truncate mt-0.5">
+                    {specs.slice(0, 2).map((s) => SPECIALTY_LABELS[s]).join(", ")}
+                    {specs.length > 2 && ` +${specs.length - 2}`}
+                  </div>
+                );
+              })()}
+            </button>
+          ) : (
+            <div className="space-y-1.5">
+              <div className="text-sm text-muted-foreground italic">No vendor</div>
+              {canEdit && !isTerminal && (
+                <button
+                  type="button"
+                  onClick={() => setVendorOpen(true)}
+                  className="text-[11px] text-architect underline decoration-gold/60 underline-offset-2 hover:decoration-gold"
+                >
+                  Assign vendor
+                </button>
+              )}
+            </div>
+          )}
+        </SummaryCard>
       </div>
 
       {hasWorkflow && ticket.workflow_key && (
@@ -605,6 +642,17 @@ export default function TicketDetail() {
             open={cancelOpen}
             onOpenChange={setCancelOpen}
             ticketId={ticket.id}
+            onDone={refetch}
+          />
+          <AssignVendorDialog
+            open={vendorOpen}
+            onOpenChange={setVendorOpen}
+            ticketId={ticket.id}
+            ticketType={ticket.ticket_type}
+            currentVendorId={ticket.vendor_id}
+            currentVendorLabel={vendorInfo ? vendorDisplayName(vendorInfo) : null}
+            currentWorkflowKey={(ticket.workflow_key as WorkflowKey | null) ?? null}
+            costApprovalStatus={ticket.cost_approval_status}
             onDone={refetch}
           />
         </>
