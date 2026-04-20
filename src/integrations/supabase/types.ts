@@ -2144,6 +2144,19 @@ export type Database = {
         Args: { p_stages: Json; p_ticket_id: string; p_workflow_key: string }
         Returns: undefined
       }
+      list_auth_users_with_person: {
+        Args: never
+        Returns: {
+          auth_user_id: string
+          created_at: string
+          email: string
+          person_first_name: string
+          person_id: string
+          person_last_name: string
+          person_ref_code: string
+          person_roles: Database["public"]["Enums"]["person_role"][]
+        }[]
+      }
       next_number: {
         Args: { p_prefix: string; p_year: number }
         Returns: string

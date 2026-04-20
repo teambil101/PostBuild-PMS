@@ -7,6 +7,7 @@ import { Loader2, UserPlus, Search, Mail, Phone, X } from "lucide-react";
 import { PersonFormDialog } from "@/components/people/PersonFormDialog";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { AuthLinksSection } from "./AuthLinksSection";
 
 interface StaffPerson {
   id: string;
@@ -215,6 +216,9 @@ export function TeamMembersSection() {
           initial={editing}
         />
       )}
+
+      {/* Admin-only: connect login accounts to person records */}
+      <AuthLinksSection />
     </div>
   );
 }
