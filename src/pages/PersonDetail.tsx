@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Mail, Phone, Building2, Pencil, Trash2, FileText, Upload, Star, Home } from "lucide-react";
+import { ArrowLeft, Mail, Phone, Building2, Pencil, Trash2, FileText, Upload, Star, Home, Target } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/PageHeader";
@@ -15,6 +15,13 @@ import { EntityTicketsTab, type TicketSection } from "@/components/tickets/Entit
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { fetchOwnershipsByPerson, OwnedProperty } from "@/lib/ownership";
+import {
+  LEAD_STATUS_LABELS, LEAD_STATUS_STYLES, LEAD_SOURCE_LABELS,
+  TERMINAL_STATUSES,
+  getStageAgingDays, getDaysToClose,
+  type LeadRow,
+} from "@/lib/leads";
+import { cn } from "@/lib/utils";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -31,6 +38,7 @@ export default function PersonDetail() {
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
   const [ticketCount, setTicketCount] = useState<number>(0);
+  const [leadCount, setLeadCount] = useState<number>(0);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get("tab") ?? "ownership";
   const setActiveTab = (v: string) => {
@@ -170,6 +178,7 @@ export default function PersonDetail() {
             { v: "ownership", l: "Ownership" },
             { v: "tenancy", l: "Tenancy" },
             { v: "documents", l: `Documents (${docs.length})` },
+            { v: "leads", l: `Leads (${leadCount})` },
             { v: "tickets", l: `Tickets (${ticketCount})` },
             { v: "notes", l: "Notes" },
           ].map((t) => (
