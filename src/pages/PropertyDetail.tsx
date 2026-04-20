@@ -298,10 +298,20 @@ export default function PropertyDetail() {
                     <tr key={u.id} className="border-b hairline last:border-0 hover:bg-muted/30">
                       <td className="px-4 py-3 ref-code">{u.ref_code}</td>
                       <td className="px-4 py-3 font-medium text-architect">{u.unit_number}</td>
-                      <td className="px-4 py-3 text-muted-foreground capitalize">{u.unit_type}</td>
-                      <td className="px-4 py-3"><StatusBadge status={u.status} /></td>
+                      <td className="px-4 py-3 text-muted-foreground">{formatEnumLabel(u.unit_type)}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1.5">
+                          <StatusBadge status={u.status} />
+                          {u.status === "occupied" && !u.status_locked_by_lease_id && (
+                            <span
+                              title="Missing lease details"
+                              className="h-1.5 w-1.5 rounded-full bg-amber-500"
+                            />
+                          )}
+                        </div>
+                      </td>
                       <td className="px-4 py-3 text-right mono text-xs">{u.floor ?? "—"}</td>
-                      <td className="px-4 py-3 text-right mono text-xs">{u.size_sqm ? `${u.size_sqm} m²` : "—"}</td>
+                      <td className="px-4 py-3 text-right mono text-xs">{formatSize(u)}</td>
                       <td className="px-4 py-3 text-right mono text-xs">
                         {(u.bedrooms ?? "—") + " / " + (u.bathrooms ?? "—")}
                       </td>
@@ -445,9 +455,40 @@ export default function PropertyDetail() {
         open={unitOpen}
         onOpenChange={setUnitOpen}
         buildingId={building.id}
+        parentBuildingType={building.building_type}
         initial={editingUnit ?? undefined}
-        onSaved={() => { setUnitOpen(false); setEditingUnit(null); load(); }}
+        onSaved={(created) => {
+          setUnitOpen(false);
+          setEditingUnit(null);
+          load();
+          if (created && !editingUnit && created.status === "occupied") {
+            setLeasePrompt({ unitId: created.id });
+          }
+        }}
       />
+
+      <AlertDialog open={!!leasePrompt} onOpenChange={(v) => !v && setLeasePrompt(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Add lease details?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This unit is marked Occupied. Add the lease details now so the system reflects reality.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setLeasePrompt(null)}>Later</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setLeasePrompt(null);
+                toast("Lease creation coming soon");
+              }}
+              className="bg-gold text-architect hover:bg-gold/90"
+            >
+              Add lease
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
