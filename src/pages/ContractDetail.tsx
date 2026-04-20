@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -16,12 +16,17 @@ import { AddSubjectDialog } from "@/components/contracts/dialogs/AddSubjectDialo
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   CONTRACT_TYPE_LABELS, type ContractType, type ContractStatus,
   formatContractValue, summarizePeriod, daysUntil, duplicateContract,
-  SCOPE_LABELS, type ScopeService, FEE_MODEL_LABELS,
+  SCOPE_LABELS, type ScopeService, FEE_MODEL_LABELS, PARTY_ROLES,
 } from "@/lib/contracts";
 import { formatEnumLabel } from "@/lib/format";
 import {
@@ -75,8 +80,6 @@ interface EventRow {
   description: string | null; actor_id: string | null; created_at: string;
 }
 
-const DISABLED_TIP = "Coming in next update";
-
 export default function ContractDetail() {
   const navigate = useNavigate();
   const { canEdit } = useAuth();
@@ -87,7 +90,7 @@ export default function ContractDetail() {
   const [subjects, setSubjects] = useState<SubjectRow[]>([]);
   const [events, setEvents] = useState<EventRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [reloadKey, setReloadKey] = useState(0);
+  const [selfPersonId, setSelfPersonId] = useState<string | null>(null);
 
   // Action dialog state
   const [editOpen, setEditOpen] = useState(false);
@@ -98,6 +101,7 @@ export default function ContractDetail() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [addPartyOpen, setAddPartyOpen] = useState(false);
   const [addSubjectOpen, setAddSubjectOpen] = useState(false);
+  const [duplicating, setDuplicating] = useState(false);
 
   // Inline edit state
   const [editingNotes, setEditingNotes] = useState(false);
@@ -106,62 +110,67 @@ export default function ContractDetail() {
   const [extRefDraft, setExtRefDraft] = useState("");
   const [editingNoticeDays, setEditingNoticeDays] = useState(false);
   const [noticeDaysDraft, setNoticeDaysDraft] = useState("");
+  const [confirmAutoRenewOpen, setConfirmAutoRenewOpen] = useState(false);
+  const [pendingAutoRenew, setPendingAutoRenew] = useState<boolean | null>(null);
 
-  const refresh = () => setReloadKey((k) => k + 1);
+  // Party row inline editing & deletion
+  const [removePartyTarget, setRemovePartyTarget] = useState<PartyRow | null>(null);
+  const [removeSubjectTarget, setRemoveSubjectTarget] = useState<SubjectRow | null>(null);
 
   const reloadAll = async () => {
     if (!contractId) return;
     setLoading(true);
+    const [cRes, maRes, pRes, sRes, eRes, settingsRes] = await Promise.all([
+      supabase.from("contracts").select("*").eq("id", contractId).maybeSingle(),
+      supabase.from("management_agreements").select("*").eq("contract_id", contractId).maybeSingle(),
+      supabase
+        .from("contract_parties")
+        .select("id, person_id, role, is_signatory, signed_at, people(first_name, last_name, company)")
+        .eq("contract_id", contractId),
+      supabase.from("contract_subjects").select("*").eq("contract_id", contractId),
+      supabase.from("contract_events").select("*").eq("contract_id", contractId).order("created_at", { ascending: false }),
+      supabase.from("app_settings").select("self_person_id").maybeSingle(),
+    ]);
+    setContract(cRes.data as Contract | null);
+    setMa(maRes.data as MA | null);
+    setParties(((pRes.data ?? []) as any[]).map((p) => ({ ...p, person: p.people })));
+    setEvents((eRes.data ?? []) as EventRow[]);
+    setSelfPersonId((settingsRes.data?.self_person_id as string) ?? null);
+
+    // Resolve subject labels
+    const subjList = (sRes.data ?? []) as SubjectRow[];
+    const buildingIds = subjList.filter((s) => s.entity_type === "building").map((s) => s.entity_id);
+    const unitIds = subjList.filter((s) => s.entity_type === "unit").map((s) => s.entity_id);
+    const [bRes, uRes] = await Promise.all([
+      buildingIds.length
+        ? supabase.from("buildings").select("id, name").in("id", buildingIds)
+        : Promise.resolve({ data: [] as any[] }),
+      unitIds.length
+        ? supabase.from("units").select("id, unit_number, building_id, buildings(name)").in("id", unitIds)
+        : Promise.resolve({ data: [] as any[] }),
+    ]);
+    const bMap = new Map<string, string>();
+    ((bRes.data ?? []) as any[]).forEach((b) => bMap.set(b.id, b.name));
+    const uMap = new Map<string, { label: string; building_id: string }>();
+    ((uRes.data ?? []) as any[]).forEach((u) =>
+      uMap.set(u.id, { label: `${u.buildings?.name ?? ""} · ${u.unit_number}`, building_id: u.building_id }),
+    );
+    setSubjects(
+      subjList.map((s) => ({
+        ...s,
+        entity_label:
+          s.entity_type === "building"
+            ? bMap.get(s.entity_id) ?? "(deleted)"
+            : uMap.get(s.entity_id)?.label ?? "(deleted)",
+        building_id: s.entity_type === "unit" ? uMap.get(s.entity_id)?.building_id : undefined,
+      })),
+    );
+    setLoading(false);
+  };
 
   useEffect(() => {
-    if (!contractId) return;
-    (async () => {
-      setLoading(true);
-      const [cRes, maRes, pRes, sRes, eRes] = await Promise.all([
-        supabase.from("contracts").select("*").eq("id", contractId).maybeSingle(),
-        supabase.from("management_agreements").select("*").eq("contract_id", contractId).maybeSingle(),
-        supabase
-          .from("contract_parties")
-          .select("id, person_id, role, is_signatory, signed_at, people(first_name, last_name, company)")
-          .eq("contract_id", contractId),
-        supabase.from("contract_subjects").select("*").eq("contract_id", contractId),
-        supabase.from("contract_events").select("*").eq("contract_id", contractId).order("created_at", { ascending: false }),
-      ]);
-      setContract(cRes.data as Contract | null);
-      setMa(maRes.data as MA | null);
-      setParties(((pRes.data ?? []) as any[]).map((p) => ({ ...p, person: p.people })));
-      setEvents((eRes.data ?? []) as EventRow[]);
-
-      // Resolve subject labels
-      const subjList = (sRes.data ?? []) as SubjectRow[];
-      const buildingIds = subjList.filter((s) => s.entity_type === "building").map((s) => s.entity_id);
-      const unitIds = subjList.filter((s) => s.entity_type === "unit").map((s) => s.entity_id);
-      const [bRes, uRes] = await Promise.all([
-        buildingIds.length
-          ? supabase.from("buildings").select("id, name").in("id", buildingIds)
-          : Promise.resolve({ data: [] as any[] }),
-        unitIds.length
-          ? supabase.from("units").select("id, unit_number, building_id, buildings(name)").in("id", unitIds)
-          : Promise.resolve({ data: [] as any[] }),
-      ]);
-      const bMap = new Map<string, string>();
-      ((bRes.data ?? []) as any[]).forEach((b) => bMap.set(b.id, b.name));
-      const uMap = new Map<string, { label: string; building_id: string }>();
-      ((uRes.data ?? []) as any[]).forEach((u) =>
-        uMap.set(u.id, { label: `${u.buildings?.name ?? ""} · ${u.unit_number}`, building_id: u.building_id }),
-      );
-      setSubjects(
-        subjList.map((s) => ({
-          ...s,
-          entity_label:
-            s.entity_type === "building"
-              ? bMap.get(s.entity_id) ?? "(deleted)"
-              : uMap.get(s.entity_id)?.label ?? "(deleted)",
-          building_id: s.entity_type === "unit" ? uMap.get(s.entity_id)?.building_id : undefined,
-        })),
-      );
-      setLoading(false);
-    })();
+    reloadAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contractId]);
 
   if (loading) {
@@ -197,18 +206,146 @@ export default function ContractDetail() {
     return `${partyName(parties[0])} ↔ ${partyName(parties[1])}`;
   })();
 
-  const DisabledBtn = ({ icon: Icon, label }: { icon: any; label: string }) => (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span tabIndex={0}>
-          <Button variant="outline" size="sm" disabled>
-            <Icon className="h-4 w-4" /> {label}
-          </Button>
-        </span>
-      </TooltipTrigger>
-      <TooltipContent>{DISABLED_TIP}</TooltipContent>
-    </Tooltip>
-  );
+  const isImmutable = contract.status === "expired" || contract.status === "cancelled";
+  const isActive = contract.status === "active";
+  const isDraft = contract.status === "draft";
+  const isPending = contract.status === "pending_signature";
+  const isTerminated = contract.status === "terminated";
+
+  // Action handlers
+  const handleDuplicate = async () => {
+    setDuplicating(true);
+    try {
+      const newId = await duplicateContract(contract.id);
+      toast.success(`Draft created from ${contract.contract_number}.`);
+      navigate(`/contracts/${newId}`);
+    } catch (e: any) {
+      toast.error(e.message ?? "Could not duplicate.");
+    } finally {
+      setDuplicating(false);
+    }
+  };
+
+  const logEvent = async (event_type: string, description: string, from_value?: string, to_value?: string) => {
+    const { data: u } = await supabase.auth.getUser();
+    await supabase.from("contract_events").insert({
+      contract_id: contract.id,
+      event_type,
+      from_value: from_value ?? null,
+      to_value: to_value ?? null,
+      description,
+      actor_id: u.user?.id,
+    });
+  };
+
+  // Inline saves
+  const saveNotes = async () => {
+    const v = notesDraft.trim() || null;
+    const { error } = await supabase.from("contracts").update({ notes: v, updated_at: new Date().toISOString() }).eq("id", contract.id);
+    if (error) { toast.error(error.message); return; }
+    await logEvent("amended", "Updated notes");
+    toast.success("Notes saved.");
+    setEditingNotes(false);
+    reloadAll();
+  };
+
+  const saveExtRef = async () => {
+    const v = extRefDraft.trim() || null;
+    const { error } = await supabase.from("contracts").update({ external_reference: v, updated_at: new Date().toISOString() }).eq("id", contract.id);
+    if (error) { toast.error(error.message); return; }
+    await logEvent("amended", "Updated external reference");
+    toast.success("Reference saved.");
+    setEditingExtRef(false);
+    reloadAll();
+  };
+
+  const saveNoticeDays = async () => {
+    const n = parseInt(noticeDaysDraft, 10);
+    if (!Number.isFinite(n) || n < 0) { toast.error("Enter a valid number of days."); return; }
+    const { error } = await supabase.from("management_agreements").update({ termination_notice_days: n, updated_at: new Date().toISOString() }).eq("contract_id", contract.id);
+    if (error) { toast.error(error.message); return; }
+    await logEvent("amended", `Termination notice set to ${n} days`);
+    toast.success("Notice period saved.");
+    setEditingNoticeDays(false);
+    reloadAll();
+  };
+
+  const handleAutoRenewToggle = (next: boolean) => {
+    if (isActive) {
+      setPendingAutoRenew(next);
+      setConfirmAutoRenewOpen(true);
+    } else {
+      void doAutoRenewSave(next);
+    }
+  };
+
+  const doAutoRenewSave = async (next: boolean) => {
+    const { error } = await supabase.from("contracts").update({ auto_renew: next, updated_at: new Date().toISOString() }).eq("id", contract.id);
+    if (error) { toast.error(error.message); return; }
+    await logEvent("amended", `Auto-renew ${next ? "enabled" : "disabled"}`);
+    toast.success("Auto-renew updated.");
+    setConfirmAutoRenewOpen(false);
+    setPendingAutoRenew(null);
+    reloadAll();
+  };
+
+  const updatePartyRole = async (partyId: string, role: string) => {
+    const { error } = await supabase.from("contract_parties").update({ role }).eq("id", partyId);
+    if (error) { toast.error(error.message); return; }
+    await logEvent("amended", `Party role changed to ${formatEnumLabel(role)}`);
+    toast.success("Role updated.");
+    reloadAll();
+  };
+
+  const removeParty = async () => {
+    if (!removePartyTarget) return;
+    const name = partyName(removePartyTarget);
+    const { error } = await supabase.from("contract_parties").delete().eq("id", removePartyTarget.id);
+    if (error) { toast.error(error.message); return; }
+    await logEvent("party_removed", `Removed ${name} (${formatEnumLabel(removePartyTarget.role)})`);
+    toast.success("Party removed.");
+    setRemovePartyTarget(null);
+    reloadAll();
+  };
+
+  const removeSubject = async () => {
+    if (!removeSubjectTarget) return;
+    const { error } = await supabase.from("contract_subjects").delete().eq("id", removeSubjectTarget.id);
+    if (error) { toast.error(error.message); return; }
+    await logEvent("subject_removed", `Removed ${removeSubjectTarget.entity_label ?? removeSubjectTarget.entity_type}`);
+    toast.success("Property removed.");
+    setRemoveSubjectTarget(null);
+    reloadAll();
+  };
+
+  // After signatures: maybe auto-activate
+  const onSignaturesSaved = (allSigned: boolean) => {
+    reloadAll();
+    if (allSigned && isPending) setPostSignActivateOpen(true);
+  };
+
+  const activateAfterSign = async () => {
+    const { data: u } = await supabase.auth.getUser();
+    const { error } = await supabase
+      .from("contracts")
+      .update({ status: "active", updated_at: new Date().toISOString() })
+      .eq("id", contract.id);
+    if (error) { toast.error(error.message); return; }
+    await supabase.from("contract_events").insert({
+      contract_id: contract.id,
+      event_type: "status_changed",
+      from_value: "pending_signature",
+      to_value: "active",
+      description: "Activated after signatures",
+      actor_id: u.user?.id,
+    });
+    toast.success("Contract activated.");
+    setPostSignActivateOpen(false);
+    reloadAll();
+  };
+
+  const existingPartyPersonIds = parties.map((p) => p.person_id);
+  const existingSubjectKeys = subjects.map((s) => `${s.entity_type}:${s.entity_id}`);
 
   return (
     <>
@@ -233,16 +370,38 @@ export default function ContractDetail() {
               </p>
             )}
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <DisabledBtn icon={Pencil} label="Edit" />
-            {(contract.status === "draft" || contract.status === "pending_signature") && (
-              <DisabledBtn icon={Power} label="Activate" />
-            )}
-            {contract.status === "pending_signature" && <DisabledBtn icon={FileSignature} label="Mark as signed" />}
-            {contract.status === "active" && <DisabledBtn icon={XCircle} label="Terminate" />}
-            <DisabledBtn icon={CopyIcon} label="Duplicate" />
-            {contract.status === "draft" && <DisabledBtn icon={Trash2} label="Delete" />}
-          </div>
+          {canEdit && (
+            <div className="flex flex-wrap items-center gap-2">
+              {!isImmutable && contract.contract_type === "management_agreement" && (
+                <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+                  <Pencil className="h-4 w-4" /> Edit
+                </Button>
+              )}
+              {(isDraft || isPending) && (
+                <Button variant="outline" size="sm" onClick={() => setActivateOpen(true)}>
+                  <Power className="h-4 w-4" /> Activate
+                </Button>
+              )}
+              {isPending && (
+                <Button variant="outline" size="sm" onClick={() => setSignOpen(true)}>
+                  <FileSignature className="h-4 w-4" /> Mark as signed
+                </Button>
+              )}
+              {isActive && (
+                <Button variant="outline" size="sm" onClick={() => setTerminateOpen(true)}>
+                  <XCircle className="h-4 w-4" /> Terminate
+                </Button>
+              )}
+              <Button variant="outline" size="sm" onClick={handleDuplicate} disabled={duplicating}>
+                {duplicating ? <Loader2 className="h-4 w-4 animate-spin" /> : <CopyIcon className="h-4 w-4" />} Duplicate
+              </Button>
+              {isDraft && (
+                <Button variant="outline" size="sm" onClick={() => setDeleteOpen(true)} className="text-destructive hover:text-destructive">
+                  <Trash2 className="h-4 w-4" /> Delete
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -309,6 +468,9 @@ export default function ContractDetail() {
                     <DLRow label="Repair approval threshold" value={`${contract.currency} ${Number(ma.repair_approval_threshold).toLocaleString()}`} />
                   )}
                 </DL>
+                <p className="text-[11px] text-muted-foreground mt-3">
+                  Fee model and value are managed via the Edit wizard.
+                </p>
               </Section>
 
               <Section title="Scope of services">
@@ -334,8 +496,64 @@ export default function ContractDetail() {
                 <DL>
                   <DLRow label="Start" value={contract.start_date ? format(new Date(contract.start_date), "PPP") : "—"} />
                   <DLRow label="End" value={contract.end_date ? format(new Date(contract.end_date), "PPP") : "—"} />
-                  <DLRow label="Auto-renew" value={contract.auto_renew ? "Yes" : "No"} />
-                  <DLRow label="Termination notice" value={ma.termination_notice_days != null ? `${ma.termination_notice_days} days` : "—"} />
+                  <DLRow
+                    label="Auto-renew"
+                    value={
+                      canEdit ? (
+                        <Switch checked={contract.auto_renew} onCheckedChange={handleAutoRenewToggle} disabled={isImmutable || isTerminated} />
+                      ) : (contract.auto_renew ? "Yes" : "No")
+                    }
+                  />
+                  <DLRow
+                    label="Termination notice"
+                    value={
+                      editingNoticeDays && canEdit ? (
+                        <div className="flex items-center gap-1.5">
+                          <Input type="number" min={0} value={noticeDaysDraft}
+                            onChange={(e) => setNoticeDaysDraft(e.target.value)}
+                            className="h-8 w-24" />
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={saveNoticeDays}><Check className="h-3.5 w-3.5 text-status-occupied" /></Button>
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingNoticeDays(false)}><X className="h-3.5 w-3.5" /></Button>
+                        </div>
+                      ) : (
+                        <button
+                          className={canEdit && !isImmutable ? "hover:text-gold-deep inline-flex items-center gap-1.5" : ""}
+                          onClick={() => {
+                            if (!canEdit || isImmutable) return;
+                            setNoticeDaysDraft(String(ma.termination_notice_days ?? 0));
+                            setEditingNoticeDays(true);
+                          }}
+                        >
+                          {ma.termination_notice_days != null ? `${ma.termination_notice_days} days` : "—"}
+                          {canEdit && !isImmutable && <Pencil className="h-3 w-3 opacity-50" />}
+                        </button>
+                      )
+                    }
+                  />
+                  <DLRow
+                    label="External reference"
+                    value={
+                      editingExtRef && canEdit ? (
+                        <div className="flex items-center gap-1.5">
+                          <Input value={extRefDraft} onChange={(e) => setExtRefDraft(e.target.value)} className="h-8 w-48" />
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={saveExtRef}><Check className="h-3.5 w-3.5 text-status-occupied" /></Button>
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingExtRef(false)}><X className="h-3.5 w-3.5" /></Button>
+                        </div>
+                      ) : (
+                        <button
+                          className={canEdit && !isImmutable ? "hover:text-gold-deep inline-flex items-center gap-1.5" : ""}
+                          onClick={() => {
+                            if (!canEdit || isImmutable) return;
+                            setExtRefDraft(contract.external_reference ?? "");
+                            setEditingExtRef(true);
+                          }}
+                        >
+                          {contract.external_reference || "—"}
+                          {canEdit && !isImmutable && <Pencil className="h-3 w-3 opacity-50" />}
+                        </button>
+                      )
+                    }
+                  />
                 </DL>
               </Section>
             </>
@@ -349,14 +567,52 @@ export default function ContractDetail() {
             </Section>
           )}
 
-          {contract.notes && (
-            <Section title="Notes">
-              <p className="text-sm text-architect whitespace-pre-wrap">{contract.notes}</p>
-            </Section>
-          )}
+          <Section title="Notes">
+            {editingNotes && canEdit ? (
+              <div className="space-y-2">
+                <Textarea rows={4} value={notesDraft} onChange={(e) => setNotesDraft(e.target.value)} />
+                <div className="flex items-center justify-end gap-2">
+                  <Button size="sm" variant="ghost" onClick={() => setEditingNotes(false)}><X className="h-3.5 w-3.5" /> Cancel</Button>
+                  <Button size="sm" variant="gold" onClick={saveNotes}><Check className="h-3.5 w-3.5" /> Save</Button>
+                </div>
+              </div>
+            ) : (
+              <button
+                className={"w-full text-left " + (canEdit && !isImmutable ? "hover:bg-muted/30 -m-2 p-2 rounded-sm" : "")}
+                onClick={() => {
+                  if (!canEdit || isImmutable) return;
+                  setNotesDraft(contract.notes ?? "");
+                  setEditingNotes(true);
+                }}
+              >
+                {contract.notes ? (
+                  <p className="text-sm text-architect whitespace-pre-wrap">{contract.notes}</p>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">
+                    {canEdit && !isImmutable ? "Click to add notes…" : "No notes."}
+                  </p>
+                )}
+              </button>
+            )}
+          </Section>
         </TabsContent>
 
-        <TabsContent value="parties" className="mt-6">
+        <TabsContent value="parties" className="mt-6 space-y-3">
+          {isActive && canEdit && (
+            <div className="border hairline rounded-sm bg-amber-500/10 border-amber-500/30 p-3 flex gap-2.5">
+              <AlertTriangle className="h-4 w-4 text-amber-700 shrink-0 mt-0.5" />
+              <p className="text-xs text-amber-900 leading-relaxed">
+                This contract is active. Party changes should reflect real legal changes (e.g. transfer of ownership). Add a note explaining the reason.
+              </p>
+            </div>
+          )}
+          {canEdit && !isImmutable && (
+            <div className="flex items-center justify-end">
+              <Button size="sm" variant="gold" onClick={() => setAddPartyOpen(true)}>
+                <Plus className="h-4 w-4" /> Add party
+              </Button>
+            </div>
+          )}
           {parties.length === 0 ? (
             <div className="border hairline rounded-sm bg-card p-6 text-sm text-muted-foreground text-center">
               No parties recorded.
@@ -370,30 +626,70 @@ export default function ContractDetail() {
                     <th className="px-4 py-3 label-eyebrow">Role</th>
                     <th className="px-4 py-3 label-eyebrow">Signatory</th>
                     <th className="px-4 py-3 label-eyebrow">Signed</th>
+                    {canEdit && !isImmutable && <th className="w-16" />}
                   </tr>
                 </thead>
                 <tbody>
-                  {parties.map((p) => (
-                    <tr key={p.id} className="border-b hairline last:border-0 hover:bg-muted/30">
-                      <td className="px-4 py-3">
-                        <Link to={`/people/${p.person_id}`} className="text-architect hover:text-gold-deep inline-flex items-center gap-1">
-                          {partyName(p)} <ExternalLink className="h-3 w-3 opacity-50" />
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground capitalize">{p.role.replace(/_/g, " ")}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{p.is_signatory ? "Yes" : "No"}</td>
-                      <td className="px-4 py-3 text-muted-foreground text-xs">
-                        {p.signed_at ? format(new Date(p.signed_at), "PPP") : "—"}
-                      </td>
-                    </tr>
-                  ))}
+                  {parties.map((p) => {
+                    const isSelf = !!selfPersonId && p.person_id === selfPersonId;
+                    const onlyParty = parties.length <= 1;
+                    const cantRemove = isSelf || onlyParty;
+                    return (
+                      <tr key={p.id} className="border-b hairline last:border-0 hover:bg-muted/30">
+                        <td className="px-4 py-3">
+                          <Link to={`/people/${p.person_id}`} className="text-architect hover:text-gold-deep inline-flex items-center gap-1">
+                            {partyName(p)} <ExternalLink className="h-3 w-3 opacity-50" />
+                            {isSelf && <span className="ml-1.5 text-[10px] mono uppercase text-gold-deep">PM</span>}
+                          </Link>
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {canEdit && !isImmutable && !isSelf ? (
+                            <Select value={p.role} onValueChange={(v) => updatePartyRole(p.id, v)}>
+                              <SelectTrigger className="h-8 w-44"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {PARTY_ROLES.map((r) => (
+                                  <SelectItem key={r} value={r}>{formatEnumLabel(r)}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <span className="capitalize">{p.role.replace(/_/g, " ")}</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">{p.is_signatory ? "Yes" : "No"}</td>
+                        <td className="px-4 py-3 text-muted-foreground text-xs">
+                          {p.signed_at ? format(new Date(p.signed_at), "PPP") : "—"}
+                        </td>
+                        {canEdit && !isImmutable && (
+                          <td className="px-2 py-3 text-right">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              disabled={cantRemove}
+                              title={cantRemove ? (isSelf ? "PM company must remain" : "At least one party required") : "Remove"}
+                              onClick={() => setRemovePartyTarget(p)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                            </Button>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
           )}
         </TabsContent>
 
-        <TabsContent value="subjects" className="mt-6">
+        <TabsContent value="subjects" className="mt-6 space-y-3">
+          {canEdit && !isImmutable && (
+            <div className="flex items-center justify-end">
+              <Button size="sm" variant="gold" onClick={() => setAddSubjectOpen(true)}>
+                <Plus className="h-4 w-4" /> Add subject
+              </Button>
+            </div>
+          )}
           {subjects.length === 0 ? (
             <div className="border hairline rounded-sm bg-card p-6 text-sm text-muted-foreground text-center">
               No properties linked.
@@ -409,18 +705,24 @@ export default function ContractDetail() {
                       ? `/properties/${s.building_id}/units/${s.entity_id}`
                       : "/properties";
                 return (
-                  <Link
-                    key={s.id}
-                    to={href}
-                    className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30"
-                  >
+                  <div key={s.id} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30">
                     <Icon className="h-4 w-4 text-true-taupe" strokeWidth={1.5} />
-                    <div className="flex-1 min-w-0">
+                    <Link to={href} className="flex-1 min-w-0">
                       <div className="text-sm text-architect truncate">{s.entity_label}</div>
                       <div className="text-[11px] text-muted-foreground capitalize">{s.entity_type}</div>
-                    </div>
-                    <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
-                  </Link>
+                    </Link>
+                    <Link to={href}><ExternalLink className="h-3.5 w-3.5 text-muted-foreground" /></Link>
+                    {canEdit && !isImmutable && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Remove from contract"
+                        onClick={() => setRemoveSubjectTarget(s)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                      </Button>
+                    )}
+                  </div>
                 );
               })}
             </div>
@@ -428,13 +730,11 @@ export default function ContractDetail() {
         </TabsContent>
 
         <TabsContent value="documents" className="mt-6">
-          <DocumentList entityType="contract" entityId={contract.id} editable={false} />
+          <DocumentList entityType="contract" entityId={contract.id} editable={canEdit && !isImmutable} />
         </TabsContent>
 
         <TabsContent value="notes" className="mt-6">
-          <div className="border hairline rounded-sm bg-card p-6 text-sm text-muted-foreground flex items-center gap-2 justify-center">
-            <AlertCircle className="h-4 w-4" /> Notes composer coming in next update.
-          </div>
+          <NotesPanel entityType="contract" entityId={contract.id} />
         </TabsContent>
 
         <TabsContent value="history" className="mt-6">
@@ -459,6 +759,7 @@ export default function ContractDetail() {
                       )}
                     </div>
                     <div className="text-[11px] text-muted-foreground mono">
+                      {e.actor_id ? "" : "System · "}
                       {formatDistanceToNow(new Date(e.created_at), { addSuffix: true })}
                     </div>
                   </div>
@@ -468,6 +769,143 @@ export default function ContractDetail() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* ============== Dialogs ============== */}
+      {contract.contract_type === "management_agreement" && (
+        <ManagementAgreementWizard
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          editContractId={contract.id}
+          onSaved={reloadAll}
+        />
+      )}
+
+      <ActivateContractDialog
+        open={activateOpen}
+        onOpenChange={setActivateOpen}
+        contractId={contract.id}
+        currentStatus={contract.status}
+        subjectsCount={subjects.length}
+        onActivated={reloadAll}
+      />
+
+      <MarkSignedDialog
+        open={signOpen}
+        onOpenChange={setSignOpen}
+        contractId={contract.id}
+        parties={parties.map((p) => ({
+          id: p.id,
+          person_id: p.person_id,
+          role: p.role,
+          is_signatory: p.is_signatory,
+          signed_at: p.signed_at,
+          display_name: partyName(p),
+        }))}
+        onSaved={onSignaturesSaved}
+      />
+
+      <TerminateContractDialog
+        open={terminateOpen}
+        onOpenChange={setTerminateOpen}
+        contractId={contract.id}
+        startDate={contract.start_date}
+        subjectsCount={subjects.length}
+        existingNotes={contract.notes}
+        onTerminated={reloadAll}
+      />
+
+      <DeleteContractDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        contractId={contract.id}
+        contractNumber={contract.contract_number}
+      />
+
+      <AddPartyDialog
+        open={addPartyOpen}
+        onOpenChange={setAddPartyOpen}
+        contractId={contract.id}
+        excludePersonIds={existingPartyPersonIds}
+        onAdded={reloadAll}
+      />
+
+      <AddSubjectDialog
+        open={addSubjectOpen}
+        onOpenChange={setAddSubjectOpen}
+        contractId={contract.id}
+        existingKeys={existingSubjectKeys}
+        onAdded={reloadAll}
+      />
+
+      {/* Confirm: activate after sign */}
+      <AlertDialog open={postSignActivateOpen} onOpenChange={setPostSignActivateOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>All parties have signed</AlertDialogTitle>
+            <AlertDialogDescription>Activate the contract now?</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Not yet</AlertDialogCancel>
+            <AlertDialogAction onClick={activateAfterSign} className="bg-status-occupied text-chalk hover:bg-status-occupied/90">
+              Activate
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirm: auto-renew change on active contract */}
+      <AlertDialog open={confirmAutoRenewOpen} onOpenChange={setConfirmAutoRenewOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Change auto-renew on an active contract?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This contract is active. Toggling auto-renew affects how it expires and will be logged in history.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingAutoRenew(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => pendingAutoRenew !== null && doAutoRenewSave(pendingAutoRenew)}>
+              Continue
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Remove party confirm */}
+      <AlertDialog open={!!removePartyTarget} onOpenChange={(v) => !v && setRemovePartyTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove {removePartyTarget ? partyName(removePartyTarget) : ""} from this contract?</AlertDialogTitle>
+            <AlertDialogDescription>This will be logged in the contract history.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={removeParty} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Remove subject confirm */}
+      <AlertDialog open={!!removeSubjectTarget} onOpenChange={(v) => !v && setRemoveSubjectTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove {removeSubjectTarget?.entity_label} from this contract?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {isActive
+                ? "This contract is active. Removing this property may affect your authority to manage related leases."
+                : "This will be logged in the contract history."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={removeSubject} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
