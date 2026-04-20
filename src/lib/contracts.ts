@@ -209,13 +209,12 @@ export async function duplicateContract(contractId: string): Promise<string> {
     .maybeSingle();
   if (srcErr || !src) throw new Error(srcErr?.message ?? "Original contract not found.");
 
-  // Per-type number prefix. Each subtype owns its own counter sequence.
-  const PREFIX_BY_TYPE: Record<string, string> = {
-    lease: "LSE",
-    management_agreement: "MGT",
-  };
-  let prefix = PREFIX_BY_TYPE[src.contract_type as string];
-  if (!prefix) {
+  // Lease subtype uses its own counter (LSE-YYYY-NNNN). All others fall back
+  // to the configured global prefix (default CTR), preserving prior behavior.
+  let prefix: string;
+  if (src.contract_type === "lease") {
+    prefix = "LSE";
+  } else {
     const { data: settings } = await supabase
       .from("app_settings")
       .select("contract_number_prefix")
