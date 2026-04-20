@@ -1010,3 +1010,65 @@ function humanizeEvent(t: string): string {
     default: return t.replace(/_/g, " ");
   }
 }
+
+function VendorTicketsTabSection({
+  vendor,
+  onCountChange,
+  onNewForVendor,
+  onNewAboutVendor,
+}: {
+  vendor: Vendor;
+  onCountChange: (n: number) => void;
+  onNewForVendor: () => void;
+  onNewAboutVendor: () => void;
+}) {
+  const sections: TicketSection[] = [
+    {
+      key: "assigned",
+      label: "Assigned tickets",
+      emptyText: "No tickets currently assigned to this vendor.",
+      fetch: async () => {
+        const { data } = await supabase
+          .from("tickets")
+          .select("id, ticket_number, subject, ticket_type, priority, status, assignee_id, due_date, created_at, target_entity_type, target_entity_id, is_system_generated")
+          .eq("vendor_id", vendor.id)
+          .order("created_at", { ascending: false });
+        return (data ?? []) as EntityTicketRow[];
+      },
+    },
+    {
+      key: "about",
+      label: "Tickets about this vendor",
+      emptyText: "No tickets target this vendor.",
+      fetch: async () => {
+        const { data } = await supabase
+          .from("tickets")
+          .select("id, ticket_number, subject, ticket_type, priority, status, assignee_id, due_date, created_at, target_entity_type, target_entity_id, is_system_generated")
+          .eq("target_entity_type", "vendor")
+          .eq("target_entity_id", vendor.id)
+          .order("created_at", { ascending: false });
+        return (data ?? []) as EntityTicketRow[];
+      },
+    },
+  ];
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <Button variant="outline" size="sm" onClick={onNewForVendor}>
+          <Plus className="h-3.5 w-3.5" /> New ticket for this vendor
+        </Button>
+        <Button variant="gold" size="sm" onClick={onNewAboutVendor}>
+          <Plus className="h-3.5 w-3.5" /> New ticket about this vendor
+        </Button>
+      </div>
+      <EntityTicketsTab
+        entityType="vendor"
+        entityId={vendor.id}
+        entityLabel={vendorDisplayName(vendor)}
+        groupedView
+        sections={sections}
+        onActiveCountChange={onCountChange}
+      />
+    </div>
+  );
+}
