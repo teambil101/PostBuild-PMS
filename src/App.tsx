@@ -19,6 +19,8 @@ import Contracts from "./pages/Contracts";
 import ContractDetail from "./pages/ContractDetail";
 import Settings from "./pages/Settings";
 import Lifecycle from "./pages/Lifecycle";
+import Tickets from "./pages/Tickets";
+import TicketDetail from "./pages/TicketDetail";
 
 const queryClient = new QueryClient();
 
@@ -47,7 +49,8 @@ const App = () => (
             <Route path="/contracts/:contractId" element={<Shell><ContractDetail /></Shell>} />
             <Route path="/settings" element={<Shell><Settings /></Shell>} />
             <Route path="/lifecycle" element={<Shell><Lifecycle /></Shell>} />
-            <Route path="/tickets" element={<Shell><ComingSoon /></Shell>} />
+            <Route path="/tickets" element={<Shell><Tickets /></Shell>} />
+            <Route path="/tickets/:ticketId" element={<Shell><TicketDetail /></Shell>} />
             <Route path="/dashboards" element={<Shell><ComingSoon /></Shell>} />
             <Route path="/vendors" element={<Shell><ComingSoon /></Shell>} />
             <Route path="/services" element={<Shell><ComingSoon /></Shell>} />
