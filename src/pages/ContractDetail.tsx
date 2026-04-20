@@ -466,7 +466,7 @@ export default function ContractDetail() {
           </div>
           {canEdit && (
             <div className="flex flex-wrap items-center gap-2">
-              {!isImmutable && contract.contract_type === "management_agreement" && (
+              {!isImmutable && (contract.contract_type === "management_agreement" || contract.contract_type === "service_agreement") && (
                 <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
                   <Pencil className="h-4 w-4" /> Edit
                 </Button>
@@ -517,6 +517,51 @@ export default function ContractDetail() {
             currency={contract.currency}
             tenant={leaseTenant}
           />
+        ) : contract.contract_type === "service_agreement" && sa ? (
+          <>
+            <SummaryCard label="Fee">
+              <div className="text-sm text-architect mono">
+                {formatServiceFee(
+                  sa.fee_model,
+                  {
+                    fee_value: sa.fee_value,
+                    hybrid_base_monthly: sa.hybrid_base_monthly,
+                    hybrid_per_call_or_unit: sa.hybrid_per_call_or_unit,
+                    hybrid_mode: sa.hybrid_mode,
+                    hourly_rate: sa.hourly_rate,
+                    materials_markup_percent: sa.materials_markup_percent,
+                    subjects_count: subjects.length,
+                  },
+                  contract.currency,
+                )}
+              </div>
+              <div className="text-[11px] text-muted-foreground mt-1">
+                {SERVICE_FREQUENCY_LABELS[sa.service_frequency]}
+              </div>
+            </SummaryCard>
+            <SummaryCard label="Vendor">
+              {sa.vendor ? (
+                <Link
+                  to={`/vendors/${sa.vendor.id}`}
+                  className="text-sm text-architect hover:text-gold-deep inline-flex items-center gap-1"
+                >
+                  {sa.vendor.display_name || sa.vendor.legal_name}
+                  <ExternalLink className="h-3 w-3 opacity-60" />
+                </Link>
+              ) : (
+                <span className="text-sm text-muted-foreground">—</span>
+              )}
+              {sa.vendor && (
+                <div className="text-[11px] text-muted-foreground mono mt-0.5">
+                  {sa.vendor.vendor_number}
+                </div>
+              )}
+            </SummaryCard>
+            <SummaryCard label="Period">
+              <div className="text-xs text-architect">{summarizePeriod(contract.start_date, contract.end_date)}</div>
+              {contract.auto_renew && <div className="text-[10px] mono uppercase text-gold-deep mt-1">Auto-renew</div>}
+            </SummaryCard>
+          </>
         ) : (
           <>
             <SummaryCard label="Fee / Value">
