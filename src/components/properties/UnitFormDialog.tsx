@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Paperclip, ChevronDown, X as XIcon, FileText, Image as ImageIcon } from "lucide-react";
 import { FileDropZone, validateFile } from "@/components/attachments/FileDropZone";
 import {
@@ -22,6 +23,9 @@ import { toast } from "sonner";
 import { newUnitCode } from "@/lib/refcode";
 import { formatEnumLabel, sqmToSqft } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { OwnerDraft, fetchOwners, validateOwners } from "@/lib/ownership";
+import { OwnerPicker } from "@/components/owners/OwnerPicker";
+import { Star } from "lucide-react";
 import {
   BuildingType,
   UNIT_STATUS_OPTIONS,
@@ -116,6 +120,12 @@ export function UnitFormDialog({
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [attachOpen, setAttachOpen] = useState(false);
 
+  // Ownership state — only used on CREATE.
+  const [buildingOwners, setBuildingOwners] = useState<OwnerDraft[]>([]);
+  const [ownerMode, setOwnerMode] = useState<"inherit" | "explicit">("inherit");
+  const [ownerDraft, setOwnerDraft] = useState<OwnerDraft[]>([]);
+  const [ownerError, setOwnerError] = useState<string | null>(null);
+
   const unitNumberRef = useRef<HTMLInputElement>(null);
   const typeRef = useRef<HTMLButtonElement>(null);
   const statusRef = useRef<HTMLButtonElement>(null);
@@ -133,6 +143,36 @@ export function UnitFormDialog({
     setBaseline(next);
     setErrors({});
   }, [open, initial, typeOptions]);
+
+  // When the dialog opens for CREATE, fetch building owners to drive inherit / explicit behavior
+  useEffect(() => {
+    if (!open || initial?.id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const rows = await fetchOwners("building", buildingId);
+        if (cancelled) return;
+        setBuildingOwners(rows);
+        if (rows.length > 0) {
+          // Building has owners → default to inherit
+          setOwnerMode("inherit");
+          setOwnerDraft([]);
+        } else {
+          // JOP scenario → owner picker required
+          setOwnerMode("explicit");
+          setOwnerDraft([]);
+        }
+        setOwnerError(null);
+      } catch {
+        if (!cancelled) {
+          setBuildingOwners([]);
+          setOwnerMode("explicit");
+          setOwnerDraft([]);
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [open, initial?.id, buildingId]);
 
   // Force studio bedrooms = 0
   useEffect(() => {
