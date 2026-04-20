@@ -235,6 +235,7 @@ export function NewLeadDialog({ open, onOpenChange, editLead, onSaved }: Props) 
                 valueLabel={primaryContact ? `${primaryContact.first_name} ${primaryContact.last_name}`.trim() : ""}
                 onChange={setPrimaryContact}
                 placeholder="Search people…"
+                excludeRoles={["staff"]}
               />
             </Field>
             <Field label="Company" hint="Optional. If selected, the contact represents this company.">
@@ -244,6 +245,7 @@ export function NewLeadDialog({ open, onOpenChange, editLead, onSaved }: Props) 
                 onChange={setCompany}
                 placeholder="Search companies (or leave blank)…"
                 excludeIds={primaryContact ? [primaryContact.id] : []}
+                excludeRoles={["staff"]}
               />
             </Field>
           </Section>
