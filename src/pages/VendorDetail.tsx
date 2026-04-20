@@ -16,6 +16,8 @@ import { cn } from "@/lib/utils";
 import { NewVendorDialog } from "@/components/vendors/NewVendorDialog";
 import { DocumentList } from "@/components/attachments/DocumentList";
 import { NotesPanel } from "@/components/notes/NotesPanel";
+import { EntityTicketsTab, type TicketSection, type EntityTicketRow } from "@/components/tickets/EntityTicketsTab";
+import { NewTicketDialog } from "@/components/tickets/NewTicketDialog";
 import { PersonCombobox, type PickedPerson } from "@/components/owners/PersonCombobox";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
@@ -123,6 +125,9 @@ export default function VendorDetail() {
   const [tab, setTab] = useState("overview");
   const [docsCount, setDocsCount] = useState(0);
   const [notesCount, setNotesCount] = useState(0);
+  const [ticketsCount, setTicketsCount] = useState(0);
+  const [newTicketForVendorOpen, setNewTicketForVendorOpen] = useState(false);
+  const [newTicketAboutVendorOpen, setNewTicketAboutVendorOpen] = useState(false);
 
   // Dialogs
   const [editOpen, setEditOpen] = useState(false);
