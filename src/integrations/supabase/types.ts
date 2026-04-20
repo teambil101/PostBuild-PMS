@@ -146,9 +146,11 @@ export type Database = {
           is_active: boolean
           last_name: string
           notes: string | null
+          person_type: string
           phone: string | null
           ref_code: string
           roles: Database["public"]["Enums"]["person_role"][]
+          trade_license_number: string | null
           updated_at: string
         }
         Insert: {
@@ -165,9 +167,11 @@ export type Database = {
           is_active?: boolean
           last_name: string
           notes?: string | null
+          person_type?: string
           phone?: string | null
           ref_code: string
           roles?: Database["public"]["Enums"]["person_role"][]
+          trade_license_number?: string | null
           updated_at?: string
         }
         Update: {
@@ -184,9 +188,11 @@ export type Database = {
           is_active?: boolean
           last_name?: string
           notes?: string | null
+          person_type?: string
           phone?: string | null
           ref_code?: string
           roles?: Database["public"]["Enums"]["person_role"][]
+          trade_license_number?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -231,74 +237,6 @@ export type Database = {
             columns: ["person_id"]
             isOneToOne: false
             referencedRelation: "people"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      people_property_links: {
-        Row: {
-          building_id: string | null
-          created_at: string
-          end_date: string | null
-          id: string
-          is_primary: boolean
-          notes: string | null
-          person_id: string
-          relationship: string
-          start_date: string | null
-          unit_id: string | null
-        }
-        Insert: {
-          building_id?: string | null
-          created_at?: string
-          end_date?: string | null
-          id?: string
-          is_primary?: boolean
-          notes?: string | null
-          person_id: string
-          relationship: string
-          start_date?: string | null
-          unit_id?: string | null
-        }
-        Update: {
-          building_id?: string | null
-          created_at?: string
-          end_date?: string | null
-          id?: string
-          is_primary?: boolean
-          notes?: string | null
-          person_id?: string
-          relationship?: string
-          start_date?: string | null
-          unit_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "people_property_links_building_id_fkey"
-            columns: ["building_id"]
-            isOneToOne: false
-            referencedRelation: "buildings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "people_property_links_person_id_fkey"
-            columns: ["person_id"]
-            isOneToOne: false
-            referencedRelation: "people"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "people_property_links_unit_id_fkey"
-            columns: ["unit_id"]
-            isOneToOne: false
-            referencedRelation: "units"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "people_property_links_unit_id_fkey"
-            columns: ["unit_id"]
-            isOneToOne: false
-            referencedRelation: "units_with_data_gaps"
             referencedColumns: ["id"]
           },
         ]
@@ -410,6 +348,63 @@ export type Database = {
             referencedRelation: "units_with_data_gaps"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "property_documents_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_without_owners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_owners: {
+        Row: {
+          acquired_on: string | null
+          created_at: string
+          created_by: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+          is_primary: boolean
+          notes: string | null
+          ownership_percentage: number
+          person_id: string
+          updated_at: string
+        }
+        Insert: {
+          acquired_on?: string | null
+          created_at?: string
+          created_by?: string | null
+          entity_id: string
+          entity_type: string
+          id?: string
+          is_primary?: boolean
+          notes?: string | null
+          ownership_percentage?: number
+          person_id: string
+          updated_at?: string
+        }
+        Update: {
+          acquired_on?: string | null
+          created_at?: string
+          created_by?: string | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          is_primary?: boolean
+          notes?: string | null
+          ownership_percentage?: number
+          person_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_owners_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
         ]
       }
       property_status_history: {
@@ -455,6 +450,13 @@ export type Database = {
             referencedRelation: "units_with_data_gaps"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "property_status_history_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_without_owners"
+            referencedColumns: ["id"]
+          },
         ]
       }
       unit_status_history: {
@@ -498,6 +500,13 @@ export type Database = {
             columns: ["unit_id"]
             isOneToOne: false
             referencedRelation: "units_with_data_gaps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unit_status_history_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_without_owners"
             referencedColumns: ["id"]
           },
         ]
@@ -661,6 +670,36 @@ export type Database = {
           },
         ]
       }
+      units_without_owners: {
+        Row: {
+          bathrooms: number | null
+          bedrooms: number | null
+          building_id: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          floor: number | null
+          id: string | null
+          notes: string | null
+          ref_code: string | null
+          size_sqm: number | null
+          size_unit_preference: string | null
+          status: Database["public"]["Enums"]["property_status"] | null
+          status_locked_by_lease_id: string | null
+          unit_number: string | null
+          unit_type: Database["public"]["Enums"]["unit_type"] | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "units_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "buildings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       has_any_role: { Args: { _user_id: string }; Returns: boolean }
@@ -670,6 +709,15 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      resolve_unit_owners: {
+        Args: { _unit_id: string }
+        Returns: {
+          is_primary: boolean
+          ownership_percentage: number
+          person_id: string
+          source: string
+        }[]
       }
     }
     Enums: {
