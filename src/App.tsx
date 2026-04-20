@@ -10,6 +10,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Properties from "./pages/Properties";
 import PropertyDetail from "./pages/PropertyDetail";
+import UnitDetail from "./pages/UnitDetail";
 import People from "./pages/People";
 import PersonDetail from "./pages/PersonDetail";
 import ComingSoon from "./pages/ComingSoon";
@@ -35,6 +36,7 @@ const App = () => (
             <Route path="/" element={<Shell><Dashboard /></Shell>} />
             <Route path="/properties" element={<Shell><Properties /></Shell>} />
             <Route path="/properties/:id" element={<Shell><PropertyDetail /></Shell>} />
+            <Route path="/properties/:buildingId/units/:unitId" element={<Shell><UnitDetail /></Shell>} />
             <Route path="/people" element={<Shell><People /></Shell>} />
             <Route path="/people/:id" element={<Shell><PersonDetail /></Shell>} />
             <Route path="/contracts" element={<Shell><ComingSoon /></Shell>} />
