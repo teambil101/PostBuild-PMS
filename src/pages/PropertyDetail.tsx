@@ -21,17 +21,17 @@ interface Building {
   id: string;
   ref_code: string;
   name: string;
-  description: string | null;
-  address_line1: string | null;
+  address_formatted: string | null;
+  street: string | null;
   city: string | null;
-  state: string | null;
+  state_region: string | null;
   postal_code: string | null;
   country: string | null;
   latitude: number | null;
   longitude: number | null;
-  year_built: number | null;
-  total_floors: number | null;
-  cover_image_url: string | null;
+  place_id: string | null;
+  building_type: string;
+  community: string | null;
   notes: string | null;
 }
 
