@@ -634,3 +634,59 @@ themselves don't change.
 _Last updated: T3a shipped — auto-ticket creation (cheque bounce
 trigger, lease renewal sweep, data gap sweep). Next: T3b — n8n
 integration._
+
+---
+
+## 13. Target Discipline (V2.1)
+
+Each `ticket_type` declares which `target_entity_type`s it can
+sensibly point at. The full mapping lives in
+`VALID_TARGETS_BY_TICKET_TYPE` in `src/lib/tickets.ts`.
+
+- The Create / Edit modals filter the target type dropdown by the
+  picked ticket type and block submit on a mismatched combo.
+- The DB **stays permissive**: no check constraint links target to
+  type. This protects in-flight migrations and historical rows that
+  pre-date the discipline.
+- When the modal is opened from an entity page (preset target) and
+  the user picks a type whose valid set doesn't include the preset's
+  type, the modal calls `resolveCanonicalTarget()` to walk to a
+  sensible replacement (e.g. lease → first unit subject; cheque →
+  lease → first unit subject). If found, the user sees an inline
+  amber notice and a "Change target" link to unlock manual selection.
+  If no canonical fallback exists, the picker unlocks and forces a
+  manual choice.
+
+### Why
+
+Without target discipline, a maintenance issue could be entered from
+the lease view as `target=contract`, from the unit view as
+`target=unit`, and from a cheque page as `target=cheque` — three
+semantically duplicate tickets nobody can de-dupe. The mapping pins
+each ticket type to the entity it's *really* about; the cross-entity
+Tickets tabs (§14) make sure users still see the ticket from every
+related vantage point.
+
+## 14. Cross-Entity Tickets Tab Queries (V2.1)
+
+Entity detail pages no longer show only "tickets where I'm the direct
+target". They show derived sections so a user on any related entity
+sees every relevant ticket without creating duplicates.
+
+| Page | Sections |
+|------|----------|
+| **Unit** | On this unit · On leases for this unit · On cheques for this unit |
+| **Lease (contract)** | On this lease · On units covered by this lease · On cheques for this lease |
+| **Mgmt agreement (contract)** | On this agreement · On properties covered (units + buildings in `contract_subjects`) |
+| **Building** | On this building · On units in this building |
+| **Person** | Assigned to them · Reported by them · About them (unchanged) |
+| **Vendor** | Assigned tickets (`vendor_id` matches) · Tickets about this vendor (`target=vendor`) |
+
+The shared `EntityTicketsTab` component renders sections via the
+`groupedView` prop with per-section `fetch()` callbacks. The tab
+badge counts distinct active tickets across all sections.
+
+---
+
+_Last updated: V2.1 shipped — target discipline + cross-entity
+Tickets tabs. Next: V3 — service agreements._
