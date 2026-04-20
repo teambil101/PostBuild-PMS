@@ -24,6 +24,8 @@ import { cn } from "@/lib/utils";
 import { PhotoGallery } from "@/components/attachments/PhotoGallery";
 import { DocumentList } from "@/components/attachments/DocumentList";
 import { NotesPanel } from "@/components/notes/NotesPanel";
+import { WorkflowSection } from "@/components/tickets/workflow/WorkflowSection";
+import type { WorkflowKey } from "@/lib/workflows";
 
 interface Ticket {
   id: string;
@@ -53,6 +55,8 @@ interface Ticket {
   cost_approval_notes: string | null;
   created_by: string | null;
   created_at: string;
+  workflow_key: string | null;
+  current_stage_key: string | null;
 }
 
 interface EventRow {
@@ -78,6 +82,7 @@ export default function TicketDetail() {
   const [notesCount, setNotesCount] = useState(0);
   const [photosCount, setPhotosCount] = useState(0);
   const [docsCount, setDocsCount] = useState(0);
+  const [workflowRefresh, setWorkflowRefresh] = useState(0);
 
   useEffect(() => {
     if (!ticketId) return;
@@ -143,6 +148,8 @@ export default function TicketDetail() {
       />
     );
   }
+
+  const hasWorkflow = Boolean(ticket.workflow_key);
 
   return (
     <div className="space-y-8">
@@ -213,7 +220,7 @@ export default function TicketDetail() {
       </TooltipProvider>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+      <div className={cn("grid grid-cols-2 gap-3", hasWorkflow ? "lg:grid-cols-4" : "lg:grid-cols-5") }>
         <SummaryCard label="Status">
           <TicketStatusPill status={ticket.status} />
           {ticket.status === "awaiting" && ticket.waiting_on && (
@@ -227,16 +234,30 @@ export default function TicketDetail() {
             </div>
           )}
         </SummaryCard>
+        {hasWorkflow ? (
+          <WorkflowStageCard ticketId={ticket.id} refreshKey={workflowRefresh} />
+        ) : null}
         <SummaryCard label="Priority">
           <TicketPriorityPill priority={ticket.priority} />
         </SummaryCard>
-        <SummaryCard label="Assignee">
-          {ticket.assignee_id ? (
-            <div className="text-sm text-architect">{personName(ticket.assignee_id)}</div>
-          ) : (
-            <div className="text-sm text-muted-foreground italic">Unassigned</div>
-          )}
-        </SummaryCard>
+        {hasWorkflow ? null : (
+          <SummaryCard label="Assignee">
+            {ticket.assignee_id ? (
+              <div className="text-sm text-architect">{personName(ticket.assignee_id)}</div>
+            ) : (
+              <div className="text-sm text-muted-foreground italic">Unassigned</div>
+            )}
+          </SummaryCard>
+        )}
+        {hasWorkflow && (
+          <SummaryCard label="Assignee">
+            {ticket.assignee_id ? (
+              <div className="text-sm text-architect">{personName(ticket.assignee_id)}</div>
+            ) : (
+              <div className="text-sm text-muted-foreground italic">Unassigned</div>
+            )}
+          </SummaryCard>
+        )}
         <SummaryCard label="Due date">
           {ticket.due_date ? (
             <div className={cn("text-sm", overdue ? "text-destructive font-medium" : "text-architect")}>

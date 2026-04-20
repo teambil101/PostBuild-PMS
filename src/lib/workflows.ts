@@ -288,6 +288,19 @@ export async function skipTicketStep(
   if (error) throw error;
 }
 
+export async function skipTicketStage(
+  ticketId: string,
+  stageKey: string,
+  reason: string,
+) {
+  const { error } = await supabase.rpc("skip_ticket_stage" as never, {
+    p_ticket_id: ticketId,
+    p_stage_key: stageKey,
+    p_reason: reason,
+  } as never);
+  if (error) throw error;
+}
+
 export async function advanceTicketStage(ticketId: string) {
   const { error } = await supabase.rpc("advance_ticket_stage", {
     p_ticket_id: ticketId,

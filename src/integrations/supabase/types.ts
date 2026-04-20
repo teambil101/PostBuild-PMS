@@ -1528,6 +1528,10 @@ export type Database = {
           source: string
         }[]
       }
+      skip_ticket_stage: {
+        Args: { p_reason: string; p_stage_key: string; p_ticket_id: string }
+        Returns: undefined
+      }
       skip_ticket_step: {
         Args: {
           p_reason: string
