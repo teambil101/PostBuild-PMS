@@ -305,11 +305,17 @@ export function ManagementAgreementWizard({ open, onOpenChange, editContractId, 
       const landlordId = presetFromLead.company_id ?? presetFromLead.primary_contact_id;
       const { data: p } = await supabase
         .from("people")
-        .select("id, first_name, last_name, company")
+        .select("id, first_name, last_name, company, roles")
         .eq("id", landlordId)
         .maybeSingle();
       if (cancelled) return;
-      const landlord: PickedPerson | null = p
+      // Defensive: don't auto-fill the landlord if the resolved person is staff
+      // or the PM company itself — that almost certainly means the lead's
+      // primary contact was set incorrectly. Force the user to pick.
+      const resolvedRoles: string[] = Array.isArray((p as any)?.roles) ? (p as any).roles : [];
+      const isStaffOrSelf =
+        !!p && (resolvedRoles.includes("staff") || p.id === self?.id);
+      const landlord: PickedPerson | null = p && !isStaffOrSelf
         ? {
             id: p.id,
             first_name: p.first_name,
@@ -317,6 +323,11 @@ export function ManagementAgreementWizard({ open, onOpenChange, editContractId, 
             company: p.company,
           }
         : null;
+      if (p && isStaffOrSelf) {
+        toast.warning(
+          "The lead's primary contact looks like an internal staff member — please pick the actual landlord below.",
+        );
+      }
       const landlordName = landlord
         ? landlord.company || `${landlord.first_name} ${landlord.last_name}`.trim()
         : "";

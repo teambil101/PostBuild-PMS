@@ -22,6 +22,8 @@ interface Props {
   excludeIds?: string[];         // persons already picked in other rows
   /** Restrict results to people whose `roles` array contains any of these. */
   roleFilter?: ("tenant" | "owner" | "prospect" | "staff" | "vendor")[];
+  /** Exclude people whose `roles` array contains any of these. */
+  excludeRoles?: ("tenant" | "owner" | "prospect" | "staff" | "vendor")[];
   /** Hide the inline "Add new person" action (e.g. for assignee pickers). */
   hideAddNew?: boolean;
 }
@@ -38,6 +40,7 @@ export function PersonCombobox({
   invalid,
   excludeIds = [],
   roleFilter,
+  excludeRoles,
   hideAddNew = false,
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -55,7 +58,7 @@ export function PersonCombobox({
       const q = query.trim();
       let req = supabase
         .from("people")
-        .select("id, first_name, last_name, company")
+        .select("id, first_name, last_name, company, roles")
         .order("first_name")
         .limit(20);
       if (roleFilter && roleFilter.length > 0) {
@@ -71,13 +74,18 @@ export function PersonCombobox({
         );
       }
       const { data } = await req;
-      setResults((data ?? []) as PickedPerson[]);
+      const filtered = (data ?? []).filter((p: any) => {
+        if (!excludeRoles || excludeRoles.length === 0) return true;
+        const roles: string[] = Array.isArray(p.roles) ? p.roles : [];
+        return !roles.some((r) => (excludeRoles as string[]).includes(r));
+      });
+      setResults(filtered as PickedPerson[]);
       setLoading(false);
     }, 180);
     return () => {
       if (debounceRef.current) window.clearTimeout(debounceRef.current);
     };
-  }, [open, query, roleFilter]);
+  }, [open, query, roleFilter, excludeRoles]);
 
   const display = useMemo(() => valueLabel || (value ? "Selected person" : ""), [valueLabel, value]);
   const visibleResults = results.filter((r) => !excludeIds.includes(r.id) || r.id === value);
