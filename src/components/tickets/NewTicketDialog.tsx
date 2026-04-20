@@ -43,6 +43,12 @@ import {
 import { TicketTargetPicker } from "./TicketTargetPicker";
 import { FileDropZone, validateFile } from "@/components/attachments/FileDropZone";
 import {
+  WORKFLOWS,
+  getDefaultWorkflow,
+  initializeTicketWorkflow,
+  type WorkflowKey,
+} from "@/lib/workflows";
+import {
   PHOTO_BUCKET,
   PHOTO_MIMES,
   PHOTO_MAX_BYTES,
@@ -78,6 +84,8 @@ export function NewTicketDialog({ open, onOpenChange }: Props) {
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
   const [estimatedCost, setEstimatedCost] = useState<string>("");
   const [files, setFiles] = useState<File[]>([]);
+  const [workflowKey, setWorkflowKey] = useState<WorkflowKey | "__none">("__none");
+  const [workflowOverridden, setWorkflowOverridden] = useState(false);
 
   const [people, setPeople] = useState<
     { id: string; first_name: string; last_name: string; company: string | null }[]
@@ -102,6 +110,8 @@ export function NewTicketDialog({ open, onOpenChange }: Props) {
     setEstimatedCost("");
     setFiles([]);
     setThreshold(null);
+    setWorkflowKey("__none");
+    setWorkflowOverridden(false);
     setTimeout(() => subjectRef.current?.focus(), 50);
   }, [open]);
 
