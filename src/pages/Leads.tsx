@@ -190,6 +190,39 @@ export default function LeadsPage() {
     });
   }, [leads, people, search, statusFilters, assigneeParam, sourceFilters, closeFrom, closeTo, stuckOnly]);
 
+  // Kanban applies all filters EXCEPT the implicit "exclude terminal" default.
+  // Terminal columns (Contract Signed / Lost) are first-class in the board.
+  const kanbanFiltered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return leads.filter((l) => {
+      if (statusFilters.length > 0 && !statusFilters.includes(l.status) && l.status !== "on_hold") {
+        return false;
+      }
+      if (assigneeParam !== "all") {
+        if (assigneeParam === "unassigned") { if (l.assignee_id) return false; }
+        else if (l.assignee_id !== assigneeParam) return false;
+      }
+      if (sourceFilters.length > 0 && !sourceFilters.includes(l.source)) return false;
+      if (closeFrom && (!l.target_close_date || l.target_close_date < closeFrom)) return false;
+      if (closeTo && (!l.target_close_date || l.target_close_date > closeTo)) return false;
+      if (stuckOnly && !isStageStuck(l, 14)) return false;
+      if (q) {
+        const contact = people[l.primary_contact_id];
+        const company = l.company_id ? people[l.company_id] : null;
+        const blob = [
+          l.lead_number,
+          contact ? `${contact.first_name} ${contact.last_name}` : "",
+          contact?.company ?? "",
+          company?.company ?? "",
+          l.portfolio_description ?? "",
+          l.notes ?? "",
+        ].join(" ").toLowerCase();
+        if (!blob.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [leads, people, search, statusFilters, assigneeParam, sourceFilters, closeFrom, closeTo, stuckOnly]);
+
   const assigneeOptions = useMemo(() => {
     const set = new Map<string, PersonLite>();
     for (const l of leads) {
@@ -416,6 +449,14 @@ export default function LeadsPage() {
               </Button>
             )
           }
+        />
+      ) : view === "kanban" ? (
+        <LeadsKanban
+          leads={kanbanFiltered}
+          people={people}
+          contractsByLead={contractsByLead}
+          showOnHold={showOnHold}
+          onChanged={load}
         />
       ) : filtered.length === 0 ? (
         <EmptyState
