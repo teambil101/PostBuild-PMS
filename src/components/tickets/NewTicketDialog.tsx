@@ -59,15 +59,32 @@ import {
   isPhotoMime,
 } from "@/lib/storage";
 
+export interface PresetTarget {
+  entity_type: TicketTargetType;
+  entity_id: string;
+  entity_label: string;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  presetTarget?: PresetTarget;
+  /** Called after a ticket is successfully created. Receives the new ticket id. */
+  onCreated?: (ticketId: string) => void;
+  /** When false, do not navigate to the ticket detail after creation (default true). */
+  navigateOnCreate?: boolean;
 }
 
 const SUBJECT_MAX = 200;
 const DESCRIPTION_MAX = 4000;
 
-export function NewTicketDialog({ open, onOpenChange }: Props) {
+export function NewTicketDialog({
+  open,
+  onOpenChange,
+  presetTarget,
+  onCreated,
+  navigateOnCreate = true,
+}: Props) {
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -103,7 +120,11 @@ export function NewTicketDialog({ open, onOpenChange }: Props) {
     setDescription("");
     setType("");
     setPriority("medium");
-    setTarget({ type: "unit", id: null });
+    setTarget(
+      presetTarget
+        ? { type: presetTarget.entity_type, id: presetTarget.entity_id }
+        : { type: "unit", id: null },
+    );
     setAssigneeId(null);
     setReporterId(null);
     setDueDate(undefined);
@@ -113,7 +134,7 @@ export function NewTicketDialog({ open, onOpenChange }: Props) {
     setWorkflowKey("__none");
     setWorkflowOverridden(false);
     setTimeout(() => subjectRef.current?.focus(), 50);
-  }, [open]);
+  }, [open, presetTarget]);
 
   // Load people once
   useEffect(() => {
