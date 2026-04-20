@@ -13,7 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { UnitFormDialog } from "@/components/properties/UnitFormDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSearchParams } from "react-router-dom";
-import { EntityTicketsTab } from "@/components/tickets/EntityTicketsTab";
+import { EntityTicketsTab, type TicketSection } from "@/components/tickets/EntityTicketsTab";
 import { PhotoGallery } from "@/components/attachments/PhotoGallery";
 import { DocumentList } from "@/components/attachments/DocumentList";
 import { NotesPanel } from "@/components/notes/NotesPanel";
@@ -388,10 +388,10 @@ export default function UnitDetail() {
 
         {/* TICKETS */}
         <TabsContent value="tickets" className="pt-6">
-          <EntityTicketsTab
-            entityType="unit"
-            entityId={unit.id}
-            entityLabel={`Unit ${unit.unit_number} · ${building.name}`}
+          <UnitTicketsTabSection
+            unitId={unit.id}
+            unitLabel={`Unit ${unit.unit_number} · ${building.name}`}
+            unitNumber={unit.unit_number}
             onActiveCountChange={setTicketCount}
           />
         </TabsContent>
@@ -543,5 +543,125 @@ function DetailRow({ label, value, mono }: { label: string; value: string; mono?
       <div className="label-eyebrow">{label}</div>
       <div className={cn("text-sm text-architect text-right", mono && "mono text-xs")}>{value}</div>
     </div>
+  );
+}
+
+function UnitTicketsTabSection({
+  unitId,
+  unitLabel,
+  unitNumber,
+  onActiveCountChange,
+}: {
+  unitId: string;
+  unitLabel: string;
+  unitNumber: string;
+  onActiveCountChange: (n: number) => void;
+}) {
+  const sections: TicketSection[] = [
+    {
+      key: "direct",
+      label: "On this unit",
+      emptyText: "No tickets target this unit directly.",
+      fetch: async () => {
+        const { data } = await supabase
+          .from("tickets")
+          .select(
+            "id, ticket_number, subject, ticket_type, priority, status, assignee_id, due_date, created_at, target_entity_type, target_entity_id, is_system_generated",
+          )
+          .eq("target_entity_type", "unit")
+          .eq("target_entity_id", unitId)
+          .order("created_at", { ascending: false });
+        return (data ?? []) as any;
+      },
+    },
+    {
+      key: "leases",
+      label: "On leases for this unit",
+      emptyText: "No tickets on leases covering this unit.",
+      fetch: async () => {
+        // unit → contract_subjects → contract ids (lease type)
+        const { data: subs } = await supabase
+          .from("contract_subjects")
+          .select("contract_id, contracts:contracts(contract_number, contract_type)")
+          .eq("entity_type", "unit")
+          .eq("entity_id", unitId);
+        const leaseRows = ((subs ?? []) as any[]).filter(
+          (r) => r.contracts?.contract_type === "lease",
+        );
+        if (leaseRows.length === 0) return [];
+        const ids = leaseRows.map((r) => r.contract_id as string);
+        const numMap = new Map(
+          leaseRows.map((r) => [r.contract_id as string, r.contracts?.contract_number as string]),
+        );
+        const { data: tix } = await supabase
+          .from("tickets")
+          .select(
+            "id, ticket_number, subject, ticket_type, priority, status, assignee_id, due_date, created_at, target_entity_type, target_entity_id, is_system_generated",
+          )
+          .eq("target_entity_type", "contract")
+          .in("target_entity_id", ids)
+          .order("created_at", { ascending: false });
+        return ((tix ?? []) as any[]).map((t) => ({
+          ...t,
+          __lease_number: numMap.get(t.target_entity_id) ?? null,
+        }));
+      },
+      rowBadge: (row: any) => (row.__lease_number ? `Lease ${row.__lease_number}` : null),
+    },
+    {
+      key: "cheques",
+      label: "On cheques for this unit",
+      emptyText: "No tickets on cheques for this unit's leases.",
+      fetch: async () => {
+        // unit → leases → cheques → tickets
+        const { data: subs } = await supabase
+          .from("contract_subjects")
+          .select("contract_id, contracts:contracts(contract_number, contract_type)")
+          .eq("entity_type", "unit")
+          .eq("entity_id", unitId);
+        const leaseContractIds = ((subs ?? []) as any[])
+          .filter((r) => r.contracts?.contract_type === "lease")
+          .map((r) => r.contract_id as string);
+        if (leaseContractIds.length === 0) return [];
+        const { data: leases } = await supabase
+          .from("leases" as never)
+          .select("id, contract_id" as never)
+          .in("contract_id" as never, leaseContractIds as never);
+        const leaseIds = ((leases ?? []) as any[]).map((l) => l.id as string);
+        if (leaseIds.length === 0) return [];
+        const { data: cheques } = await supabase
+          .from("lease_cheques")
+          .select("id, sequence_number, lease_id")
+          .in("lease_id", leaseIds);
+        const chequeRows = (cheques ?? []) as { id: string; sequence_number: number; lease_id: string }[];
+        if (chequeRows.length === 0) return [];
+        const seqMap = new Map(chequeRows.map((c) => [c.id, c.sequence_number]));
+        const { data: tix } = await supabase
+          .from("tickets")
+          .select(
+            "id, ticket_number, subject, ticket_type, priority, status, assignee_id, due_date, created_at, target_entity_type, target_entity_id, is_system_generated",
+          )
+          .eq("target_entity_type", "cheque")
+          .in("target_entity_id", chequeRows.map((c) => c.id))
+          .order("created_at", { ascending: false });
+        return ((tix ?? []) as any[]).map((t) => ({
+          ...t,
+          __cheque_seq: seqMap.get(t.target_entity_id) ?? null,
+        }));
+      },
+      rowBadge: (row: any) =>
+        row.__cheque_seq != null ? `Cheque #${row.__cheque_seq}` : null,
+    },
+  ];
+
+  return (
+    <EntityTicketsTab
+      entityType="unit"
+      entityId={unitId}
+      entityLabel={unitLabel}
+      groupedView
+      sections={sections}
+      onActiveCountChange={onActiveCountChange}
+    />
   );
 }

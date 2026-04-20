@@ -242,6 +242,144 @@ export const TICKET_TARGET_TYPE_LABELS: Record<TicketTargetType, string> = {
 };
 
 /* =========================================================
+ * Canonical (type → valid targets) mapping
+ *
+ * Each ticket_type defines the entity types it can sensibly target.
+ * UI enforces this; DB stays permissive for migration safety and
+ * historical rows. See TICKETS.md "Target discipline".
+ * ========================================================= */
+export const VALID_TARGETS_BY_TICKET_TYPE: Record<TicketType, TicketTargetType[]> = {
+  maintenance_ac:            ["unit", "building"],
+  maintenance_plumbing:      ["unit", "building"],
+  maintenance_electrical:    ["unit", "building"],
+  maintenance_appliance:     ["unit"],
+  maintenance_structural:    ["unit", "building"],
+  maintenance_pest_control:  ["unit", "building"],
+  maintenance_other:         ["unit", "building"],
+  admin_ejari:               ["contract", "unit"],
+  admin_dewa:                ["unit", "contract"],
+  admin_noc:                 ["building", "unit", "contract"],
+  admin_other:               ["unit", "building", "contract", "person", "cheque", "vendor"],
+  request_renewal:           ["contract"],
+  request_early_termination: ["contract"],
+  request_sublease:          ["contract"],
+  request_modification:      ["unit", "contract"],
+  request_other:             ["unit", "building", "contract", "person", "cheque", "vendor"],
+  compliance_reminder:       ["vendor", "contract", "building"],
+  rent_follow_up:            ["cheque", "contract"],
+  handover_task:             ["unit", "contract"],
+  moveout_task:              ["unit", "contract"],
+  data_gap:                  ["unit", "building", "contract", "person", "cheque", "vendor"],
+  complaint:                 ["unit", "person", "building"],
+  other:                     ["unit", "building", "contract", "person", "cheque", "vendor"],
+};
+
+export function getValidTargetsForType(ticketType: TicketType | string): TicketTargetType[] {
+  return VALID_TARGETS_BY_TICKET_TYPE[ticketType as TicketType] ?? [...TICKET_TARGET_TYPES];
+}
+
+export function isValidTargetForType(
+  ticketType: TicketType | string,
+  targetType: TicketTargetType | string,
+): boolean {
+  return getValidTargetsForType(ticketType).includes(targetType as TicketTargetType);
+}
+
+export function getValidTicketTypesForTarget(targetType: TicketTargetType): TicketType[] {
+  return TICKET_TYPES.filter((t) =>
+    VALID_TARGETS_BY_TICKET_TYPE[t].includes(targetType),
+  );
+}
+
+/**
+ * Resolve a canonical replacement target when a preset target's type doesn't
+ * match the picked ticket_type's valid set. Walks: contract → first unit
+ * subject; cheque → lease → contract → first unit subject. Returns the
+ * resolved entity along with a label, or null if nothing is found.
+ */
+export async function resolveCanonicalTarget(
+  fromType: TicketTargetType,
+  fromId: string,
+  desiredTypes: TicketTargetType[],
+): Promise<{ type: TicketTargetType; id: string; label: string } | null> {
+  // Direct match — caller should not have called us, but bail safely.
+  if (desiredTypes.includes(fromType)) return null;
+
+  // From a cheque, climb to lease/contract first.
+  let contractId: string | null = null;
+  let chequeContractId: string | null = null;
+  if (fromType === "cheque") {
+    const { data: ch } = await supabase
+      .from("lease_cheques")
+      .select("lease_id, leases:leases(contract_id)")
+      .eq("id", fromId)
+      .maybeSingle();
+    chequeContractId = (ch as any)?.leases?.contract_id ?? null;
+    if (desiredTypes.includes("contract") && chequeContractId) {
+      const label = await resolveTicketTargetLabel({ type: "contract", id: chequeContractId });
+      return { type: "contract", id: chequeContractId, label };
+    }
+    contractId = chequeContractId;
+  }
+
+  if (fromType === "contract") contractId = fromId;
+
+  // From a contract, try to find a unit (or building) subject.
+  if (contractId && (desiredTypes.includes("unit") || desiredTypes.includes("building"))) {
+    const preferUnit = desiredTypes.includes("unit");
+    const wantedTypes = preferUnit
+      ? ["unit", "building"]
+      : ["building", "unit"];
+    const { data: subjects } = await supabase
+      .from("contract_subjects")
+      .select("entity_type, entity_id, created_at")
+      .eq("contract_id", contractId)
+      .in("entity_type", wantedTypes)
+      .order("created_at", { ascending: true });
+    const match = (subjects ?? []).find((s: any) =>
+      desiredTypes.includes(s.entity_type as TicketTargetType),
+    );
+    if (match) {
+      const label = await resolveTicketTargetLabel({
+        type: match.entity_type as TicketTargetType,
+        id: match.entity_id as string,
+      });
+      return { type: match.entity_type as TicketTargetType, id: match.entity_id as string, label };
+    }
+  }
+
+  // From a building, try a unit inside it.
+  if (fromType === "building" && desiredTypes.includes("unit")) {
+    const { data: u } = await supabase
+      .from("units")
+      .select("id")
+      .eq("building_id", fromId)
+      .order("unit_number", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (u?.id) {
+      const label = await resolveTicketTargetLabel({ type: "unit", id: u.id });
+      return { type: "unit", id: u.id, label };
+    }
+  }
+
+  // From a unit, climb to its building.
+  if (fromType === "unit" && desiredTypes.includes("building")) {
+    const { data: u } = await supabase
+      .from("units")
+      .select("building_id")
+      .eq("id", fromId)
+      .maybeSingle();
+    if (u?.building_id) {
+      const label = await resolveTicketTargetLabel({ type: "building", id: u.building_id });
+      return { type: "building", id: u.building_id, label };
+    }
+  }
+
+  return null;
+}
+
+/* =========================================================
  * Helpers
  * ========================================================= */
 

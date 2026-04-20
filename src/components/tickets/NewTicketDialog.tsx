@@ -39,6 +39,10 @@ import {
   type TicketPriority,
   type TicketTargetType,
   nextTicketNumber,
+  TICKET_TARGET_TYPE_LABELS,
+  getValidTargetsForType,
+  isValidTargetForType,
+  resolveCanonicalTarget,
 } from "@/lib/tickets";
 import { TicketTargetPicker } from "./TicketTargetPicker";
 import { FileDropZone, validateFile } from "@/components/attachments/FileDropZone";
@@ -106,6 +110,13 @@ export function NewTicketDialog({
     type: TicketTargetType;
     id: string | null;
   }>({ type: "unit", id: null });
+  // Reconciliation state for preset-target mismatches.
+  const [presetReconciled, setPresetReconciled] = useState<{
+    used: { type: TicketTargetType; id: string; label: string };
+    original: { type: TicketTargetType; id: string; label: string };
+  } | null>(null);
+  const [presetUnlocked, setPresetUnlocked] = useState(false);
+  const [presetMismatchedNoCanonical, setPresetMismatchedNoCanonical] = useState(false);
   const [assigneeId, setAssigneeId] = useState<string | null>(null);
   const [reporterId, setReporterId] = useState<string | null>(null);
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
@@ -145,6 +156,9 @@ export function NewTicketDialog({
     setWorkflowKey("__none");
     setWorkflowOverridden(false);
     setVendor(null);
+    setPresetReconciled(null);
+    setPresetUnlocked(false);
+    setPresetMismatchedNoCanonical(false);
     setTimeout(() => subjectRef.current?.focus(), 50);
   }, [open, presetTarget]);
 
@@ -163,6 +177,82 @@ export function NewTicketDialog({
   }, [open]);
 
   const isMaintenance = type.startsWith("maintenance_");
+
+  const validTargetTypes: TicketTargetType[] = type
+    ? getValidTargetsForType(type)
+    : [...([
+        "unit", "building", "contract", "person", "cheque", "vendor",
+      ] as TicketTargetType[])];
+
+  /* ================================================================
+   * Type → target reconciliation
+   *
+   * When the user picks a ticket_type:
+   *  - If a presetTarget is in play and its type is invalid for the
+   *    new ticket_type, try to resolve a canonical replacement
+   *    (e.g. lease → first unit on lease) and lock to it. Offer a
+   *    "change target" link to unlock.
+   *  - If no presetTarget, just reset target.type to the first valid
+   *    option whenever the current one becomes invalid.
+   * ================================================================ */
+  useEffect(() => {
+    if (!type) return;
+    let cancelled = false;
+
+    (async () => {
+      const valid = getValidTargetsForType(type);
+
+      if (presetTarget) {
+        if (valid.includes(presetTarget.entity_type)) {
+          // Preset is fine; clear any prior reconciliation.
+          if (cancelled) return;
+          setPresetReconciled(null);
+          setPresetMismatchedNoCanonical(false);
+          setPresetUnlocked(false);
+          setTarget({ type: presetTarget.entity_type, id: presetTarget.entity_id });
+          return;
+        }
+        // Preset invalid — attempt canonical resolution.
+        const canonical = await resolveCanonicalTarget(
+          presetTarget.entity_type,
+          presetTarget.entity_id,
+          valid,
+        );
+        if (cancelled) return;
+        if (canonical) {
+          setPresetReconciled({
+            used: canonical,
+            original: {
+              type: presetTarget.entity_type,
+              id: presetTarget.entity_id,
+              label: presetTarget.entity_label,
+            },
+          });
+          setPresetMismatchedNoCanonical(false);
+          setPresetUnlocked(false);
+          setTarget({ type: canonical.type, id: canonical.id });
+        } else {
+          // No canonical fallback — unlock and force the user to pick.
+          setPresetReconciled(null);
+          setPresetMismatchedNoCanonical(true);
+          setPresetUnlocked(true);
+          setTarget({ type: valid[0], id: null });
+        }
+        return;
+      }
+
+      // No preset — just keep target.type valid.
+      if (cancelled) return;
+      setTarget((prev) =>
+        valid.includes(prev.type) ? prev : { type: valid[0], id: null },
+      );
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [type, presetTarget]);
 
   // When type changes, auto-pick default workflow unless user overrode.
   useEffect(() => {
@@ -206,6 +296,9 @@ export function NewTicketDialog({
     if (subject.length > SUBJECT_MAX) return `Subject must be ≤ ${SUBJECT_MAX} chars.`;
     if (!type) return "Pick a ticket type.";
     if (!target.id) return "Pick a target entity.";
+    if (!isValidTargetForType(type, target.type)) {
+      return `${TICKET_TARGET_TYPE_LABELS[target.type]} is not a valid target for ${TICKET_TYPE_LABELS[type as TicketType]}.`;
+    }
     if (estimatedCost) {
       const n = Number(estimatedCost);
       if (!Number.isFinite(n) || n < 0) return "Estimated cost must be a non-negative number.";
@@ -400,7 +493,7 @@ export function NewTicketDialog({
             <Label>
               Target <span className="text-destructive">*</span>
             </Label>
-            {presetTarget ? (
+            {presetTarget && !presetUnlocked && !presetReconciled ? (
               <>
                 <div className="flex items-center gap-2 border hairline rounded-sm bg-muted/30 px-3 py-2 text-sm">
                   <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
@@ -416,11 +509,50 @@ export function NewTicketDialog({
                   </span>
                 </p>
               </>
+            ) : presetTarget && presetReconciled && !presetUnlocked ? (
+              <>
+                <div className="flex items-center gap-2 border hairline rounded-sm bg-muted/30 px-3 py-2 text-sm">
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                    {presetReconciled.used.type}
+                  </span>
+                  <span className="text-architect truncate">{presetReconciled.used.label}</span>
+                </div>
+                <div className="flex items-start gap-2 border border-amber-500/40 bg-amber-500/10 rounded-sm px-3 py-2 text-[11px] text-amber-900">
+                  <Info className="h-3 w-3 mt-0.5 shrink-0 text-amber-700" />
+                  <div className="flex-1">
+                    <span className="text-amber-900">
+                      <strong className="font-medium">{TICKET_TYPE_LABELS[type as TicketType]}</strong>{" "}
+                      tickets target {validTargetTypes.map((t) => TICKET_TARGET_TYPE_LABELS[t].toLowerCase()).join(" / ")}.
+                      Using <strong>{presetReconciled.used.label}</strong> instead of{" "}
+                      <em>{presetReconciled.original.label}</em>.
+                    </span>
+                    <button
+                      type="button"
+                      className="ml-2 underline decoration-amber-600/60 underline-offset-2 hover:decoration-amber-700"
+                      onClick={() => setPresetUnlocked(true)}
+                    >
+                      Change target
+                    </button>
+                  </div>
+                </div>
+              </>
             ) : (
-              <TicketTargetPicker
-                value={target}
-                onChange={(next) => setTarget({ type: next.type, id: next.id })}
-              />
+              <>
+                <TicketTargetPicker
+                  value={target}
+                  onChange={(next) => setTarget({ type: next.type, id: next.id })}
+                  allowedTypes={type ? validTargetTypes : undefined}
+                />
+                {presetMismatchedNoCanonical && type && (
+                  <p className="text-[11px] text-amber-700 flex items-start gap-1.5">
+                    <Info className="h-3 w-3 mt-0.5 shrink-0" />
+                    <span>
+                      {TICKET_TYPE_LABELS[type as TicketType]} requires a{" "}
+                      {validTargetTypes.map((t) => TICKET_TARGET_TYPE_LABELS[t].toLowerCase()).join(" / ")} target. Please pick one.
+                    </span>
+                  </p>
+                )}
+              </>
             )}
           </div>
 

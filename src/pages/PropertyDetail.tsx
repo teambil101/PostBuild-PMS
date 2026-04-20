@@ -11,7 +11,7 @@ import { BuildingFormDialog } from "@/components/properties/BuildingFormDialog";
 import { UnitFormDialog } from "@/components/properties/UnitFormDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSearchParams } from "react-router-dom";
-import { EntityTicketsTab } from "@/components/tickets/EntityTicketsTab";
+import { EntityTicketsTab, type TicketSection } from "@/components/tickets/EntityTicketsTab";
 import { PhotoGallery } from "@/components/attachments/PhotoGallery";
 import { DocumentList } from "@/components/attachments/DocumentList";
 import { NotesPanel } from "@/components/notes/NotesPanel";
@@ -356,10 +356,9 @@ export default function PropertyDetail() {
 
         {/* TICKETS */}
         <TabsContent value="tickets" className="pt-6">
-          <EntityTicketsTab
-            entityType="building"
-            entityId={building.id}
-            entityLabel={building.name}
+          <BuildingTicketsTabSection
+            buildingId={building.id}
+            buildingName={building.name}
             onActiveCountChange={setTicketCount}
           />
         </TabsContent>
@@ -452,5 +451,72 @@ function Meta({ label, value, icon }: { label: string; value: string; icon: Reac
       <div className="label-eyebrow flex items-center gap-1.5">{icon} {label}</div>
       <div className="font-display text-xl text-architect mt-1">{value}</div>
     </div>
+  );
+}
+
+function BuildingTicketsTabSection({
+  buildingId,
+  buildingName,
+  onActiveCountChange,
+}: {
+  buildingId: string;
+  buildingName: string;
+  onActiveCountChange: (n: number) => void;
+}) {
+  const sections: TicketSection[] = [
+    {
+      key: "direct",
+      label: "On this building",
+      emptyText: "No tickets target this building directly.",
+      fetch: async () => {
+        const { data } = await supabase
+          .from("tickets")
+          .select(
+            "id, ticket_number, subject, ticket_type, priority, status, assignee_id, due_date, created_at, target_entity_type, target_entity_id, is_system_generated",
+          )
+          .eq("target_entity_type", "building")
+          .eq("target_entity_id", buildingId)
+          .order("created_at", { ascending: false });
+        return (data ?? []) as any;
+      },
+    },
+    {
+      key: "units",
+      label: "On units in this building",
+      emptyText: "No tickets on units in this building.",
+      fetch: async () => {
+        const { data: units } = await supabase
+          .from("units")
+          .select("id, unit_number")
+          .eq("building_id", buildingId);
+        const unitRows = (units ?? []) as { id: string; unit_number: string }[];
+        if (unitRows.length === 0) return [];
+        const numMap = new Map(unitRows.map((u) => [u.id, u.unit_number]));
+        const { data: tix } = await supabase
+          .from("tickets")
+          .select(
+            "id, ticket_number, subject, ticket_type, priority, status, assignee_id, due_date, created_at, target_entity_type, target_entity_id, is_system_generated",
+          )
+          .eq("target_entity_type", "unit")
+          .in("target_entity_id", unitRows.map((u) => u.id))
+          .order("created_at", { ascending: false });
+        return ((tix ?? []) as any[]).map((t) => ({
+          ...t,
+          __unit_number: numMap.get(t.target_entity_id) ?? null,
+        }));
+      },
+      rowBadge: (row: any) => (row.__unit_number ? `Unit ${row.__unit_number}` : null),
+    },
+  ];
+
+  return (
+    <EntityTicketsTab
+      entityType="building"
+      entityId={buildingId}
+      entityLabel={buildingName}
+      groupedView
+      sections={sections}
+      onActiveCountChange={onActiveCountChange}
+    />
   );
 }
