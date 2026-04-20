@@ -668,6 +668,36 @@ export function ManagementAgreementWizard({ open, onOpenChange, editContractId, 
       });
     }
 
+    // ---- Conversion link: if launched from a lead, mark it signed atomically.
+    if (presetFromLead) {
+      const { error: leadErr } = await supabase
+        .from("leads")
+        .update({
+          won_contract_id: contractId,
+          status: "contract_signed",
+        })
+        .eq("id", presetFromLead.lead_id);
+      if (leadErr) {
+        // Roll back the contract we just created so the user can retry cleanly.
+        await supabase.from("management_agreements").delete().eq("contract_id", contractId);
+        await supabase.from("contract_subjects").delete().eq("contract_id", contractId);
+        await supabase.from("contract_parties").delete().eq("contract_id", contractId);
+        await supabase.from("contract_events").delete().eq("contract_id", contractId);
+        await supabase.from("contracts").delete().eq("id", contractId);
+        setSubmitting(false);
+        toast.error(`Could not link the lead: ${leadErr.message}`);
+        return;
+      }
+      // Audit (lead trigger also logs status_changed; this records the conversion intent).
+      await supabase.from("lead_events").insert({
+        lead_id: presetFromLead.lead_id,
+        event_type: "marked_contract_signed",
+        to_value: contractNumber,
+        description: "Contract signed via conversion flow",
+        actor_id: u.user?.id,
+      });
+    }
+
     setSubmitting(false);
     toast.success(`Contract ${contractNumber} created.`);
     onOpenChange(false);
@@ -744,6 +774,23 @@ export function ManagementAgreementWizard({ open, onOpenChange, editContractId, 
             {/* ===================== STEP 1 ===================== */}
             {step === 1 && (
               <div className="space-y-5 py-2">
+                {presetFromLead && !isEdit && (
+                  <div className="border hairline rounded-sm bg-gold/[0.05] border-gold/40 p-3 flex items-start gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="label-eyebrow text-gold-deep">Pre-filled from lead</div>
+                      <div className="text-xs text-architect mt-0.5">
+                        Terms below are inherited from{" "}
+                        <Link
+                          to={`/leads/${presetFromLead.lead_id}`}
+                          className="mono underline hover:text-gold-deep"
+                        >
+                          {presetFromLead.lead_number}
+                        </Link>
+                        . Review and adjust as needed before saving.
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <div className="border hairline rounded-sm bg-warm-stone/20 p-3 flex items-center gap-3">
                   <Building2 className="h-5 w-5 text-gold-deep" strokeWidth={1.5} />
                   <div className="flex-1 min-w-0">
