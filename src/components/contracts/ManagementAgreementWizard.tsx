@@ -1026,6 +1026,7 @@ export function ManagementAgreementWizard({ open, onOpenChange, editContractId, 
                   />
                 </div>
 
+                {!isEdit && (
                 <div className="space-y-2">
                   <Label className="label-eyebrow">Status on save</Label>
                   <RadioGroup
@@ -1047,6 +1048,7 @@ export function ManagementAgreementWizard({ open, onOpenChange, editContractId, 
                     </label>
                   </RadioGroup>
                 </div>
+                )}
               </div>
             )}
 
@@ -1082,7 +1084,7 @@ export function ManagementAgreementWizard({ open, onOpenChange, editContractId, 
                   {submitting ? (
                     <><Loader2 className="h-4 w-4 animate-spin" /> Creating…</>
                   ) : (
-                    "Create contract"
+                    isEdit ? "Save changes" : "Create contract"
                   )}
                 </Button>
               )}
@@ -1091,6 +1093,23 @@ export function ManagementAgreementWizard({ open, onOpenChange, editContractId, 
         )}
       </DialogContent>
     </Dialog>
+    <AlertDialog open={confirmActiveEditOpen} onOpenChange={setConfirmActiveEditOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Save changes to an active contract?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This contract is active. Changes to fee model, fee value, or contract dates will be logged in history. Continue?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={() => { setConfirmActiveEditOpen(false); performSave(); }}>
+            Continue
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
 
