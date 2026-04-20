@@ -39,7 +39,15 @@ export function KpiCard({
   const body = (
     <>
       <div className="label-eyebrow">{label}</div>
-      <div className={cn("font-display text-4xl mt-3 leading-none", valueTone)}>{value}</div>
+      <div
+        className={cn(
+          "font-display text-3xl xl:text-4xl mt-3 leading-none truncate",
+          valueTone,
+        )}
+        title={typeof value === "string" || typeof value === "number" ? String(value) : undefined}
+      >
+        {value}
+      </div>
       {(subtitle || delta !== undefined) && (
         <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground min-h-[1rem]">
           {delta !== undefined && delta !== null && (
