@@ -26,7 +26,7 @@ export const MODULES: ModuleDef[] = [
   { key: "lifecycle", label: "Lease Lifecycle", path: "/lifecycle", icon: Workflow, active: true },
   { key: "tickets", label: "Tickets & Workflows", path: "/tickets", icon: Ticket, active: true },
   { key: "dashboards", label: "Dashboards", path: "/dashboards", icon: LayoutDashboard, active: false },
-  { key: "vendors", label: "Vendors", path: "/vendors", icon: Truck, active: false },
+  { key: "vendors", label: "Vendors", path: "/vendors", icon: Truck, active: true },
   { key: "services", label: "Services", path: "/services", icon: Wrench, active: false },
   { key: "settings", label: "Settings", path: "/settings", icon: SettingsIcon, active: true },
 ];

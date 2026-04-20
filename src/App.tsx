@@ -21,6 +21,8 @@ import Settings from "./pages/Settings";
 import Lifecycle from "./pages/Lifecycle";
 import Tickets from "./pages/Tickets";
 import TicketDetail from "./pages/TicketDetail";
+import Vendors from "./pages/Vendors";
+import VendorDetail from "./pages/VendorDetail";
 
 const queryClient = new QueryClient();
 
@@ -52,7 +54,8 @@ const App = () => (
             <Route path="/tickets" element={<Shell><Tickets /></Shell>} />
             <Route path="/tickets/:ticketId" element={<Shell><TicketDetail /></Shell>} />
             <Route path="/dashboards" element={<Shell><ComingSoon /></Shell>} />
-            <Route path="/vendors" element={<Shell><ComingSoon /></Shell>} />
+            <Route path="/vendors" element={<Shell><Vendors /></Shell>} />
+            <Route path="/vendors/:vendorId" element={<Shell><VendorDetail /></Shell>} />
             <Route path="/services" element={<Shell><ComingSoon /></Shell>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
