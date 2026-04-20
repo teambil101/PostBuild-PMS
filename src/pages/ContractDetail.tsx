@@ -1,19 +1,32 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ContractStatusPill } from "@/components/contracts/StatusPill";
 import { DocumentList } from "@/components/attachments/DocumentList";
+import { NotesPanel } from "@/components/notes/NotesPanel";
+import { ManagementAgreementWizard } from "@/components/contracts/ManagementAgreementWizard";
+import { ActivateContractDialog } from "@/components/contracts/dialogs/ActivateContractDialog";
+import { MarkSignedDialog } from "@/components/contracts/dialogs/MarkSignedDialog";
+import { TerminateContractDialog } from "@/components/contracts/dialogs/TerminateContractDialog";
+import { DeleteContractDialog } from "@/components/contracts/dialogs/DeleteContractDialog";
+import { AddPartyDialog } from "@/components/contracts/dialogs/AddPartyDialog";
+import { AddSubjectDialog } from "@/components/contracts/dialogs/AddSubjectDialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   CONTRACT_TYPE_LABELS, type ContractType, type ContractStatus,
-  formatContractValue, summarizePeriod, daysUntil,
+  formatContractValue, summarizePeriod, daysUntil, duplicateContract,
   SCOPE_LABELS, type ScopeService, FEE_MODEL_LABELS,
 } from "@/lib/contracts";
+import { formatEnumLabel } from "@/lib/format";
 import {
   Loader2, Building2, Home, ExternalLink, Pencil, Trash2, Power, FileSignature, XCircle, Copy as CopyIcon,
-  ArrowLeft, History as HistoryIcon, AlertCircle,
+  ArrowLeft, History as HistoryIcon, Plus, Check, X, AlertTriangle,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 
