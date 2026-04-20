@@ -336,10 +336,10 @@ export default function UnitDetail() {
 
         {/* NOTES — composer + feed land in pass 3 */}
         <TabsContent value="notes" className="pt-6">
-          <EmptyState
-            icon={<StickyNote className="h-8 w-8" strokeWidth={1.2} />}
-            title="Notes coming soon"
-            description="A composer + reverse-chronological feed for tracking internal context about this unit."
+          <NotesPanel
+            entityType="unit"
+            entityId={unit.id}
+            onCountChange={setNoteCount}
           />
         </TabsContent>
 
