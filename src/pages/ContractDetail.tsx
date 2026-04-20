@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { EntityTicketsTab, type TicketSection } from "@/components/tickets/EntityTicketsTab";
 import { ContractStatusPill } from "@/components/contracts/StatusPill";
 import { DocumentList } from "@/components/attachments/DocumentList";
 import { NotesPanel } from "@/components/notes/NotesPanel";
@@ -123,6 +124,7 @@ export default function ContractDetail() {
   const [addSubjectOpen, setAddSubjectOpen] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("overview");
+  const [ticketCount, setTicketCount] = useState<number>(0);
 
   // Inline edit state
   const [editingNotes, setEditingNotes] = useState(false);
@@ -501,9 +503,15 @@ export default function ContractDetail() {
           {contract.contract_type === "lease" && lease && (
             <TabsTrigger value="cheques">Cheques</TabsTrigger>
           )}
+          {contract.contract_type === "lease" && lease && (
+            <TabsTrigger value="tickets">Tickets ({ticketCount})</TabsTrigger>
+          )}
           <TabsTrigger value="parties">Parties ({parties.length})</TabsTrigger>
           <TabsTrigger value="subjects">Subjects ({subjects.length})</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
+          {contract.contract_type !== "lease" && (
+            <TabsTrigger value="tickets">Tickets ({ticketCount})</TabsTrigger>
+          )}
           <TabsTrigger value="notes">Notes</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
         </TabsList>
