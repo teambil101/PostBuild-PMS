@@ -258,7 +258,9 @@ export default function TicketDetail() {
           )}
         </SummaryCard>
         {hasWorkflow ? (
-          <WorkflowStageCard ticketId={ticket.id} refreshKey={workflowRefresh} />
+          <SummaryCard label="Stage">
+            <WorkflowSummaryCard ticketId={ticket.id} refreshKey={workflowRefresh} />
+          </SummaryCard>
         ) : null}
         <SummaryCard label="Priority">
           <TicketPriorityPill priority={ticket.priority} />
