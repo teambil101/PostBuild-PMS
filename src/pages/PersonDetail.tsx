@@ -1,13 +1,12 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Mail, Phone, Building2, Pencil, Trash2, Plus, FileText, Upload, Link2 } from "lucide-react";
+import { ArrowLeft, Mail, Phone, Building2, Pencil, Trash2, FileText, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/PageHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import { PersonRoleBadge } from "@/components/people/PersonRoleBadge";
 import { PersonFormDialog } from "@/components/people/PersonFormDialog";
-import { LinkToPropertyDialog } from "@/components/people/LinkToPropertyDialog";
 import { EmptyState } from "@/components/EmptyState";
 import { initials } from "@/lib/format";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -24,22 +23,15 @@ export default function PersonDetail() {
   const { canEdit } = useAuth();
 
   const [person, setPerson] = useState<any>(null);
-  const [links, setLinks] = useState<any[]>([]);
   const [docs, setDocs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
-  const [linkOpen, setLinkOpen] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
     setLoading(true);
-    const [p, l, d] = await Promise.all([
+    const [p, d] = await Promise.all([
       supabase.from("people").select("*").eq("id", id).maybeSingle(),
-      supabase
-        .from("people_property_links")
-        .select("*, buildings(id, name, ref_code), units(id, unit_number, ref_code)")
-        .eq("person_id", id)
-        .order("created_at", { ascending: false }),
       supabase.from("people_documents").select("*").eq("person_id", id).order("created_at", { ascending: false }),
     ]);
     if (p.error || !p.data) {
@@ -48,7 +40,6 @@ export default function PersonDetail() {
       return;
     }
     setPerson(p.data);
-    setLinks(l.data ?? []);
     setDocs(d.data ?? []);
     setLoading(false);
   }, [id, navigate]);
