@@ -78,6 +78,8 @@ interface EventRow {
 const DISABLED_TIP = "Coming in next update";
 
 export default function ContractDetail() {
+  const navigate = useNavigate();
+  const { canEdit } = useAuth();
   const { contractId } = useParams<{ contractId: string }>();
   const [contract, setContract] = useState<Contract | null>(null);
   const [ma, setMa] = useState<MA | null>(null);
@@ -85,6 +87,31 @@ export default function ContractDetail() {
   const [subjects, setSubjects] = useState<SubjectRow[]>([]);
   const [events, setEvents] = useState<EventRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  // Action dialog state
+  const [editOpen, setEditOpen] = useState(false);
+  const [activateOpen, setActivateOpen] = useState(false);
+  const [signOpen, setSignOpen] = useState(false);
+  const [postSignActivateOpen, setPostSignActivateOpen] = useState(false);
+  const [terminateOpen, setTerminateOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [addPartyOpen, setAddPartyOpen] = useState(false);
+  const [addSubjectOpen, setAddSubjectOpen] = useState(false);
+
+  // Inline edit state
+  const [editingNotes, setEditingNotes] = useState(false);
+  const [notesDraft, setNotesDraft] = useState("");
+  const [editingExtRef, setEditingExtRef] = useState(false);
+  const [extRefDraft, setExtRefDraft] = useState("");
+  const [editingNoticeDays, setEditingNoticeDays] = useState(false);
+  const [noticeDaysDraft, setNoticeDaysDraft] = useState("");
+
+  const refresh = () => setReloadKey((k) => k + 1);
+
+  const reloadAll = async () => {
+    if (!contractId) return;
+    setLoading(true);
 
   useEffect(() => {
     if (!contractId) return;
