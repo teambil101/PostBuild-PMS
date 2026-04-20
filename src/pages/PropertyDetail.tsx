@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PhotoGallery } from "@/components/attachments/PhotoGallery";
 import { DocumentList } from "@/components/attachments/DocumentList";
 import { NotesPanel } from "@/components/notes/NotesPanel";
+import { OwnersCard } from "@/components/owners/OwnersCard";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { COUNTRY_BY_CODE } from "@/lib/countries";
@@ -65,11 +66,12 @@ export default function PropertyDetail() {
   const [unitOpen, setUnitOpen] = useState(false);
   const [editingUnit, setEditingUnit] = useState<Unit | null>(null);
   const [leasePrompt, setLeasePrompt] = useState<{ unitId: string } | null>(null);
+  const [unitsWithoutOwnersCount, setUnitsWithoutOwnersCount] = useState(0);
 
   const load = useCallback(async () => {
     if (!id) return;
     setLoading(true);
-    const [b, u, ph, dc, nt, h] = await Promise.all([
+    const [b, u, ph, dc, nt, h, gaps] = await Promise.all([
       supabase.from("buildings").select("*").eq("id", id).maybeSingle(),
       supabase.from("units").select("*").eq("building_id", id).order("unit_number"),
       supabase.from("photos").select("id", { count: "exact", head: true }).eq("entity_type", "building").eq("entity_id", id),
@@ -81,6 +83,7 @@ export default function PropertyDetail() {
         .eq("units.building_id", id)
         .order("changed_at", { ascending: false })
         .limit(20),
+      supabase.from("units_without_owners").select("id", { count: "exact", head: true }).eq("building_id", id),
     ]);
     if (b.error || !b.data) {
       toast.error("Building not found.");
@@ -93,6 +96,7 @@ export default function PropertyDetail() {
     setDocCount(dc.count ?? 0);
     setNoteCount(nt.count ?? 0);
     setHistory(h.data ?? []);
+    setUnitsWithoutOwnersCount(gaps.count ?? 0);
     setLoading(false);
   }, [id, navigate]);
 
@@ -205,6 +209,13 @@ export default function PropertyDetail() {
         <Meta label="Units" value={units.length.toString()} icon={<Building2 className="h-3.5 w-3.5" />} />
       </div>
 
+      <OwnersCard
+        entityType="building"
+        entityId={building.id}
+        editable={canEdit}
+        onChanged={load}
+      />
+
       <Tabs defaultValue="units" className="w-full">
         <TabsList className="bg-transparent border-b hairline rounded-none w-full justify-start gap-0 h-auto p-0">
           {[
@@ -234,6 +245,20 @@ export default function PropertyDetail() {
               </Button>
             )}
           </div>
+
+          {unitsWithoutOwnersCount > 0 && (
+            <div className="mb-4 flex items-start gap-3 border border-amber-500/40 bg-amber-500/10 rounded-sm p-3">
+              <AlertTriangle className="h-4 w-4 text-amber-700 shrink-0 mt-0.5" />
+              <div className="flex-1 text-xs text-amber-900">
+                <span className="font-medium">
+                  {unitsWithoutOwnersCount === 1
+                    ? "1 unit has no resolvable ownership."
+                    : `${unitsWithoutOwnersCount} units have no resolvable ownership.`}
+                </span>{" "}
+                Set ownership at the building or per-unit level.
+              </div>
+            </div>
+          )}
 
           {units.length === 0 ? (
             <EmptyState

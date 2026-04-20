@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PhotoGallery } from "@/components/attachments/PhotoGallery";
 import { DocumentList } from "@/components/attachments/DocumentList";
 import { NotesPanel } from "@/components/notes/NotesPanel";
+import { OwnersCard } from "@/components/owners/OwnersCard";
 import { toast } from "sonner";
 import { format, formatDistanceToNow } from "date-fns";
 import { formatEnumLabel, sqmToSqft } from "@/lib/format";
@@ -70,17 +71,19 @@ export default function UnitDetail() {
   const [editOpen, setEditOpen] = useState(false);
   const [confirmText, setConfirmText] = useState("");
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [hasNoOwners, setHasNoOwners] = useState(false);
 
   const load = useCallback(async () => {
     if (!buildingId || !unitId) return;
     setLoading(true);
-    const [u, b, ph, dc, nt, hi] = await Promise.all([
+    const [u, b, ph, dc, nt, hi, gap] = await Promise.all([
       supabase.from("units").select("*").eq("id", unitId).maybeSingle(),
       supabase.from("buildings").select("id, name, building_type").eq("id", buildingId).maybeSingle(),
       supabase.from("photos").select("id", { count: "exact", head: true }).eq("entity_type", "unit").eq("entity_id", unitId),
       supabase.from("documents").select("id", { count: "exact", head: true }).eq("entity_type", "unit").eq("entity_id", unitId),
       supabase.from("notes").select("id", { count: "exact", head: true }).eq("entity_type", "unit").eq("entity_id", unitId),
       supabase.from("unit_status_history").select("*").eq("unit_id", unitId).order("changed_at", { ascending: false }).limit(50),
+      supabase.from("units_without_owners").select("id", { count: "exact", head: true }).eq("id", unitId),
     ]);
 
     if (u.error || !u.data) {
@@ -99,6 +102,7 @@ export default function UnitDetail() {
     setDocCount(dc.count ?? 0);
     setNoteCount(nt.count ?? 0);
     setStatusHistory((hi.data ?? []) as StatusEvent[]);
+    setHasNoOwners((gap.count ?? 0) > 0);
     setLoading(false);
   }, [buildingId, unitId, navigate]);
 
@@ -223,6 +227,19 @@ export default function UnitDetail() {
         </div>
       )}
 
+      {/* No-owner warning banner */}
+      {hasNoOwners && (
+        <div className="mb-6 flex items-start gap-3 border border-amber-500/40 bg-amber-500/10 rounded-sm p-4">
+          <AlertTriangle className="h-4 w-4 text-amber-700 shrink-0 mt-0.5" />
+          <div className="flex-1 text-sm text-amber-900">
+            <div className="font-medium">This unit has no owner assigned.</div>
+            <div className="text-xs text-amber-800/90 mt-0.5">
+              Set ownership below, or add owners at the building level for inheritance.
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-warm-stone/60 border hairline rounded-sm overflow-hidden mb-10">
         <SummaryCard label="Status">
@@ -260,6 +277,15 @@ export default function UnitDetail() {
           </SummaryCard>
         )}
       </div>
+
+      <OwnersCard
+        entityType="unit"
+        entityId={unit.id}
+        buildingId={building.id}
+        buildingName={building.name}
+        editable={canEdit}
+        onChanged={load}
+      />
 
       {/* Tabs */}
       <Tabs defaultValue="overview" className="w-full">
