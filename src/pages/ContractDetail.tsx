@@ -9,6 +9,7 @@ import { DocumentList } from "@/components/attachments/DocumentList";
 import { NotesPanel } from "@/components/notes/NotesPanel";
 import { ManagementAgreementWizard } from "@/components/contracts/ManagementAgreementWizard";
 import { ServiceAgreementWizard } from "@/components/contracts/service/ServiceAgreementWizard";
+import { SchedulesTab } from "@/components/services/SchedulesTab";
 import { LeaseSummaryCards } from "@/components/contracts/lease/LeaseSummaryCards";
 import { LeaseOverviewBlocks } from "@/components/contracts/lease/LeaseOverviewBlocks";
 import { ChequesTab } from "@/components/contracts/lease/ChequesTab";
@@ -595,6 +596,9 @@ export default function ContractDetail() {
           <TabsTrigger value="documents">Documents</TabsTrigger>
           {contract.contract_type !== "lease" && (
             <TabsTrigger value="tickets">Tickets ({ticketCount})</TabsTrigger>
+          )}
+          {contract.contract_type === "service_agreement" && (
+            <TabsTrigger value="schedules">Schedules</TabsTrigger>
           )}
           <TabsTrigger value="notes">Notes</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>

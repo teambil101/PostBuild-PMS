@@ -15,6 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { NewVendorDialog } from "@/components/vendors/NewVendorDialog";
 import { ServiceAgreementWizard } from "@/components/contracts/service/ServiceAgreementWizard";
+import { SchedulesTab } from "@/components/services/SchedulesTab";
 import { DocumentList } from "@/components/attachments/DocumentList";
 import { NotesPanel } from "@/components/notes/NotesPanel";
 import { EntityTicketsTab, type TicketSection, type EntityTicketRow } from "@/components/tickets/EntityTicketsTab";
@@ -387,6 +388,9 @@ export default function VendorDetail() {
           <TabsTrigger value="agreements">
             Service Agreements {agreementsCount > 0 && <span className="ml-1 text-muted-foreground">({agreementsCount})</span>}
           </TabsTrigger>
+          <TabsTrigger value="schedules">
+            Schedules {schedulesCount > 0 && <span className="ml-1 text-muted-foreground">({schedulesCount})</span>}
+          </TabsTrigger>
           <TabsTrigger value="tickets">
             Tickets {ticketsCount > 0 && <span className="ml-1 text-muted-foreground">({ticketsCount})</span>}
           </TabsTrigger>
@@ -505,6 +509,14 @@ export default function VendorDetail() {
             canEdit={canEdit}
             onCountChange={setAgreementsCount}
             onNew={() => setNewSaOpen(true)}
+          />
+        </TabsContent>
+
+        <TabsContent value="schedules" className="mt-6">
+          <SchedulesTab
+            filter={{ vendorId: vendor.id }}
+            canEdit={canEdit}
+            onCountChange={setSchedulesCount}
           />
         </TabsContent>
 
