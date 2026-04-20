@@ -144,6 +144,7 @@ export function NewTicketDialog({
     setThreshold(null);
     setWorkflowKey("__none");
     setWorkflowOverridden(false);
+    setVendor(null);
     setTimeout(() => subjectRef.current?.focus(), 50);
   }, [open, presetTarget]);
 
