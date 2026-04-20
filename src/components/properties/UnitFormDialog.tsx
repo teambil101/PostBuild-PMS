@@ -1,171 +1,528 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { newUnitCode } from "@/lib/refcode";
+import { formatEnumLabel, sqmToSqft } from "@/lib/format";
+import { cn } from "@/lib/utils";
+import {
+  BuildingType,
+  UNIT_STATUS_OPTIONS,
+  UnitStatusValue,
+  UnitTypeValue,
+  isResidentialType,
+  isStatusLockedByLease,
+  loadSizePref,
+  saveSizePref,
+  SizeUnit,
+  toCanonicalSqm,
+  unitTypesForBuilding,
+} from "@/lib/units";
 
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  onSaved: () => void;
+  onSaved: (createdUnit?: { id: string; status: UnitStatusValue }) => void;
   buildingId: string;
+  parentBuildingType: BuildingType | string;
   initial?: any;
 }
 
-export function UnitFormDialog({ open, onOpenChange, onSaved, buildingId, initial }: Props) {
+interface FormState {
+  unit_number: string;
+  unit_type: UnitTypeValue | "";
+  status: UnitStatusValue | "";
+  floor: string;            // raw string for input
+  size: string;
+  size_unit: SizeUnit;
+  bedrooms: string;
+  bathrooms: string;
+  description: string;
+}
+
+type Errors = Partial<Record<keyof FormState, string>>;
+
+const labelClass = "text-xs font-medium text-architect normal-case tracking-normal";
+const errorClass = "text-xs text-destructive mt-1";
+
+const emptyForm = (typeOptions: UnitTypeValue[]): FormState => ({
+  unit_number: "",
+  unit_type: typeOptions[0] ?? "apartment",
+  status: "",
+  floor: "",
+  size: "",
+  size_unit: loadSizePref(),
+  bedrooms: "",
+  bathrooms: "",
+  description: "",
+});
+
+const fromInitial = (i: any, typeOptions: UnitTypeValue[]): FormState => {
+  const pref: SizeUnit = i?.size_unit_preference === "sqft" ? "sqft" : "sqm";
+  const sizeRaw =
+    i?.size_sqm == null
+      ? ""
+      : pref === "sqft"
+        ? String(sqmToSqft(Number(i.size_sqm)))
+        : String(i.size_sqm);
+  return {
+    unit_number: i?.unit_number ?? "",
+    unit_type: (i?.unit_type as UnitTypeValue) ?? typeOptions[0] ?? "apartment",
+    status: (i?.status as UnitStatusValue) ?? "",
+    floor: i?.floor != null ? String(i.floor) : "",
+    size: sizeRaw,
+    size_unit: pref,
+    bedrooms: i?.bedrooms != null ? String(i.bedrooms) : "",
+    bathrooms: i?.bathrooms != null ? String(i.bathrooms) : "",
+    description: i?.description ?? "",
+  };
+};
+
+export function UnitFormDialog({
+  open,
+  onOpenChange,
+  onSaved,
+  buildingId,
+  parentBuildingType,
+  initial,
+}: Props) {
+  const typeOptions = useMemo(
+    () => unitTypesForBuilding(parentBuildingType),
+    [parentBuildingType],
+  );
+
   const [busy, setBusy] = useState(false);
-  const [form, setForm] = useState<any>({
-    unit_number: "",
-    unit_type: "apartment",
-    status: "vacant",
-    floor: "",
-    size_sqm: "",
-    bedrooms: "",
-    bathrooms: "",
-    monthly_rent: "",
-    description: "",
-  });
+  const [form, setForm] = useState<FormState>(() => emptyForm(typeOptions));
+  const [baseline, setBaseline] = useState<FormState>(() => emptyForm(typeOptions));
+  const [errors, setErrors] = useState<Errors>({});
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+
+  const unitNumberRef = useRef<HTMLInputElement>(null);
+  const typeRef = useRef<HTMLButtonElement>(null);
+  const statusRef = useRef<HTMLButtonElement>(null);
+  const sizeRef = useRef<HTMLInputElement>(null);
+
+  const hideFloor = parentBuildingType === "villa_compound";
+  const showResidential = isResidentialType(form.unit_type);
+  const isStudio = form.unit_type === "studio";
+  const statusLocked = initial ? isStatusLockedByLease(initial) : false;
 
   useEffect(() => {
-    if (open && initial) {
-      setForm({
-        unit_number: initial.unit_number ?? "",
-        unit_type: initial.unit_type ?? "apartment",
-        status: initial.status ?? "vacant",
-        floor: initial.floor ?? "",
-        size_sqm: initial.size_sqm ?? "",
-        bedrooms: initial.bedrooms ?? "",
-        bathrooms: initial.bathrooms ?? "",
-        monthly_rent: initial.monthly_rent ?? "",
-        description: initial.description ?? "",
-      });
-    } else if (open) {
-      setForm({
-        unit_number: "", unit_type: "apartment", status: "vacant",
-        floor: "", size_sqm: "", bedrooms: "", bathrooms: "",
-        monthly_rent: "", description: "",
-      });
+    if (!open) return;
+    const next = initial ? fromInitial(initial, typeOptions) : emptyForm(typeOptions);
+    setForm(next);
+    setBaseline(next);
+    setErrors({});
+  }, [open, initial, typeOptions]);
+
+  // Force studio bedrooms = 0
+  useEffect(() => {
+    if (isStudio && form.bedrooms !== "0") {
+      setForm((f) => ({ ...f, bedrooms: "0" }));
     }
-  }, [open, initial]);
+  }, [isStudio]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
+  // When type flips to non-residential, drop bed/bath values so they don't persist
+  useEffect(() => {
+    if (!showResidential && (form.bedrooms !== "" || form.bathrooms !== "")) {
+      setForm((f) => ({ ...f, bedrooms: "", bathrooms: "" }));
+    }
+  }, [showResidential]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.unit_number.trim()) {
-      toast.error("Unit number is required.");
+  const isDirty = useMemo(
+    () => JSON.stringify(form) !== JSON.stringify(baseline),
+    [form, baseline],
+  );
+
+  const set = <K extends keyof FormState>(k: K, v: FormState[K]) => {
+    setForm((f) => ({ ...f, [k]: v }));
+    setErrors((e) => ({ ...e, [k]: undefined }));
+  };
+
+  const validate = async (): Promise<Errors> => {
+    const e: Errors = {};
+    const num = form.unit_number.trim();
+    if (!num) e.unit_number = "Unit number is required.";
+    else if (num.length > 20) e.unit_number = "Max 20 characters.";
+
+    if (!form.unit_type) e.unit_type = "Select a unit type.";
+    if (!form.status) e.status = "Select a status.";
+
+    if (form.size.trim() !== "") {
+      const n = Number(form.size);
+      if (!Number.isFinite(n) || n <= 0) e.size = "Size must be greater than 0.";
+      else if (n > 100000) e.size = "Size is too large.";
+    }
+
+    if (!hideFloor && form.floor.trim() !== "") {
+      const fl = form.floor.trim().toUpperCase();
+      if (fl !== "G") {
+        const n = Number(fl);
+        if (!Number.isInteger(n) || n < 0 || n > 200) {
+          e.floor = "Floor must be an integer 0–200 (or G for ground).";
+        }
+      }
+    }
+
+    if (showResidential && form.bedrooms.trim() !== "") {
+      const n = Number(form.bedrooms);
+      if (!Number.isInteger(n) || n < 0 || n > 20) e.bedrooms = "0–20 only.";
+    }
+    if (showResidential && form.bathrooms.trim() !== "") {
+      const n = Number(form.bathrooms);
+      if (!Number.isFinite(n) || n < 0 || n > 20) e.bathrooms = "0–20 only.";
+    }
+
+    if (form.description.length > 500) e.description = "Max 500 characters.";
+
+    // Uniqueness — only run if no field-level errors so far
+    if (!e.unit_number) {
+      const q = supabase
+        .from("units")
+        .select("id")
+        .eq("building_id", buildingId)
+        .eq("unit_number", num)
+        .limit(1);
+      const { data, error } = initial?.id ? await q.neq("id", initial.id) : await q;
+      if (error) {
+        // surface as toast, not field error
+        toast.error(error.message);
+      } else if (data && data.length > 0) {
+        e.unit_number = `Unit ${num} already exists in this building.`;
+      }
+    }
+
+    return e;
+  };
+
+  const focusFirstError = (e: Errors) => {
+    const order: (keyof FormState)[] = ["unit_number", "unit_type", "status", "size", "floor", "bedrooms", "bathrooms", "description"];
+    const map: Partial<Record<keyof FormState, HTMLElement | null>> = {
+      unit_number: unitNumberRef.current,
+      unit_type: typeRef.current,
+      status: statusRef.current,
+      size: sizeRef.current,
+    };
+    const first = order.find((k) => e[k]);
+    if (!first) return;
+    const el = map[first];
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      (el as any).focus?.();
+    }
+  };
+
+  const submit = async (ev: React.FormEvent) => {
+    ev.preventDefault();
+    setBusy(true);
+    const v = await validate();
+    if (Object.keys(v).length > 0) {
+      setErrors(v);
+      focusFirstError(v);
+      setBusy(false);
       return;
     }
-    setBusy(true);
+
+    saveSizePref(form.size_unit);
+
+    const sizeNum = form.size.trim() === "" ? null : toCanonicalSqm(Number(form.size), form.size_unit);
+    const floorNum = (() => {
+      if (hideFloor || form.floor.trim() === "") return null;
+      const fl = form.floor.trim().toUpperCase();
+      return fl === "G" ? 0 : Number(fl);
+    })();
+
     const payload: any = {
       building_id: buildingId,
       unit_number: form.unit_number.trim(),
       unit_type: form.unit_type,
       status: form.status,
-      floor: form.floor !== "" ? Number(form.floor) : null,
-      size_sqm: form.size_sqm !== "" ? Number(form.size_sqm) : null,
-      bedrooms: form.bedrooms !== "" ? Number(form.bedrooms) : null,
-      bathrooms: form.bathrooms !== "" ? Number(form.bathrooms) : null,
-      monthly_rent: form.monthly_rent !== "" ? Number(form.monthly_rent) : null,
-      description: form.description || null,
+      floor: floorNum,
+      size_sqm: sizeNum,
+      size_unit_preference: sizeNum == null ? null : form.size_unit,
+      bedrooms: showResidential && form.bedrooms.trim() !== "" ? Number(form.bedrooms) : null,
+      bathrooms: showResidential && form.bathrooms.trim() !== "" ? Number(form.bathrooms) : null,
+      description: form.description.trim() || null,
     };
-    let error;
+
+    let resultId: string | undefined = initial?.id;
+    let error: any;
     if (initial?.id) {
       ({ error } = await supabase.from("units").update(payload).eq("id", initial.id));
     } else {
       const { data: u } = await supabase.auth.getUser();
       payload.ref_code = newUnitCode();
       payload.created_by = u.user?.id;
-      ({ error } = await supabase.from("units").insert(payload));
+      const { data, error: insErr } = await supabase.from("units").insert(payload).select("id").maybeSingle();
+      error = insErr;
+      resultId = data?.id;
     }
     setBusy(false);
+
     if (error) {
       toast.error(error.message);
-    } else {
-      toast.success(initial?.id ? "Unit updated." : "Unit added.");
-      onSaved();
+      return;
     }
+    toast.success(initial?.id ? "Unit updated" : "Unit added");
+    onSaved(resultId ? { id: resultId, status: form.status as UnitStatusValue } : undefined);
   };
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="font-display text-2xl">
-            {initial?.id ? "Edit unit" : "New unit"}
-          </DialogTitle>
-          <DialogDescription>
-            {initial?.id ? "Update unit details." : "Add a unit to this building."}
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={submit} className="space-y-4 pt-2">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="label-eyebrow">Unit number *</Label>
-              <Input value={form.unit_number} onChange={(e) => set("unit_number", e.target.value)} required />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="label-eyebrow">Type</Label>
-              <Select value={form.unit_type} onValueChange={(v) => set("unit_type", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {["studio", "apartment", "house", "office", "retail", "storage", "other"].map((t) => (
-                    <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="label-eyebrow">Status</Label>
-              <Select value={form.status} onValueChange={(v) => set("status", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="vacant">Vacant</SelectItem>
-                  <SelectItem value="occupied">Occupied</SelectItem>
-                  <SelectItem value="maintenance">Maintenance</SelectItem>
-                  <SelectItem value="off_market">Off Market</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="label-eyebrow">Floor</Label>
-              <Input type="number" value={form.floor} onChange={(e) => set("floor", e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="label-eyebrow">Size (sqm)</Label>
-              <Input type="number" step="0.01" value={form.size_sqm} onChange={(e) => set("size_sqm", e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="label-eyebrow">Monthly rent</Label>
-              <Input type="number" step="0.01" value={form.monthly_rent} onChange={(e) => set("monthly_rent", e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="label-eyebrow">Bedrooms</Label>
-              <Input type="number" value={form.bedrooms} onChange={(e) => set("bedrooms", e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="label-eyebrow">Bathrooms</Label>
-              <Input type="number" step="0.5" value={form.bathrooms} onChange={(e) => set("bathrooms", e.target.value)} />
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <Label className="label-eyebrow">Description</Label>
-            <Textarea rows={2} value={form.description} onChange={(e) => set("description", e.target.value)} />
-          </div>
+  const handleOpenChange = (next: boolean) => {
+    if (!next && isDirty && !busy) {
+      setConfirmDiscard(true);
+      return;
+    }
+    onOpenChange(next);
+  };
 
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" variant="gold" disabled={busy}>
-              {busy ? "Saving…" : initial?.id ? "Save changes" : "Add unit"}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+  const showOccupiedHelper = form.status === "occupied";
+
+  return (
+    <>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent className="max-w-[560px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-display text-2xl">
+              {initial?.id ? "Edit unit" : "New unit"}
+            </DialogTitle>
+            <DialogDescription>
+              {initial?.id ? "Update unit details." : "Add a unit to this building."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={submit} className="space-y-4 pt-2" noValidate>
+            {/* Row 1: Unit number + Type */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="u-num" className={labelClass}>
+                  Unit number <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="u-num"
+                  ref={unitNumberRef}
+                  value={form.unit_number}
+                  onChange={(e) => set("unit_number", e.target.value.slice(0, 20))}
+                  maxLength={20}
+                  className={cn("mt-1.5", errors.unit_number && "border-destructive")}
+                  aria-invalid={!!errors.unit_number}
+                />
+                {errors.unit_number && <p className={errorClass}>{errors.unit_number}</p>}
+              </div>
+              <div>
+                <Label htmlFor="u-type" className={labelClass}>
+                  Type <span className="text-destructive">*</span>
+                </Label>
+                <Select value={form.unit_type} onValueChange={(v) => set("unit_type", v as UnitTypeValue)}>
+                  <SelectTrigger
+                    id="u-type"
+                    ref={typeRef}
+                    className={cn("mt-1.5", errors.unit_type && "border-destructive")}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {typeOptions.map((t) => (
+                      <SelectItem key={t} value={t}>{formatEnumLabel(t)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.unit_type && <p className={errorClass}>{errors.unit_type}</p>}
+              </div>
+            </div>
+
+            {/* Row 2: Status (+ Floor unless villa_compound) */}
+            <div className={cn("grid gap-3", hideFloor ? "grid-cols-1" : "grid-cols-2")}>
+              <div>
+                <Label htmlFor="u-status" className={labelClass}>
+                  Status <span className="text-destructive">*</span>
+                </Label>
+                <Select
+                  value={form.status}
+                  onValueChange={(v) => set("status", v as UnitStatusValue)}
+                  disabled={statusLocked}
+                >
+                  <SelectTrigger
+                    id="u-status"
+                    ref={statusRef}
+                    className={cn("mt-1.5", errors.status && "border-destructive")}
+                  >
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {UNIT_STATUS_OPTIONS.map((s) => (
+                      <SelectItem key={s} value={s}>{formatEnumLabel(s)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {statusLocked && (
+                  <p className="text-xs text-muted-foreground mt-1">Status is set by the active lease.</p>
+                )}
+                {showOccupiedHelper && !errors.status && (
+                  <p className="text-xs text-amber-700 mt-1">
+                    You'll be prompted to add lease details after creating this unit.
+                  </p>
+                )}
+                {errors.status && <p className={errorClass}>{errors.status}</p>}
+              </div>
+
+              {!hideFloor && (
+                <div>
+                  <Label htmlFor="u-floor" className={labelClass}>Floor</Label>
+                  <Input
+                    id="u-floor"
+                    value={form.floor}
+                    onChange={(e) => set("floor", e.target.value)}
+                    placeholder="e.g. 16 or G"
+                    className={cn("mt-1.5", errors.floor && "border-destructive")}
+                    aria-invalid={!!errors.floor}
+                  />
+                  {errors.floor && <p className={errorClass}>{errors.floor}</p>}
+                </div>
+              )}
+            </div>
+
+            {/* Row 3: Size + unit toggle */}
+            <div>
+              <Label htmlFor="u-size" className={labelClass}>Size</Label>
+              <div className="mt-1.5 flex items-stretch gap-2">
+                <Input
+                  id="u-size"
+                  ref={sizeRef}
+                  type="number"
+                  step="0.01"
+                  min={1}
+                  value={form.size}
+                  onChange={(e) => set("size", e.target.value)}
+                  className={cn("flex-1", errors.size && "border-destructive")}
+                  aria-invalid={!!errors.size}
+                />
+                <ToggleGroup
+                  type="single"
+                  value={form.size_unit}
+                  onValueChange={(v) => v && set("size_unit", v as SizeUnit)}
+                  className="border hairline rounded-sm bg-muted/40 p-0.5 gap-0 h-10"
+                >
+                  <ToggleGroupItem
+                    value="sqm"
+                    className="h-full px-3 text-[11px] uppercase tracking-wider data-[state=on]:bg-architect data-[state=on]:text-chalk rounded-sm"
+                  >
+                    sqm
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value="sqft"
+                    className="h-full px-3 text-[11px] uppercase tracking-wider data-[state=on]:bg-architect data-[state=on]:text-chalk rounded-sm"
+                  >
+                    sqft
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </div>
+              {errors.size && <p className={errorClass}>{errors.size}</p>}
+            </div>
+
+            {/* Row 4: Bedrooms + Bathrooms (residential only) */}
+            <div
+              className={cn(
+                "grid grid-cols-2 gap-3 overflow-hidden transition-all duration-200",
+                showResidential ? "max-h-40 opacity-100" : "max-h-0 opacity-0 pointer-events-none",
+              )}
+              aria-hidden={!showResidential}
+            >
+              <div>
+                <Label htmlFor="u-beds" className={labelClass}>Bedrooms</Label>
+                <Input
+                  id="u-beds"
+                  type="number"
+                  min={0}
+                  max={20}
+                  value={form.bedrooms}
+                  onChange={(e) => set("bedrooms", e.target.value)}
+                  disabled={isStudio}
+                  className={cn("mt-1.5", errors.bedrooms && "border-destructive")}
+                  aria-invalid={!!errors.bedrooms}
+                />
+                {isStudio && (
+                  <p className="text-xs text-muted-foreground mt-1">Studios always have 0 bedrooms.</p>
+                )}
+                {errors.bedrooms && <p className={errorClass}>{errors.bedrooms}</p>}
+              </div>
+              <div>
+                <Label htmlFor="u-baths" className={labelClass}>Bathrooms</Label>
+                <Input
+                  id="u-baths"
+                  type="number"
+                  step="0.5"
+                  min={0}
+                  max={20}
+                  value={form.bathrooms}
+                  onChange={(e) => set("bathrooms", e.target.value)}
+                  className={cn("mt-1.5", errors.bathrooms && "border-destructive")}
+                  aria-invalid={!!errors.bathrooms}
+                />
+                {errors.bathrooms && <p className={errorClass}>{errors.bathrooms}</p>}
+              </div>
+            </div>
+
+            {/* Row 5: Description */}
+            <div>
+              <Label htmlFor="u-desc" className={labelClass}>Description</Label>
+              <Textarea
+                id="u-desc"
+                rows={2}
+                maxLength={500}
+                value={form.description}
+                onChange={(e) => set("description", e.target.value)}
+                className={cn("mt-1.5", errors.description && "border-destructive")}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Any notes about this unit — view, condition, layout quirks.
+              </p>
+              {errors.description && <p className={errorClass}>{errors.description}</p>}
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4 mt-2">
+              <Button type="button" variant="ghost" onClick={() => handleOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" variant="gold" disabled={busy}>
+                {busy ? "Saving…" : initial?.id ? "Save changes" : "Add unit"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={confirmDiscard} onOpenChange={setConfirmDiscard}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Discard changes?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved changes. Closing this form will discard them.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep editing</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setConfirmDiscard(false);
+                onOpenChange(false);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Discard
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
