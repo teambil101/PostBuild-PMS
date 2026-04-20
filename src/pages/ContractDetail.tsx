@@ -895,6 +895,15 @@ export default function ContractDetail() {
         />
       )}
 
+      {contract.contract_type === "lease" && (
+        <LeaseWizard
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          editContractId={contract.id}
+          onSaved={reloadAll}
+        />
+      )}
+
       <ActivateContractDialog
         open={activateOpen}
         onOpenChange={setActivateOpen}
