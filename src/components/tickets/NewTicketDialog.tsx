@@ -188,31 +188,43 @@ export function NewTicketDialog({ open, onOpenChange }: Props) {
     }
     setSubmitting(true);
     try {
-      const ticket_number = await nextTicketNumber();
       const reporter = reporterId ?? selfPersonId ?? null;
 
-      const { data: created, error: insErr } = await supabase
-        .from("tickets")
-        .insert({
-          ticket_number,
-          subject: subject.trim(),
-          description: description.trim() || null,
-          ticket_type: type as string,
-          priority,
-          target_entity_type: target.type,
-          target_entity_id: target.id as string,
-          assignee_id: assigneeId,
-          reporter_id: reporter,
-          due_date: dueDate ? format(dueDate, "yyyy-MM-dd") : null,
-          estimated_cost: estimatedCost ? Number(estimatedCost) : null,
-          is_system_generated: false,
-          created_by: user?.id ?? null,
-        })
-        .select("id, ticket_number")
-        .maybeSingle();
-
-      if (insErr || !created) {
-        throw new Error(insErr?.message ?? "Could not create ticket.");
+      // Retry on ticket_number collision (sequence drift / race).
+      let created: { id: string; ticket_number: string } | null = null;
+      let lastErr: any = null;
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const ticket_number = await nextTicketNumber();
+        const { data, error: insErr } = await supabase
+          .from("tickets")
+          .insert({
+            ticket_number,
+            subject: subject.trim(),
+            description: description.trim() || null,
+            ticket_type: type as string,
+            priority,
+            target_entity_type: target.type,
+            target_entity_id: target.id as string,
+            assignee_id: assigneeId,
+            reporter_id: reporter,
+            due_date: dueDate ? format(dueDate, "yyyy-MM-dd") : null,
+            estimated_cost: estimatedCost ? Number(estimatedCost) : null,
+            is_system_generated: false,
+            created_by: user?.id ?? null,
+          })
+          .select("id, ticket_number")
+          .maybeSingle();
+        if (!insErr && data) {
+          created = data as { id: string; ticket_number: string };
+          break;
+        }
+        lastErr = insErr;
+        // Only retry on unique-violation on ticket_number; otherwise bail.
+        const msg = insErr?.message ?? "";
+        if (!/tickets_ticket_number_key|duplicate key/i.test(msg)) break;
+      }
+      if (!created) {
+        throw new Error(lastErr?.message ?? "Could not create ticket.");
       }
 
       // Upload attached files
