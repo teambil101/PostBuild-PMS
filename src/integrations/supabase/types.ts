@@ -927,6 +927,172 @@ export type Database = {
           },
         ]
       }
+      ticket_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          description: string | null
+          event_type: string
+          from_value: string | null
+          id: string
+          ticket_id: string
+          to_value: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          description?: string | null
+          event_type: string
+          from_value?: string | null
+          id?: string
+          ticket_id: string
+          to_value?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          description?: string | null
+          event_type?: string
+          from_value?: string | null
+          id?: string
+          ticket_id?: string
+          to_value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_events_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tickets: {
+        Row: {
+          actual_cost: number | null
+          assignee_id: string | null
+          cancelled_at: string | null
+          cancelled_reason: string | null
+          closed_at: string | null
+          cost_approval_notes: string | null
+          cost_approval_status: string | null
+          cost_approved_at: string | null
+          cost_approved_by_person_id: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          description: string | null
+          due_date: string | null
+          estimated_cost: number | null
+          id: string
+          is_system_generated: boolean
+          parent_ticket_id: string | null
+          priority: string
+          reporter_id: string | null
+          resolved_at: string | null
+          status: string
+          subject: string
+          target_entity_id: string
+          target_entity_type: string
+          ticket_number: string
+          ticket_type: string
+          updated_at: string
+          waiting_on: string | null
+        }
+        Insert: {
+          actual_cost?: number | null
+          assignee_id?: string | null
+          cancelled_at?: string | null
+          cancelled_reason?: string | null
+          closed_at?: string | null
+          cost_approval_notes?: string | null
+          cost_approval_status?: string | null
+          cost_approved_at?: string | null
+          cost_approved_by_person_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string | null
+          due_date?: string | null
+          estimated_cost?: number | null
+          id?: string
+          is_system_generated?: boolean
+          parent_ticket_id?: string | null
+          priority?: string
+          reporter_id?: string | null
+          resolved_at?: string | null
+          status?: string
+          subject: string
+          target_entity_id: string
+          target_entity_type: string
+          ticket_number: string
+          ticket_type: string
+          updated_at?: string
+          waiting_on?: string | null
+        }
+        Update: {
+          actual_cost?: number | null
+          assignee_id?: string | null
+          cancelled_at?: string | null
+          cancelled_reason?: string | null
+          closed_at?: string | null
+          cost_approval_notes?: string | null
+          cost_approval_status?: string | null
+          cost_approved_at?: string | null
+          cost_approved_by_person_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string | null
+          due_date?: string | null
+          estimated_cost?: number | null
+          id?: string
+          is_system_generated?: boolean
+          parent_ticket_id?: string | null
+          priority?: string
+          reporter_id?: string | null
+          resolved_at?: string | null
+          status?: string
+          subject?: string
+          target_entity_id?: string
+          target_entity_type?: string
+          ticket_number?: string
+          ticket_type?: string
+          updated_at?: string
+          waiting_on?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tickets_assignee_id_fkey"
+            columns: ["assignee_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_cost_approved_by_person_id_fkey"
+            columns: ["cost_approved_by_person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_parent_ticket_id_fkey"
+            columns: ["parent_ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       unit_status_history: {
         Row: {
           changed_at: string
@@ -1170,6 +1336,10 @@ export type Database = {
       }
     }
     Functions: {
+      get_applicable_repair_threshold: {
+        Args: { p_entity_id: string; p_entity_type: string }
+        Returns: number
+      }
       has_active_mgmt_agreement_for_unit: {
         Args: { p_unit_id: string }
         Returns: boolean
@@ -1187,6 +1357,10 @@ export type Database = {
         Returns: string
       }
       process_contract_lifecycle: { Args: never; Returns: Json }
+      resolve_ticket_target_label: {
+        Args: { p_entity_id: string; p_entity_type: string }
+        Returns: string
+      }
       resolve_unit_owners: {
         Args: { _unit_id: string }
         Returns: {
