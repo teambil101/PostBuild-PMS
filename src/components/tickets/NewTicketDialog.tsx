@@ -373,10 +373,28 @@ export function NewTicketDialog({
             <Label>
               Target <span className="text-destructive">*</span>
             </Label>
-            <TicketTargetPicker
-              value={target}
-              onChange={(next) => setTarget({ type: next.type, id: next.id })}
-            />
+            {presetTarget ? (
+              <>
+                <div className="flex items-center gap-2 border hairline rounded-sm bg-muted/30 px-3 py-2 text-sm">
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                    {presetTarget.entity_type}
+                  </span>
+                  <span className="text-architect truncate">{presetTarget.entity_label}</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground flex items-start gap-1.5">
+                  <span aria-hidden>ⓘ</span>
+                  <span>
+                    Linked to {presetTarget.entity_label}. You can change the target from the
+                    ticket detail page after creating.
+                  </span>
+                </p>
+              </>
+            ) : (
+              <TicketTargetPicker
+                value={target}
+                onChange={(next) => setTarget({ type: next.type, id: next.id })}
+              />
+            )}
           </div>
 
           {type && (
