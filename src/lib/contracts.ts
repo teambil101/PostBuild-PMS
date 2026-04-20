@@ -188,6 +188,136 @@ export function daysUntil(dateStr: string | null): number | null {
   return Math.ceil((target - now) / (1000 * 60 * 60 * 24));
 }
 
+/* ============ Service Agreement ============ */
+
+export const SERVICE_FEE_MODELS = [
+  "fixed_monthly",
+  "fixed_annual",
+  "per_call",
+  "per_unit",
+  "hybrid",
+  "time_and_materials",
+  "quote_based",
+] as const;
+export type ServiceFeeModel = typeof SERVICE_FEE_MODELS[number];
+
+export const SERVICE_FEE_MODEL_LABELS: Record<ServiceFeeModel, string> = {
+  fixed_monthly: "Fixed monthly fee",
+  fixed_annual: "Fixed annual fee",
+  per_call: "Per-call (pay per visit)",
+  per_unit: "Per-unit",
+  hybrid: "Hybrid (flat + per-call/unit)",
+  time_and_materials: "Time & materials",
+  quote_based: "Quote-based (per job)",
+};
+
+export const SERVICE_FREQUENCIES = [
+  "on_demand",
+  "weekly",
+  "biweekly",
+  "monthly",
+  "quarterly",
+  "semi_annually",
+  "annually",
+] as const;
+export type ServiceFrequency = typeof SERVICE_FREQUENCIES[number];
+
+export const SERVICE_FREQUENCY_LABELS: Record<ServiceFrequency, string> = {
+  on_demand: "On-demand",
+  weekly: "Weekly",
+  biweekly: "Bi-weekly",
+  monthly: "Monthly",
+  quarterly: "Quarterly",
+  semi_annually: "Semi-annual",
+  annually: "Annual",
+};
+
+export const SERVICE_SCOPES = [
+  "preventive_maintenance",
+  "reactive_maintenance",
+  "emergency_response",
+  "cleaning",
+  "pest_control",
+  "landscaping",
+  "security_services",
+  "elevator_maintenance",
+  "hvac_maintenance",
+  "plumbing_services",
+  "electrical_services",
+  "painting",
+  "pool_maintenance",
+  "fire_safety",
+  "waste_management",
+  "other",
+] as const;
+export type ServiceScope = typeof SERVICE_SCOPES[number];
+
+export const SERVICE_SCOPE_LABELS: Record<ServiceScope, string> = {
+  preventive_maintenance: "Preventive maintenance",
+  reactive_maintenance: "Reactive maintenance",
+  emergency_response: "Emergency response",
+  cleaning: "Cleaning",
+  pest_control: "Pest control",
+  landscaping: "Landscaping",
+  security_services: "Security services",
+  elevator_maintenance: "Elevator maintenance",
+  hvac_maintenance: "HVAC maintenance",
+  plumbing_services: "Plumbing services",
+  electrical_services: "Electrical services",
+  painting: "Painting",
+  pool_maintenance: "Pool maintenance",
+  fire_safety: "Fire safety",
+  waste_management: "Waste management",
+  other: "Other",
+};
+
+/** Compact one-line summary for cards / tables. */
+export function formatServiceFee(
+  fee_model: ServiceFeeModel | null | undefined,
+  fields: {
+    fee_value?: number | null;
+    hybrid_base_monthly?: number | null;
+    hybrid_per_call_or_unit?: number | null;
+    hybrid_mode?: string | null;
+    hourly_rate?: number | null;
+    materials_markup_percent?: number | null;
+    subjects_count?: number;
+  } = {},
+  currency = "AED",
+): string {
+  if (!fee_model) return "—";
+  const n = (v: number | null | undefined) =>
+    v == null ? "—" : `${currency} ${Number(v).toLocaleString()}`;
+  switch (fee_model) {
+    case "fixed_monthly":
+      return `${n(fields.fee_value)} / month`;
+    case "fixed_annual":
+      return `${n(fields.fee_value)} / year`;
+    case "per_call":
+      return `${n(fields.fee_value)} / call`;
+    case "per_unit": {
+      const base = `${n(fields.fee_value)} / unit`;
+      if (fields.subjects_count && fields.fee_value != null) {
+        const total = Number(fields.fee_value) * fields.subjects_count;
+        return `${base} (×${fields.subjects_count} = ${currency} ${total.toLocaleString()})`;
+      }
+      return base;
+    }
+    case "hybrid":
+      return `${n(fields.hybrid_base_monthly)}/mo + ${n(fields.hybrid_per_call_or_unit)} ${
+        fields.hybrid_mode === "per_unit" ? "/unit" : "/call"
+      }`;
+    case "time_and_materials":
+      return `${n(fields.hourly_rate)}/hr${
+        fields.materials_markup_percent != null
+          ? ` + ${fields.materials_markup_percent}% materials`
+          : ""
+      }`;
+    case "quote_based":
+      return "Quote-based";
+  }
+}
+
 /* ============ Duplicate helper ============ */
 
 import { supabase } from "@/integrations/supabase/client";
