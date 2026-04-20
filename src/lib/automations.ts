@@ -293,7 +293,124 @@ export async function detectDataGaps(): Promise<AutomationResult> {
 }
 
 /* =========================================================
- * 3. Orchestrator — throttled, silent.
+ * 3. Vendor compliance expiry sweep
+ * ========================================================= */
+
+type ComplianceKind = "trade_license" | "insurance";
+
+function compliancePriority(days: number): "urgent" | "high" | "medium" {
+  if (days < 0) return "urgent"; // already expired
+  if (days <= 30) return "high";
+  return "medium";
+}
+
+function complianceLabel(kind: ComplianceKind): string {
+  return kind === "trade_license" ? "Trade license" : "Insurance";
+}
+
+export async function detectVendorComplianceExpiry(): Promise<AutomationResult> {
+  const result: AutomationResult = { created: 0, skipped: 0, errors: 0 };
+
+  const horizon = new Date();
+  horizon.setDate(horizon.getDate() + 60);
+  const horizonIso = horizon.toISOString().slice(0, 10);
+
+  const { data: vendors, error } = await supabase
+    .from("vendors")
+    .select(
+      "id, legal_name, display_name, trade_license_number, trade_license_authority, trade_license_expiry_date, insurance_provider, insurance_policy_number, insurance_expiry_date",
+    )
+    .eq("status", "active")
+    .or(
+      `and(trade_license_expiry_date.not.is.null,trade_license_expiry_date.lte.${horizonIso}),and(insurance_expiry_date.not.is.null,insurance_expiry_date.lte.${horizonIso})`,
+    );
+
+  if (error || !vendors) {
+    result.errors++;
+    return result;
+  }
+  if (vendors.length === 0) return result;
+
+  // Build candidate (vendor, kind, expiry) tuples.
+  type Candidate = {
+    vendor: (typeof vendors)[number];
+    kind: ComplianceKind;
+    expiry: string;
+  };
+  const candidates: Candidate[] = [];
+  for (const v of vendors) {
+    if (v.trade_license_expiry_date && v.trade_license_expiry_date <= horizonIso) {
+      candidates.push({ vendor: v, kind: "trade_license", expiry: v.trade_license_expiry_date });
+    }
+    if (v.insurance_expiry_date && v.insurance_expiry_date <= horizonIso) {
+      candidates.push({ vendor: v, kind: "insurance", expiry: v.insurance_expiry_date });
+    }
+  }
+  if (candidates.length === 0) return result;
+
+  // Bulk dedup: include expiry in the key so renewals after closure can re-fire.
+  const dedupKeys = candidates.map(
+    (c) => `vendor_compliance:${c.kind}:${c.vendor.id}:${c.expiry}`,
+  );
+  const { data: existing } = await supabase
+    .from("tickets")
+    .select("system_dedup_key")
+    .in("system_dedup_key", dedupKeys);
+  const existingSet = new Set((existing ?? []).map((r) => r.system_dedup_key));
+
+  for (const c of candidates) {
+    const dedup = `vendor_compliance:${c.kind}:${c.vendor.id}:${c.expiry}`;
+    if (existingSet.has(dedup)) {
+      result.skipped++;
+      continue;
+    }
+    const days = daysUntil(c.expiry);
+    const priority = compliancePriority(days);
+    const label = complianceLabel(c.kind);
+    const vendorName = c.vendor.display_name ?? c.vendor.legal_name;
+    const isExpired = days < 0;
+
+    const docDetail =
+      c.kind === "trade_license"
+        ? `${c.vendor.trade_license_number ? `#${c.vendor.trade_license_number}` : "Trade license"}${
+            c.vendor.trade_license_authority ? ` with ${c.vendor.trade_license_authority}` : ""
+          }`
+        : `${c.vendor.insurance_policy_number ? `Policy #${c.vendor.insurance_policy_number}` : "Insurance policy"}${
+            c.vendor.insurance_provider ? ` with ${c.vendor.insurance_provider}` : ""
+          }`;
+
+    const subject = isExpired
+      ? `${label} expired: ${vendorName}`
+      : `${label} expiring: ${vendorName}`;
+
+    const description = isExpired
+      ? `${docDetail} expired on ${c.expiry} (${Math.abs(days)} days ago). ` +
+        `Request a renewed copy from the vendor before scheduling additional work.`
+      : `${docDetail} expires on ${c.expiry} (${days} day${days === 1 ? "" : "s"}). ` +
+        `Request the renewed copy from the vendor before the current document lapses.`;
+
+    const created = await insertTicketWithRetry({
+      subject,
+      description,
+      ticket_type: "compliance_reminder",
+      priority,
+      status: "open",
+      target_entity_type: "vendor",
+      target_entity_id: c.vendor.id,
+      due_date: c.expiry,
+      is_system_generated: true,
+      created_by: null,
+      system_dedup_key: dedup,
+    });
+    if (created) result.created++;
+    else result.errors++;
+  }
+
+  return result;
+}
+
+/* =========================================================
+ * 4. Orchestrator — throttled, silent.
  * ========================================================= */
 
 export async function processSystemAutomations(force = false): Promise<void> {
@@ -308,6 +425,7 @@ export async function processSystemAutomations(force = false): Promise<void> {
       supabase.rpc("process_contract_lifecycle"),
       detectExpiringLeases(),
       detectDataGaps(),
+      detectVendorComplianceExpiry(),
     ]);
   } catch (e) {
     console.warn("[automations] sweep failed", e);
