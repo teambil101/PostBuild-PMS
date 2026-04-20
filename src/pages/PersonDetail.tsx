@@ -53,11 +53,6 @@ export default function PersonDetail() {
   };
 
   const handleUnlink = async (linkId: string) => {
-    const { error } = await supabase.from("people_property_links").delete().eq("id", linkId);
-    if (error) toast.error(error.message);
-    else { toast.success("Removed."); load(); }
-  };
-
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
     const files = Array.from(e.target.files);
