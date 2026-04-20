@@ -232,12 +232,6 @@ export default function PersonDetail() {
         initial={person}
         onSaved={() => { setEditOpen(false); load(); }}
       />
-      <LinkToPropertyDialog
-        open={linkOpen}
-        onOpenChange={setLinkOpen}
-        personId={person.id}
-        onSaved={() => { setLinkOpen(false); load(); }}
-      />
     </>
   );
 }
