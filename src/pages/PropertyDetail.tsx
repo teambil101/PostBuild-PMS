@@ -60,6 +60,7 @@ export default function PropertyDetail() {
   const [editOpen, setEditOpen] = useState(false);
   const [unitOpen, setUnitOpen] = useState(false);
   const [editingUnit, setEditingUnit] = useState<Unit | null>(null);
+  const [leasePrompt, setLeasePrompt] = useState<{ unitId: string } | null>(null);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -155,6 +156,15 @@ export default function PropertyDetail() {
   }
   if (!building) return null;
 
+  const occupiedNoLease = units.filter(
+    (u) => u.status === "occupied" && !u.status_locked_by_lease_id,
+  );
+  const formatSize = (u: Unit) => {
+    if (u.size_sqm == null) return "—";
+    if (u.size_unit_preference === "sqft") return `${sqmToSqft(Number(u.size_sqm))} ft²`;
+    return `${u.size_sqm} m²`;
+  };
+
   return (
     <>
       <Button variant="ghost" size="sm" onClick={() => navigate("/properties")} className="mb-4">
@@ -198,6 +208,32 @@ export default function PropertyDetail() {
           )
         }
       />
+
+      {occupiedNoLease.length > 0 && (
+        <div className="mb-6 flex items-start gap-3 border border-amber-500/40 bg-amber-500/10 rounded-sm p-4">
+          <AlertTriangle className="h-4 w-4 text-amber-700 shrink-0 mt-0.5" />
+          <div className="flex-1 text-sm text-amber-900">
+            <div className="font-medium">
+              {occupiedNoLease.length === 1
+                ? "1 unit is marked Occupied but has no lease on file."
+                : `${occupiedNoLease.length} units are marked Occupied but have no lease on file.`}
+            </div>
+            <div className="text-xs text-amber-800/90 mt-0.5">
+              Add lease details so the system reflects reality.
+            </div>
+          </div>
+          {canEdit && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-amber-600/50 text-amber-900 hover:bg-amber-500/15"
+              onClick={() => toast("Lease creation coming soon")}
+            >
+              Add lease details
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* Meta strip */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-warm-stone/60 border hairline rounded-sm overflow-hidden mb-10">
