@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   Truck,
   Wrench,
-  Target,
   Settings as SettingsIcon,
   type LucideIcon,
 } from "lucide-react";
@@ -24,7 +23,6 @@ export const MODULES: ModuleDef[] = [
   { key: "dashboard", label: "Dashboard", path: "/dashboard", icon: LayoutDashboard, active: true },
   { key: "properties", label: "Properties", path: "/properties", icon: Building2, active: true },
   { key: "people", label: "People", path: "/people", icon: Users, active: true },
-  { key: "leads", label: "Leads", path: "/leads", icon: Target, active: true },
   { key: "contracts", label: "Contracts", path: "/contracts", icon: FileText, active: true },
   { key: "lifecycle", label: "Lease Lifecycle", path: "/lifecycle", icon: Workflow, active: true },
   { key: "tickets", label: "Tickets & Workflows", path: "/tickets", icon: Ticket, active: true },
