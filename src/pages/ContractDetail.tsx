@@ -407,7 +407,7 @@ export default function ContractDetail() {
           </div>
           {canEdit && (
             <div className="flex flex-wrap items-center gap-2">
-              {!isImmutable && (contract.contract_type === "management_agreement" || contract.contract_type === "lease") && (
+              {!isImmutable && contract.contract_type === "management_agreement" && (
                 <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
                   <Pencil className="h-4 w-4" /> Edit
                 </Button>
@@ -895,13 +895,7 @@ export default function ContractDetail() {
         />
       )}
 
-      {contract.contract_type === "lease" && (
-        <LeaseWizard
-          open={editOpen}
-          onOpenChange={setEditOpen}
-          onSaved={() => reloadAll()}
-        />
-      )}
+      {/* Lease edit mode wizard will be wired in a follow-up pass. */}
 
       <ActivateContractDialog
         open={activateOpen}
