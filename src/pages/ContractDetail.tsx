@@ -877,6 +877,24 @@ export default function ContractDetail() {
           <DocumentList entityType="contract" entityId={contract.id} editable={canEdit && !isImmutable} />
         </TabsContent>
 
+        <TabsContent value="tickets" className="mt-6">
+          {contract.contract_type === "lease" && lease ? (
+            <ContractLeaseTicketsSection
+              contractId={contract.id}
+              leaseId={lease.id}
+              contractNumber={contract.contract_number}
+              onActiveCountChange={setTicketCount}
+            />
+          ) : (
+            <EntityTicketsTab
+              entityType="contract"
+              entityId={contract.id}
+              entityLabel={`${CONTRACT_TYPE_LABELS[contract.contract_type]} ${contract.contract_number}`}
+              onActiveCountChange={setTicketCount}
+            />
+          )}
+        </TabsContent>
+
         <TabsContent value="notes" className="mt-6">
           <NotesPanel entityType="contract" entityId={contract.id} />
         </TabsContent>
