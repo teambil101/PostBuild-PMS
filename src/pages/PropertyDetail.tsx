@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Plus, Pencil, Trash2, MapPin, Building2, Image as ImageIcon, FileText, Upload } from "lucide-react";
+import { ArrowLeft, Plus, Pencil, Trash2, MapPin, Building2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/PageHeader";
@@ -10,6 +10,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { BuildingFormDialog } from "@/components/properties/BuildingFormDialog";
 import { UnitFormDialog } from "@/components/properties/UnitFormDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PhotoGallery } from "@/components/attachments/PhotoGallery";
+import { DocumentList } from "@/components/attachments/DocumentList";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { COUNTRY_BY_CODE } from "@/lib/countries";
@@ -53,8 +55,8 @@ export default function PropertyDetail() {
 
   const [building, setBuilding] = useState<Building | null>(null);
   const [units, setUnits] = useState<Unit[]>([]);
-  const [photos, setPhotos] = useState<any[]>([]);
-  const [docs, setDocs] = useState<any[]>([]);
+  const [photoCount, setPhotoCount] = useState(0);
+  const [docCount, setDocCount] = useState(0);
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
@@ -65,10 +67,11 @@ export default function PropertyDetail() {
   const load = useCallback(async () => {
     if (!id) return;
     setLoading(true);
-    const [b, u, d, h] = await Promise.all([
+    const [b, u, ph, dc, h] = await Promise.all([
       supabase.from("buildings").select("*").eq("id", id).maybeSingle(),
       supabase.from("units").select("*").eq("building_id", id).order("unit_number"),
-      supabase.from("property_documents").select("*").eq("building_id", id).order("created_at", { ascending: false }),
+      supabase.from("photos").select("id", { count: "exact", head: true }).eq("entity_type", "building").eq("entity_id", id),
+      supabase.from("documents").select("id", { count: "exact", head: true }).eq("entity_type", "building").eq("entity_id", id),
       supabase
         .from("property_status_history")
         .select("*, units!inner(unit_number, ref_code, building_id)")
@@ -83,9 +86,8 @@ export default function PropertyDetail() {
     }
     setBuilding(b.data as Building);
     setUnits((u.data ?? []) as Unit[]);
-    const allDocs = d.data ?? [];
-    setPhotos(allDocs.filter((x: any) => x.is_image));
-    setDocs(allDocs.filter((x: any) => !x.is_image));
+    setPhotoCount(ph.count ?? 0);
+    setDocCount(dc.count ?? 0);
     setHistory(h.data ?? []);
     setLoading(false);
   }, [id, navigate]);
@@ -100,50 +102,6 @@ export default function PropertyDetail() {
       toast.success("Building deleted.");
       navigate("/properties");
     }
-  };
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, isImage: boolean) => {
-    if (!e.target.files || !building) return;
-    const files = Array.from(e.target.files);
-    const bucket = isImage ? "property-photos" : "property-docs";
-    for (const file of files) {
-      const path = `${building.id}/${Date.now()}-${file.name}`;
-      const { error: upErr } = await supabase.storage.from(bucket).upload(path, file);
-      if (upErr) {
-        toast.error(`${file.name}: ${upErr.message}`);
-        continue;
-      }
-      const { data: u } = await supabase.auth.getUser();
-      const { error: dbErr } = await supabase.from("property_documents").insert({
-        building_id: building.id,
-        name: file.name,
-        file_path: path,
-        file_size: file.size,
-        mime_type: file.type,
-        is_image: isImage,
-        uploaded_by: u.user?.id,
-      });
-      if (dbErr) toast.error(dbErr.message);
-    }
-    e.target.value = "";
-    toast.success("Upload complete.");
-    load();
-  };
-
-  const handleDeleteFile = async (doc: any) => {
-    const bucket = doc.is_image ? "property-photos" : "property-docs";
-    await supabase.storage.from(bucket).remove([doc.file_path]);
-    const { error } = await supabase.from("property_documents").delete().eq("id", doc.id);
-    if (error) toast.error(error.message);
-    else { toast.success("Deleted."); load(); }
-  };
-
-  const getPhotoUrl = (path: string) =>
-    supabase.storage.from("property-photos").getPublicUrl(path).data.publicUrl;
-
-  const getDocUrl = async (path: string) => {
-    const { data } = await supabase.storage.from("property-docs").createSignedUrl(path, 60);
-    return data?.signedUrl;
   };
 
   if (loading) {
@@ -247,8 +205,8 @@ export default function PropertyDetail() {
         <TabsList className="bg-transparent border-b hairline rounded-none w-full justify-start gap-0 h-auto p-0">
           {[
             { v: "units", l: `Units (${units.length})` },
-            { v: "photos", l: `Photos (${photos.length})` },
-            { v: "documents", l: `Documents (${docs.length})` },
+            { v: "photos", l: `Photos (${photoCount})` },
+            { v: "documents", l: `Documents (${docCount})` },
             { v: "history", l: "Status history" },
           ].map((t) => (
             <TabsTrigger
@@ -336,92 +294,22 @@ export default function PropertyDetail() {
 
         {/* PHOTOS */}
         <TabsContent value="photos" className="pt-6">
-          <div className="flex justify-between items-center mb-4">
-            <div className="label-eyebrow">Image gallery</div>
-            {canEdit && (
-              <label>
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => handleFileUpload(e, true)}
-                />
-                <Button variant="gold" size="sm" asChild>
-                  <span className="cursor-pointer"><Upload className="h-3.5 w-3.5" /> Upload photos</span>
-                </Button>
-              </label>
-            )}
-          </div>
-          {photos.length === 0 ? (
-            <EmptyState icon={<ImageIcon className="h-8 w-8" strokeWidth={1.2} />} title="No photos yet" />
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              {photos.map((p) => (
-                <div key={p.id} className="relative group aspect-square overflow-hidden border hairline rounded-sm">
-                  <img src={getPhotoUrl(p.file_path)} alt={p.name} className="h-full w-full object-cover" />
-                  {canEdit && (
-                    <button
-                      onClick={() => handleDeleteFile(p)}
-                      className="absolute top-2 right-2 h-7 w-7 bg-architect/80 text-chalk rounded-sm opacity-0 group-hover:opacity-100 flex items-center justify-center"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+          <PhotoGallery
+            entityType="building"
+            entityId={building.id}
+            editable={canEdit}
+            onCountChange={setPhotoCount}
+          />
         </TabsContent>
 
         {/* DOCUMENTS */}
         <TabsContent value="documents" className="pt-6">
-          <div className="flex justify-between items-center mb-4">
-            <div className="label-eyebrow">Documents</div>
-            {canEdit && (
-              <label>
-                <input
-                  type="file"
-                  multiple
-                  className="hidden"
-                  onChange={(e) => handleFileUpload(e, false)}
-                />
-                <Button variant="gold" size="sm" asChild>
-                  <span className="cursor-pointer"><Upload className="h-3.5 w-3.5" /> Upload documents</span>
-                </Button>
-              </label>
-            )}
-          </div>
-          {docs.length === 0 ? (
-            <EmptyState icon={<FileText className="h-8 w-8" strokeWidth={1.2} />} title="No documents yet" />
-          ) : (
-            <div className="border hairline rounded-sm divide-y divide-warm-stone/60 bg-card">
-              {docs.map((d) => (
-                <div key={d.id} className="flex items-center justify-between px-4 py-3 hover:bg-muted/30">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <FileText className="h-4 w-4 text-true-taupe shrink-0" />
-                    <div className="min-w-0">
-                      <button
-                        onClick={async () => {
-                          const url = await getDocUrl(d.file_path);
-                          if (url) window.open(url, "_blank");
-                        }}
-                        className="text-sm text-architect hover:text-gold truncate text-left"
-                      >
-                        {d.name}
-                      </button>
-                      <div className="ref-code">{format(new Date(d.created_at), "MMM d, yyyy")}</div>
-                    </div>
-                  </div>
-                  {canEdit && (
-                    <Button variant="ghost" size="icon" onClick={() => handleDeleteFile(d)}>
-                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                    </Button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+          <DocumentList
+            entityType="building"
+            entityId={building.id}
+            editable={canEdit}
+            onCountChange={setDocCount}
+          />
         </TabsContent>
 
         {/* HISTORY */}

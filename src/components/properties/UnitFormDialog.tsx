@@ -10,6 +10,13 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Paperclip, ChevronDown, X as XIcon, FileText, Image as ImageIcon } from "lucide-react";
+import { FileDropZone, validateFile } from "@/components/attachments/FileDropZone";
+import {
+  PHOTO_BUCKET, DOC_BUCKET, PHOTO_MIMES, PHOTO_MAX_BYTES, DOC_MAX_BYTES,
+  buildPhotoPath, buildDocPath, isPhotoMime, formatBytes,
+} from "@/lib/storage";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { newUnitCode } from "@/lib/refcode";
@@ -106,6 +113,8 @@ export function UnitFormDialog({
   const [baseline, setBaseline] = useState<FormState>(() => emptyForm(typeOptions));
   const [errors, setErrors] = useState<Errors>({});
   const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [attachOpen, setAttachOpen] = useState(false);
 
   const unitNumberRef = useRef<HTMLInputElement>(null);
   const typeRef = useRef<HTMLButtonElement>(null);
@@ -286,7 +295,75 @@ export function UnitFormDialog({
       });
     }
 
-    toast.success(initial?.id ? "Unit updated" : "Unit added");
+    // Bulk-attach any pending files (only on create, when files were chosen)
+    if (resultId && !initial?.id && pendingFiles.length > 0) {
+      toast.message(`Unit added. Uploading ${pendingFiles.length} file${pendingFiles.length === 1 ? "" : "s"}…`);
+      const { data: u } = await supabase.auth.getUser();
+      const uploaderId = u.user?.id;
+      let uploaded = 0;
+      let failed = 0;
+      let assignCover = true; // first image becomes cover
+
+      const results = await Promise.allSettled(
+        pendingFiles.map(async (file) => {
+          const isImg = isPhotoMime(file.type);
+          const id = crypto.randomUUID();
+          if (isImg) {
+            const err = validateFile(file, PHOTO_MIMES, PHOTO_MAX_BYTES);
+            if (err) throw new Error(err);
+            const path = buildPhotoPath("unit", resultId!, id, file.name);
+            const { error: upErr } = await supabase.storage.from(PHOTO_BUCKET).upload(path, file, {
+              contentType: file.type, upsert: false,
+            });
+            if (upErr) throw new Error(upErr.message);
+            const cover = assignCover;
+            assignCover = false;
+            const { error: dbErr } = await supabase.from("photos").insert({
+              id, entity_type: "unit", entity_id: resultId,
+              storage_path: path, file_name: file.name,
+              file_size_bytes: file.size, mime_type: file.type,
+              is_cover: cover, sort_order: 0, uploaded_by: uploaderId,
+            });
+            if (dbErr) {
+              await supabase.storage.from(PHOTO_BUCKET).remove([path]);
+              throw new Error(dbErr.message);
+            }
+          } else {
+            if (file.size > DOC_MAX_BYTES) {
+              throw new Error(`${file.name}: exceeds 25 MB limit.`);
+            }
+            const path = buildDocPath("unit", resultId!, id, file.name);
+            const { error: upErr } = await supabase.storage.from(DOC_BUCKET).upload(path, file, {
+              contentType: file.type || "application/octet-stream", upsert: false,
+            });
+            if (upErr) throw new Error(upErr.message);
+            const { error: dbErr } = await supabase.from("documents").insert({
+              id, entity_type: "unit", entity_id: resultId,
+              storage_path: path, file_name: file.name,
+              file_size_bytes: file.size,
+              mime_type: file.type || "application/octet-stream",
+              doc_type: "other", uploaded_by: uploaderId,
+            });
+            if (dbErr) {
+              await supabase.storage.from(DOC_BUCKET).remove([path]);
+              throw new Error(dbErr.message);
+            }
+          }
+        }),
+      );
+      results.forEach((r) => { r.status === "fulfilled" ? uploaded++ : failed++; });
+      if (failed === 0) {
+        toast.success(`${uploaded} file${uploaded === 1 ? "" : "s"} uploaded.`);
+      } else {
+        toast.warning(
+          `Unit added, but ${failed} file${failed === 1 ? "" : "s"} failed to upload. Retry from the unit page.`,
+        );
+      }
+    } else {
+      toast.success(initial?.id ? "Unit updated" : "Unit added");
+    }
+
+    setPendingFiles([]);
     onSaved(resultId ? { id: resultId, status: form.status as UnitStatusValue } : undefined);
   };
 
@@ -501,6 +578,58 @@ export function UnitFormDialog({
               </p>
               {errors.description && <p className={errorClass}>{errors.description}</p>}
             </div>
+
+            {/* Attach files (only on create) */}
+            {!initial?.id && (
+              <Collapsible open={attachOpen} onOpenChange={setAttachOpen} className="border hairline rounded-sm">
+                <CollapsibleTrigger asChild>
+                  <button
+                    type="button"
+                    className="w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-muted/30"
+                  >
+                    <span className="flex items-center gap-2 text-sm text-architect">
+                      <Paperclip className="h-3.5 w-3.5 text-true-taupe" />
+                      Attach files (optional)
+                      {pendingFiles.length > 0 && (
+                        <span className="text-[11px] text-muted-foreground">
+                          · {pendingFiles.length} selected
+                        </span>
+                      )}
+                    </span>
+                    <ChevronDown className={cn("h-3.5 w-3.5 text-true-taupe transition-transform", attachOpen && "rotate-180")} />
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="px-3 pb-3 space-y-3">
+                  <FileDropZone
+                    accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/plain"
+                    onFiles={(files) => setPendingFiles((prev) => [...prev, ...files])}
+                    compact
+                    helperText="Photos and documents will be attached to this unit. You can add more later."
+                  />
+                  {pendingFiles.length > 0 && (
+                    <ul className="space-y-1.5">
+                      {pendingFiles.map((f, i) => (
+                        <li key={i} className="flex items-center gap-2 text-xs px-2 py-1.5 bg-muted/30 rounded-sm">
+                          {isPhotoMime(f.type)
+                            ? <ImageIcon className="h-3.5 w-3.5 text-true-taupe shrink-0" />
+                            : <FileText className="h-3.5 w-3.5 text-true-taupe shrink-0" />}
+                          <span className="truncate flex-1 text-architect">{f.name}</span>
+                          <span className="text-muted-foreground mono">{formatBytes(f.size)}</span>
+                          <button
+                            type="button"
+                            onClick={() => setPendingFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                            className="h-5 w-5 flex items-center justify-center text-true-taupe hover:text-destructive"
+                            aria-label={`Remove ${f.name}`}
+                          >
+                            <XIcon className="h-3 w-3" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </CollapsibleContent>
+              </Collapsible>
+            )}
 
             <div className="flex justify-end gap-2 pt-4 mt-2">
               <Button type="button" variant="ghost" onClick={() => handleOpenChange(false)}>
