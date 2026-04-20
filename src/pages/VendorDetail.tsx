@@ -375,6 +375,9 @@ export default function VendorDetail() {
           <TabsTrigger value="contacts">
             Contacts {contacts.length > 0 && <span className="ml-1 text-muted-foreground">({contacts.length})</span>}
           </TabsTrigger>
+          <TabsTrigger value="tickets">
+            Tickets {ticketsCount > 0 && <span className="ml-1 text-muted-foreground">({ticketsCount})</span>}
+          </TabsTrigger>
           <TabsTrigger value="documents">
             Documents {docsCount > 0 && <span className="ml-1 text-muted-foreground">({docsCount})</span>}
           </TabsTrigger>
@@ -484,6 +487,15 @@ export default function VendorDetail() {
           />
         </TabsContent>
 
+        <TabsContent value="tickets" className="mt-6">
+          <VendorTicketsTabSection
+            vendor={vendor}
+            onCountChange={setTicketsCount}
+            onNewForVendor={() => setNewTicketForVendorOpen(true)}
+            onNewAboutVendor={() => setNewTicketAboutVendorOpen(true)}
+          />
+        </TabsContent>
+
         <TabsContent value="documents" className="mt-6">
           <DocumentList
             entityType="vendor"
@@ -534,6 +546,28 @@ export default function VendorDetail() {
         onOpenChange={setDeleteOpen}
         vendor={vendor}
         onDeleted={() => navigate("/vendors")}
+      />
+
+      {/* "About this vendor" — target = the vendor entity */}
+      <NewTicketDialog
+        open={newTicketAboutVendorOpen}
+        onOpenChange={setNewTicketAboutVendorOpen}
+        presetTarget={{
+          entity_type: "vendor",
+          entity_id: vendor.id,
+          entity_label: vendorDisplayName(vendor),
+        }}
+        onCreated={() => setTicketsCount((n) => n + 1)}
+        navigateOnCreate={false}
+      />
+
+      {/* "For this vendor" — vendor_id pre-filled, target picked freely */}
+      <NewTicketDialog
+        open={newTicketForVendorOpen}
+        onOpenChange={setNewTicketForVendorOpen}
+        presetVendor={{ vendor_id: vendor.id, vendor_label: vendorDisplayName(vendor) }}
+        onCreated={() => setTicketsCount((n) => n + 1)}
+        navigateOnCreate={false}
       />
     </div>
   );
