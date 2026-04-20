@@ -24,6 +24,20 @@ import {
 } from "@/lib/contracts";
 import { cn } from "@/lib/utils";
 
+/** Optional pre-fill payload sourced from a lead being converted. */
+export interface LeadPreset {
+  lead_id: string;
+  lead_number: string;
+  primary_contact_id: string;
+  company_id: string | null;
+  proposed_fee_model: string | null;
+  proposed_fee_value: number | null;
+  proposed_fee_applies_to: string | null;
+  proposed_duration_months: number | null;
+  proposed_scope_of_services: string[];
+  proposed_terms_notes: string | null;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -31,6 +45,8 @@ interface Props {
   editContractId?: string;
   /** Called after a successful create or save. Receives the contract id. */
   onSaved?: (contractId: string) => void;
+  /** When provided, pre-fills wizard from a lead and links it post-save. */
+  presetFromLead?: LeadPreset;
 }
 
 interface SelfPerson {
@@ -91,7 +107,7 @@ function addYears(iso: string, years: number) {
   return d.toISOString().slice(0, 10);
 }
 
-export function ManagementAgreementWizard({ open, onOpenChange, editContractId, onSaved }: Props) {
+export function ManagementAgreementWizard({ open, onOpenChange, editContractId, onSaved, presetFromLead }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
