@@ -219,6 +219,13 @@ export type Database = {
             referencedRelation: "units"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "people_property_links_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_with_data_gaps"
+            referencedColumns: ["id"]
+          },
         ]
       }
       property_documents: {
@@ -276,6 +283,13 @@ export type Database = {
             referencedRelation: "units"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "property_documents_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_with_data_gaps"
+            referencedColumns: ["id"]
+          },
         ]
       }
       property_status_history: {
@@ -314,6 +328,13 @@ export type Database = {
             referencedRelation: "units"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "property_status_history_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_with_data_gaps"
+            referencedColumns: ["id"]
+          },
         ]
       }
       units: {
@@ -326,11 +347,12 @@ export type Database = {
           description: string | null
           floor: number | null
           id: string
-          monthly_rent: number | null
           notes: string | null
           ref_code: string
           size_sqm: number | null
+          size_unit_preference: string | null
           status: Database["public"]["Enums"]["property_status"]
+          status_locked_by_lease_id: string | null
           unit_number: string
           unit_type: Database["public"]["Enums"]["unit_type"]
           updated_at: string
@@ -344,11 +366,12 @@ export type Database = {
           description?: string | null
           floor?: number | null
           id?: string
-          monthly_rent?: number | null
           notes?: string | null
           ref_code: string
           size_sqm?: number | null
+          size_unit_preference?: string | null
           status?: Database["public"]["Enums"]["property_status"]
+          status_locked_by_lease_id?: string | null
           unit_number: string
           unit_type?: Database["public"]["Enums"]["unit_type"]
           updated_at?: string
@@ -362,11 +385,12 @@ export type Database = {
           description?: string | null
           floor?: number | null
           id?: string
-          monthly_rent?: number | null
           notes?: string | null
           ref_code?: string
           size_sqm?: number | null
+          size_unit_preference?: string | null
           status?: Database["public"]["Enums"]["property_status"]
+          status_locked_by_lease_id?: string | null
           unit_number?: string
           unit_type?: Database["public"]["Enums"]["unit_type"]
           updated_at?: string
@@ -404,7 +428,74 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      units_with_data_gaps: {
+        Row: {
+          bathrooms: number | null
+          bedrooms: number | null
+          building_id: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          floor: number | null
+          id: string | null
+          notes: string | null
+          ref_code: string | null
+          size_sqm: number | null
+          size_unit_preference: string | null
+          status: Database["public"]["Enums"]["property_status"] | null
+          status_locked_by_lease_id: string | null
+          unit_number: string | null
+          unit_type: Database["public"]["Enums"]["unit_type"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          bathrooms?: number | null
+          bedrooms?: number | null
+          building_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          floor?: number | null
+          id?: string | null
+          notes?: string | null
+          ref_code?: string | null
+          size_sqm?: number | null
+          size_unit_preference?: string | null
+          status?: Database["public"]["Enums"]["property_status"] | null
+          status_locked_by_lease_id?: string | null
+          unit_number?: string | null
+          unit_type?: Database["public"]["Enums"]["unit_type"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          bathrooms?: number | null
+          bedrooms?: number | null
+          building_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          floor?: number | null
+          id?: string | null
+          notes?: string | null
+          ref_code?: string | null
+          size_sqm?: number | null
+          size_unit_preference?: string | null
+          status?: Database["public"]["Enums"]["property_status"] | null
+          status_locked_by_lease_id?: string | null
+          unit_number?: string | null
+          unit_type?: Database["public"]["Enums"]["unit_type"] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "units_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "buildings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       has_any_role: { Args: { _user_id: string }; Returns: boolean }
@@ -419,7 +510,13 @@ export type Database = {
     Enums: {
       app_role: "admin" | "staff" | "viewer"
       person_role: "tenant" | "owner" | "prospect" | "staff" | "vendor"
-      property_status: "vacant" | "occupied" | "maintenance" | "off_market"
+      property_status:
+        | "vacant"
+        | "occupied"
+        | "maintenance"
+        | "off_market"
+        | "under_maintenance"
+        | "reserved"
       unit_type:
         | "studio"
         | "apartment"
@@ -428,6 +525,12 @@ export type Database = {
         | "retail"
         | "storage"
         | "other"
+        | "penthouse"
+        | "duplex"
+        | "villa"
+        | "townhouse"
+        | "warehouse"
+        | "showroom"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -557,7 +660,14 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "staff", "viewer"],
       person_role: ["tenant", "owner", "prospect", "staff", "vendor"],
-      property_status: ["vacant", "occupied", "maintenance", "off_market"],
+      property_status: [
+        "vacant",
+        "occupied",
+        "maintenance",
+        "off_market",
+        "under_maintenance",
+        "reserved",
+      ],
       unit_type: [
         "studio",
         "apartment",
@@ -566,6 +676,12 @@ export const Constants = {
         "retail",
         "storage",
         "other",
+        "penthouse",
+        "duplex",
+        "villa",
+        "townhouse",
+        "warehouse",
+        "showroom",
       ],
     },
   },

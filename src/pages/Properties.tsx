@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { useAuth } from "@/contexts/AuthContext";
 import { BuildingFormDialog } from "@/components/properties/BuildingFormDialog";
 import { COUNTRY_BY_CODE } from "@/lib/countries";
+import { formatEnumLabel } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -179,7 +180,7 @@ function BuildingCard({ b }: { b: BuildingRow }) {
         </div>
         <div className="mt-auto pt-4 flex items-center justify-between text-[11px] uppercase tracking-wider text-muted-foreground">
           <span>{b.unit_count ?? 0} units</span>
-          <span>{b.building_type?.replace(/_/g, " ")}</span>
+          <span>{formatEnumLabel(b.building_type)}</span>
         </div>
       </div>
     </Link>
