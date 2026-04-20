@@ -45,6 +45,7 @@ interface TicketRow {
   created_at: string;
   cost_approval_status: string | null;
   is_system_generated: boolean;
+  vendor_id: string | null;
 }
 
 type SortKey = "ticket_number" | "subject" | "priority" | "status" | "due" | "age";
@@ -57,6 +58,7 @@ export default function TicketsPage() {
   const [rows, setRows] = useState<TicketRow[]>([]);
   const [targetLabels, setTargetLabels] = useState<Record<string, string>>({});
   const [people, setPeople] = useState<Record<string, { first_name: string; last_name: string }>>({});
+  const [vendors, setVendors] = useState<Record<string, { legal_name: string; display_name: string | null; vendor_number: string }>>({});
   const [loading, setLoading] = useState(true);
   const [newOpen, setNewOpen] = useState(false);
   const [selfPersonId, setSelfPersonId] = useState<string | null>(null);
@@ -75,6 +77,7 @@ export default function TicketsPage() {
   const overdueOnly = searchParams.get("overdue") === "1";
   const search = searchParams.get("q") ?? "";
   const sortKey = (searchParams.get("sort") as SortKey) ?? "default";
+  const vendorFilter = searchParams.get("vendor") ?? ""; // "", "any", "none", or vendor uuid
 
   const updateParam = (key: string, value: string | null) => {
     const next = new URLSearchParams(searchParams);
@@ -105,6 +108,25 @@ export default function TicketsPage() {
       }
       setPeople(pmap);
       setSelfPersonId(mySelf);
+      // Load vendor mini-records for any referenced vendor_ids.
+      const vendorIds = Array.from(new Set(list.map((r) => r.vendor_id).filter(Boolean) as string[]));
+      if (vendorIds.length > 0) {
+        const { data: vs } = await supabase
+          .from("vendors")
+          .select("id, legal_name, display_name, vendor_number")
+          .in("id", vendorIds);
+        if (!cancelled) {
+          const vmap: Record<string, { legal_name: string; display_name: string | null; vendor_number: string }> = {};
+          for (const v of vs ?? []) {
+            vmap[(v as any).id] = {
+              legal_name: (v as any).legal_name,
+              display_name: (v as any).display_name,
+              vendor_number: (v as any).vendor_number,
+            };
+          }
+          setVendors(vmap);
+        }
+      }
       // Resolve target labels
       const labels = await resolveTicketTargetLabels(
         list.map((t) => ({ type: t.target_entity_type, id: t.target_entity_id })),
@@ -141,6 +163,9 @@ export default function TicketsPage() {
     let out = rows.filter((r) => statuses.has(r.status));
     if (priorities.size > 0) out = out.filter((r) => priorities.has(r.priority));
     if (overdueOnly) out = out.filter(isTicketOverdue);
+    if (vendorFilter === "any") out = out.filter((r) => r.vendor_id !== null);
+    else if (vendorFilter === "none") out = out.filter((r) => r.vendor_id === null);
+    else if (vendorFilter) out = out.filter((r) => r.vendor_id === vendorFilter);
     if (search.trim()) {
       const q = search.trim().toLowerCase();
       out = out.filter(
@@ -177,7 +202,7 @@ export default function TicketsPage() {
       sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     }
     return sorted;
-  }, [rows, statuses, priorities, overdueOnly, search, sortKey]);
+  }, [rows, statuses, priorities, overdueOnly, search, sortKey, vendorFilter]);
 
   const toggleStatus = (s: TicketStatus) => {
     const next = new Set(statuses);
@@ -310,6 +335,28 @@ export default function TicketsPage() {
             </button>
           ))}
         </div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="label-eyebrow mr-1">Vendor</span>
+          {[
+            { key: "", label: "All" },
+            { key: "any", label: "Assigned" },
+            { key: "none", label: "Unassigned" },
+          ].map((v) => (
+            <button
+              key={v.key || "all"}
+              type="button"
+              onClick={() => updateParam("vendor", v.key || null)}
+              className={cn(
+                "px-2 py-0.5 rounded-sm border text-[10px] uppercase tracking-wider",
+                (vendorFilter || "") === v.key
+                  ? "bg-architect text-chalk border-architect"
+                  : "bg-card text-muted-foreground border-warm-stone hover:bg-muted/40",
+              )}
+            >
+              {v.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Table */}
@@ -350,6 +397,7 @@ export default function TicketsPage() {
                   <ColHeader label="Status" sortKey="status" current={sortKey} onSort={(k) => updateParam("sort", k)} />
                   <th className="px-4 py-3 label-eyebrow">Target</th>
                   <th className="px-4 py-3 label-eyebrow">Assignee</th>
+                  <th className="px-4 py-3 label-eyebrow">Vendor</th>
                   <ColHeader label="Due" sortKey="due" current={sortKey} onSort={(k) => updateParam("sort", k)} />
                   <ColHeader label="Age" sortKey="age" current={sortKey} onSort={(k) => updateParam("sort", k)} />
                 </tr>
@@ -410,6 +458,20 @@ export default function TicketsPage() {
                           <span className="text-architect">{assignee.first_name} {assignee.last_name}</span>
                         ) : (
                           <span className="text-muted-foreground italic">Unassigned</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-xs">
+                        {t.vendor_id && vendors[t.vendor_id] ? (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); navigate(`/vendors/${t.vendor_id}`); }}
+                            className="text-architect hover:underline truncate max-w-[160px] inline-block text-left"
+                            title={vendors[t.vendor_id].display_name || vendors[t.vendor_id].legal_name}
+                          >
+                            {vendors[t.vendor_id].display_name || vendors[t.vendor_id].legal_name}
+                          </button>
+                        ) : (
+                          <span className="text-muted-foreground italic">—</span>
                         )}
                       </td>
                       <td className={cn("px-4 py-3 text-xs whitespace-nowrap", overdue ? "text-destructive font-medium" : "text-muted-foreground")}>

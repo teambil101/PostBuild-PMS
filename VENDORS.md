@@ -95,11 +95,31 @@ No DB migration is required; new keys are stored alongside existing ones.
 
 ## Planned extensions
 
-- **V2 (next):** Ticket integration — `vendor_id` column on tickets,
-  Vendor Dispatch workflow, vendor-aware ticket creation and listing,
-  vendor detail page Tickets tab.
 - **V3:** Service agreements (subtype of contracts) with auto-renewal,
   scope of services, and compliance-driven auto-tickets via T3a sweep.
+
+## Ticket integration (V2)
+
+- **`tickets.vendor_id`** — separate from `assignee_id` (an internal
+  person). Nullable; set/unset via the Assign/Change Vendor dialog,
+  the New Ticket dialog, or the Edit Ticket dialog.
+- **Vendor Dispatch workflow** — auto-initializes the first time a
+  vendor is assigned to a ticket *that has no workflow yet*. Existing
+  workflows are NEVER replaced; users can switch separately.
+- **Cost approval ↔ workflow step sync** — the
+  `vendor_quote_landlord_approval` step auto-completes on `approved`
+  and auto-skips on `not_required` via a DB trigger
+  (`sync_vendor_workflow_approval_step`). On `rejected` the step
+  stays pending so the stage can't advance.
+- **Smart specialty filter** — vendor pickers default to vendors whose
+  `specialties` array matches the ticket's maintenance type. Users can
+  toggle "Show all specialties".
+- **Vendor detail Tickets tab** — two grouped sections:
+  - *Assigned tickets* — `vendor_id = this vendor`
+  - *Tickets about this vendor* — `target_entity_type='vendor'`
+  Two distinct CTAs cover both creation patterns.
+- **Blacklisted vendors** are excluded from pickers; existing
+  assignments remain valid for historical integrity.
 
 ## Glossary
 
@@ -113,4 +133,4 @@ No DB migration is required; new keys are stored alongside existing ones.
 
 ---
 
-Last updated: V1 shipped. Next: V2 — ticket integration.
+Last updated: V2 shipped. Next: V3 — service agreements + compliance automation.

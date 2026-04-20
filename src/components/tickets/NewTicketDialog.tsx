@@ -58,6 +58,9 @@ import {
   buildDocPath,
   isPhotoMime,
 } from "@/lib/storage";
+import { VendorPicker, type PickedVendor } from "@/components/vendors/VendorPicker";
+import { maintenanceTypeToSpecialty } from "@/lib/vendors";
+import { Info } from "lucide-react";
 
 export interface PresetTarget {
   entity_type: TicketTargetType;
@@ -65,10 +68,16 @@ export interface PresetTarget {
   entity_label: string;
 }
 
+export interface PresetVendor {
+  vendor_id: string;
+  vendor_label: string;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   presetTarget?: PresetTarget;
+  presetVendor?: PresetVendor;
   /** Called after a ticket is successfully created. Receives the new ticket id. */
   onCreated?: (ticketId: string) => void;
   /** When false, do not navigate to the ticket detail after creation (default true). */
@@ -82,6 +91,7 @@ export function NewTicketDialog({
   open,
   onOpenChange,
   presetTarget,
+  presetVendor,
   onCreated,
   navigateOnCreate = true,
 }: Props) {
@@ -103,6 +113,7 @@ export function NewTicketDialog({
   const [files, setFiles] = useState<File[]>([]);
   const [workflowKey, setWorkflowKey] = useState<WorkflowKey | "__none">("__none");
   const [workflowOverridden, setWorkflowOverridden] = useState(false);
+  const [vendor, setVendor] = useState<PickedVendor | null>(null);
 
   const [people, setPeople] = useState<
     { id: string; first_name: string; last_name: string; company: string | null }[]
@@ -133,6 +144,7 @@ export function NewTicketDialog({
     setThreshold(null);
     setWorkflowKey("__none");
     setWorkflowOverridden(false);
+    setVendor(null);
     setTimeout(() => subjectRef.current?.focus(), 50);
   }, [open, presetTarget]);
 
@@ -232,6 +244,7 @@ export function NewTicketDialog({
             estimated_cost: estimatedCost ? Number(estimatedCost) : null,
             is_system_generated: false,
             created_by: user?.id ?? null,
+            vendor_id: presetVendor?.vendor_id ?? vendor?.id ?? null,
           })
           .select("id, ticket_number")
           .maybeSingle();
@@ -256,12 +269,26 @@ export function NewTicketDialog({
       toast.success(`Ticket ${created.ticket_number} created.`);
 
       // Initialize workflow if one was selected.
+      const finalVendorId = presetVendor?.vendor_id ?? vendor?.id ?? null;
+      let workflowInitialized = false;
       if (workflowKey !== "__none") {
         try {
           await initializeTicketWorkflow(created.id, workflowKey as WorkflowKey);
+          workflowInitialized = true;
         } catch (wfErr: any) {
           toast.error(
             `Ticket created but workflow could not be initialized: ${wfErr.message ?? "unknown"}. Add it from the ticket page.`,
+          );
+        }
+      }
+
+      // If vendor was set AND no workflow initialized above, auto-init Vendor Dispatch.
+      if (finalVendorId && !workflowInitialized) {
+        try {
+          await initializeTicketWorkflow(created.id, "vendor_dispatch");
+        } catch (wfErr: any) {
+          toast.error(
+            `Vendor assigned but Vendor Dispatch workflow could not be initialized: ${wfErr.message ?? "unknown"}.`,
           );
         }
       }
@@ -462,6 +489,30 @@ export function NewTicketDialog({
                 Who raised this? Leave blank if you're raising it from internal observation.
               </p>
             </div>
+          </div>
+
+          {/* Vendor */}
+          <div className="space-y-1.5">
+            <Label>Vendor (optional)</Label>
+            {presetVendor ? (
+              <div className="flex items-center gap-2 border hairline rounded-sm bg-muted/30 px-3 py-2 text-sm">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">vendor</span>
+                <span className="text-architect truncate">{presetVendor.vendor_label}</span>
+              </div>
+            ) : (
+              <VendorPicker
+                value={vendor?.id ?? null}
+                onChange={setVendor}
+                filterSpecialty={isMaintenance ? maintenanceTypeToSpecialty(type) : null}
+                allowClear
+              />
+            )}
+            {(presetVendor || vendor) && workflowKey === "__none" && (
+              <p className="text-[11px] text-muted-foreground flex items-start gap-1.5">
+                <Info className="h-3 w-3 mt-0.5 shrink-0" />
+                <span>Assigning a vendor will start the Vendor Dispatch workflow after creation.</span>
+              </p>
+            )}
           </div>
 
           <div className="space-y-1.5">

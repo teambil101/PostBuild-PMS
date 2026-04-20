@@ -20,6 +20,10 @@ import {
   TICKET_PRIORITIES, TICKET_PRIORITY_LABELS,
   type TicketPriority,
 } from "@/lib/tickets";
+import { VendorPicker, type PickedVendor } from "@/components/vendors/VendorPicker";
+import { maintenanceTypeToSpecialty } from "@/lib/vendors";
+import { initializeTicketWorkflow } from "@/lib/workflows";
+import { Info } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -34,6 +38,8 @@ interface Props {
     actual_cost: number | null;
     currency: string;
     ticket_type: string;
+    vendor_id: string | null;
+    workflow_key: string | null;
   };
   onDone: () => void;
 }
@@ -54,6 +60,9 @@ export function EditTicketDialog({ open, onOpenChange, ticket, onDone }: Props) 
   const [actualCost, setActualCost] = useState(
     ticket.actual_cost != null ? String(ticket.actual_cost) : "",
   );
+  const [vendor, setVendor] = useState<PickedVendor | null>(null);
+  const [vendorCleared, setVendorCleared] = useState(false);
+  const [vendorLabel, setVendorLabel] = useState<string>("");
   const [busy, setBusy] = useState(false);
 
   const isMaintenance = ticket.ticket_type.startsWith("maintenance_");
@@ -66,6 +75,23 @@ export function EditTicketDialog({ open, onOpenChange, ticket, onDone }: Props) 
     setDueDate(ticket.due_date ? new Date(ticket.due_date) : undefined);
     setEstimatedCost(ticket.estimated_cost != null ? String(ticket.estimated_cost) : "");
     setActualCost(ticket.actual_cost != null ? String(ticket.actual_cost) : "");
+    setVendor(null);
+    setVendorCleared(false);
+    setVendorLabel("");
+    if (ticket.vendor_id) {
+      // Pre-load the current vendor so the picker shows it as selected.
+      void supabase
+        .from("vendors")
+        .select("id, legal_name, display_name, vendor_number, is_preferred, specialties, trade_license_expiry_date, insurance_expiry_date, status")
+        .eq("id", ticket.vendor_id)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data) {
+            setVendor(data as PickedVendor);
+            setVendorLabel(data.display_name || data.legal_name);
+          }
+        });
+    }
   }, [open, ticket]);
 
   const handleSubmit = async () => {
@@ -88,6 +114,8 @@ export function EditTicketDialog({ open, onOpenChange, ticket, onDone }: Props) 
       }
     }
     setBusy(true);
+    const newVendorId = vendorCleared ? null : (vendor?.id ?? ticket.vendor_id);
+    const vendorTransitionedToSet = !ticket.vendor_id && newVendorId !== null;
     const { error } = await supabase.from("tickets").update({
       subject: subject.trim(),
       description: description.trim() || null,
@@ -95,9 +123,21 @@ export function EditTicketDialog({ open, onOpenChange, ticket, onDone }: Props) 
       due_date: dueDate ? format(dueDate, "yyyy-MM-dd") : null,
       estimated_cost: estimatedCost ? Number(estimatedCost) : null,
       actual_cost: actualCost ? Number(actualCost) : null,
+      vendor_id: newVendorId,
     }).eq("id", ticket.id);
     setBusy(false);
     if (error) { toast.error(error.message); return; }
+    // Auto-init Vendor Dispatch workflow when transitioning null → vendor on a ticket
+    // that has no workflow yet.
+    if (vendorTransitionedToSet && !ticket.workflow_key) {
+      try {
+        await initializeTicketWorkflow(ticket.id, "vendor_dispatch");
+      } catch (wfErr: any) {
+        toast.error(
+          `Vendor saved but Vendor Dispatch workflow could not be initialized: ${wfErr.message ?? "unknown"}.`,
+        );
+      }
+    }
     toast.success("Ticket updated.");
     onDone();
     onOpenChange(false);
@@ -189,6 +229,31 @@ export function EditTicketDialog({ open, onOpenChange, ticket, onDone }: Props) 
               </div>
             </div>
           )}
+
+          <div className="space-y-1.5">
+            <Label>Vendor</Label>
+            <VendorPicker
+              value={vendorCleared ? null : (vendor?.id ?? ticket.vendor_id)}
+              valueLabel={vendorLabel}
+              onChange={(v) => {
+                if (v === null) {
+                  setVendorCleared(true);
+                  setVendor(null);
+                } else {
+                  setVendorCleared(false);
+                  setVendor(v);
+                }
+              }}
+              filterSpecialty={isMaintenance ? maintenanceTypeToSpecialty(ticket.ticket_type) : null}
+              allowClear
+            />
+            {!ticket.vendor_id && (vendor || (!vendorCleared && false)) && !ticket.workflow_key && (
+              <p className="text-[11px] text-muted-foreground flex items-start gap-1.5">
+                <Info className="h-3 w-3 mt-0.5 shrink-0" />
+                <span>Assigning a vendor will start the Vendor Dispatch workflow.</span>
+              </p>
+            )}
+          </div>
         </div>
 
         <DialogFooter>

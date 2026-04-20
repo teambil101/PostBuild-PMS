@@ -16,6 +16,8 @@ import { cn } from "@/lib/utils";
 import { NewVendorDialog } from "@/components/vendors/NewVendorDialog";
 import { DocumentList } from "@/components/attachments/DocumentList";
 import { NotesPanel } from "@/components/notes/NotesPanel";
+import { EntityTicketsTab, type TicketSection, type EntityTicketRow } from "@/components/tickets/EntityTicketsTab";
+import { NewTicketDialog } from "@/components/tickets/NewTicketDialog";
 import { PersonCombobox, type PickedPerson } from "@/components/owners/PersonCombobox";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
@@ -123,6 +125,9 @@ export default function VendorDetail() {
   const [tab, setTab] = useState("overview");
   const [docsCount, setDocsCount] = useState(0);
   const [notesCount, setNotesCount] = useState(0);
+  const [ticketsCount, setTicketsCount] = useState(0);
+  const [newTicketForVendorOpen, setNewTicketForVendorOpen] = useState(false);
+  const [newTicketAboutVendorOpen, setNewTicketAboutVendorOpen] = useState(false);
 
   // Dialogs
   const [editOpen, setEditOpen] = useState(false);
@@ -370,6 +375,9 @@ export default function VendorDetail() {
           <TabsTrigger value="contacts">
             Contacts {contacts.length > 0 && <span className="ml-1 text-muted-foreground">({contacts.length})</span>}
           </TabsTrigger>
+          <TabsTrigger value="tickets">
+            Tickets {ticketsCount > 0 && <span className="ml-1 text-muted-foreground">({ticketsCount})</span>}
+          </TabsTrigger>
           <TabsTrigger value="documents">
             Documents {docsCount > 0 && <span className="ml-1 text-muted-foreground">({docsCount})</span>}
           </TabsTrigger>
@@ -479,6 +487,15 @@ export default function VendorDetail() {
           />
         </TabsContent>
 
+        <TabsContent value="tickets" className="mt-6">
+          <VendorTicketsTabSection
+            vendor={vendor}
+            onCountChange={setTicketsCount}
+            onNewForVendor={() => setNewTicketForVendorOpen(true)}
+            onNewAboutVendor={() => setNewTicketAboutVendorOpen(true)}
+          />
+        </TabsContent>
+
         <TabsContent value="documents" className="mt-6">
           <DocumentList
             entityType="vendor"
@@ -529,6 +546,28 @@ export default function VendorDetail() {
         onOpenChange={setDeleteOpen}
         vendor={vendor}
         onDeleted={() => navigate("/vendors")}
+      />
+
+      {/* "About this vendor" — target = the vendor entity */}
+      <NewTicketDialog
+        open={newTicketAboutVendorOpen}
+        onOpenChange={setNewTicketAboutVendorOpen}
+        presetTarget={{
+          entity_type: "vendor",
+          entity_id: vendor.id,
+          entity_label: vendorDisplayName(vendor),
+        }}
+        onCreated={() => setTicketsCount((n) => n + 1)}
+        navigateOnCreate={false}
+      />
+
+      {/* "For this vendor" — vendor_id pre-filled, target picked freely */}
+      <NewTicketDialog
+        open={newTicketForVendorOpen}
+        onOpenChange={setNewTicketForVendorOpen}
+        presetVendor={{ vendor_id: vendor.id, vendor_label: vendorDisplayName(vendor) }}
+        onCreated={() => setTicketsCount((n) => n + 1)}
+        navigateOnCreate={false}
       />
     </div>
   );
@@ -970,4 +1009,66 @@ function humanizeEvent(t: string): string {
     case "updated": return "Updated";
     default: return t.replace(/_/g, " ");
   }
+}
+
+function VendorTicketsTabSection({
+  vendor,
+  onCountChange,
+  onNewForVendor,
+  onNewAboutVendor,
+}: {
+  vendor: Vendor;
+  onCountChange: (n: number) => void;
+  onNewForVendor: () => void;
+  onNewAboutVendor: () => void;
+}) {
+  const sections: TicketSection[] = [
+    {
+      key: "assigned",
+      label: "Assigned tickets",
+      emptyText: "No tickets currently assigned to this vendor.",
+      fetch: async () => {
+        const { data } = await supabase
+          .from("tickets")
+          .select("id, ticket_number, subject, ticket_type, priority, status, assignee_id, due_date, created_at, target_entity_type, target_entity_id, is_system_generated")
+          .eq("vendor_id", vendor.id)
+          .order("created_at", { ascending: false });
+        return (data ?? []) as EntityTicketRow[];
+      },
+    },
+    {
+      key: "about",
+      label: "Tickets about this vendor",
+      emptyText: "No tickets target this vendor.",
+      fetch: async () => {
+        const { data } = await supabase
+          .from("tickets")
+          .select("id, ticket_number, subject, ticket_type, priority, status, assignee_id, due_date, created_at, target_entity_type, target_entity_id, is_system_generated")
+          .eq("target_entity_type", "vendor")
+          .eq("target_entity_id", vendor.id)
+          .order("created_at", { ascending: false });
+        return (data ?? []) as EntityTicketRow[];
+      },
+    },
+  ];
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <Button variant="outline" size="sm" onClick={onNewForVendor}>
+          <Plus className="h-3.5 w-3.5" /> New ticket for this vendor
+        </Button>
+        <Button variant="gold" size="sm" onClick={onNewAboutVendor}>
+          <Plus className="h-3.5 w-3.5" /> New ticket about this vendor
+        </Button>
+      </div>
+      <EntityTicketsTab
+        entityType="vendor"
+        entityId={vendor.id}
+        entityLabel={vendorDisplayName(vendor)}
+        groupedView
+        sections={sections}
+        onActiveCountChange={onCountChange}
+      />
+    </div>
+  );
 }

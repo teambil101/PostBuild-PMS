@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft, Calendar, User as UserIcon, Activity, AlertTriangle, RefreshCw,
-  DollarSign, RotateCcw, PlusCircle, Coins, Pencil, MoreHorizontal,
+  DollarSign, RotateCcw, PlusCircle, Coins, Pencil, MoreHorizontal, Briefcase,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 
@@ -44,7 +44,7 @@ import { CancelTicketDialog } from "@/components/tickets/actions/CancelTicketDia
 import { DeleteTicketDialog } from "@/components/tickets/actions/DeleteTicketDialog";
 import { CostApprovalBanner } from "@/components/tickets/actions/CostApprovalBanner";
 import { AssignVendorDialog } from "@/components/vendors/AssignVendorDialog";
-import { vendorDisplayName } from "@/lib/vendors";
+import { vendorDisplayName, parseSpecialties, SPECIALTY_LABELS } from "@/lib/vendors";
 import { toast } from "sonner";
 
 interface Ticket {
@@ -121,7 +121,15 @@ export default function TicketDetail() {
   const [changeWfOpen, setChangeWfOpen] = useState(false);
   const [removeWfOpen, setRemoveWfOpen] = useState(false);
   const [vendorOpen, setVendorOpen] = useState(false);
-  const [vendorInfo, setVendorInfo] = useState<{ id: string; legal_name: string; display_name: string | null; vendor_number: string } | null>(null);
+  const [vendorInfo, setVendorInfo] = useState<{
+    id: string;
+    legal_name: string;
+    display_name: string | null;
+    vendor_number: string;
+    is_preferred?: boolean;
+    specialties?: unknown;
+    status?: string;
+  } | null>(null);
   const [stepStatusMap, setStepStatusMap] = useState<Record<string, "pending" | "complete" | "skipped">>({});
 
   useEffect(() => {
@@ -153,6 +161,16 @@ export default function TicketDetail() {
         if (t.target_entity_type === "unit") {
           const { data: u } = await supabase.from("units").select("building_id").eq("id", t.target_entity_id).maybeSingle();
           if (!cancelled) setTargetBuildingId((u as any)?.building_id ?? null);
+        }
+        if (t.vendor_id) {
+          const { data: v } = await supabase
+            .from("vendors")
+            .select("id, legal_name, display_name, vendor_number, is_preferred, specialties, status")
+            .eq("id", t.vendor_id)
+            .maybeSingle();
+          if (!cancelled) setVendorInfo((v as any) ?? null);
+        } else {
+          if (!cancelled) setVendorInfo(null);
         }
       }
       setLoading(false);
@@ -187,6 +205,18 @@ export default function TicketDetail() {
     if (t) setTicket(t as Ticket);
     setEvents((e ?? []) as EventRow[]);
     setWorkflowRefresh((n) => n + 1);
+    // Refresh vendor info to mirror any vendor_id change.
+    const vid = (t as any)?.vendor_id ?? null;
+    if (vid) {
+      const { data: v } = await supabase
+        .from("vendors")
+        .select("id, legal_name, display_name, vendor_number, is_preferred, specialties, status")
+        .eq("id", vid)
+        .maybeSingle();
+      setVendorInfo((v as any) ?? null);
+    } else {
+      setVendorInfo(null);
+    }
   };
 
   const handleReopen = async () => {
@@ -278,6 +308,10 @@ export default function TicketDetail() {
                 Cancel ticket
               </Button>
             )}
+            <Button variant="outline" size="sm" onClick={() => setVendorOpen(true)} disabled={isTerminal}>
+              <Briefcase className="h-3.5 w-3.5" />
+              {ticket.vendor_id ? "Change vendor" : "Assign vendor"}
+            </Button>
             {isTerminal && (
               <Button variant="outline" size="sm" onClick={handleReopen}>
                 <RotateCcw className="h-3.5 w-3.5" /> Reopen
@@ -343,7 +377,7 @@ export default function TicketDetail() {
       )}
 
       {/* Summary cards */}
-      <div className={cn("grid grid-cols-2 gap-3", hasWorkflow ? "lg:grid-cols-4" : "lg:grid-cols-5")}>
+      <div className={cn("grid grid-cols-2 gap-3", hasWorkflow ? "lg:grid-cols-5" : "lg:grid-cols-6")}>
         <SummaryCard label="Status">
           <TicketStatusPill status={ticket.status} />
           {ticket.status === "awaiting" && ticket.waiting_on && (
@@ -413,6 +447,43 @@ export default function TicketDetail() {
                 </div>
               )}
             </>
+          )}
+        </SummaryCard>
+        <SummaryCard label="Vendor">
+          {vendorInfo ? (
+            <button
+              type="button"
+              onClick={() => setVendorOpen(true)}
+              className="w-full text-left group"
+            >
+              <div className="text-sm text-architect group-hover:underline truncate">
+                {vendorDisplayName(vendorInfo)}
+              </div>
+              <div className="text-[11px] text-muted-foreground mono">{vendorInfo.vendor_number}</div>
+              {(() => {
+                const specs = parseSpecialties(vendorInfo.specialties);
+                if (specs.length === 0) return null;
+                return (
+                  <div className="text-[11px] text-muted-foreground truncate mt-0.5">
+                    {specs.slice(0, 2).map((s) => SPECIALTY_LABELS[s]).join(", ")}
+                    {specs.length > 2 && ` +${specs.length - 2}`}
+                  </div>
+                );
+              })()}
+            </button>
+          ) : (
+            <div className="space-y-1.5">
+              <div className="text-sm text-muted-foreground italic">No vendor</div>
+              {canEdit && !isTerminal && (
+                <button
+                  type="button"
+                  onClick={() => setVendorOpen(true)}
+                  className="text-[11px] text-architect underline decoration-gold/60 underline-offset-2 hover:decoration-gold"
+                >
+                  Assign vendor
+                </button>
+              )}
+            </div>
           )}
         </SummaryCard>
       </div>
@@ -573,6 +644,17 @@ export default function TicketDetail() {
             ticketId={ticket.id}
             onDone={refetch}
           />
+          <AssignVendorDialog
+            open={vendorOpen}
+            onOpenChange={setVendorOpen}
+            ticketId={ticket.id}
+            ticketType={ticket.ticket_type}
+            currentVendorId={ticket.vendor_id}
+            currentVendorLabel={vendorInfo ? vendorDisplayName(vendorInfo) : null}
+            currentWorkflowKey={(ticket.workflow_key as WorkflowKey | null) ?? null}
+            costApprovalStatus={ticket.cost_approval_status}
+            onDone={refetch}
+          />
         </>
       )}
       {isAdmin && (
@@ -652,6 +734,9 @@ function iconFor(type: string) {
     case "cost_approval_approved":
     case "cost_approval_rejected": return <Coins className={cls} />;
     case "reopened": return <RotateCcw className={cls} />;
+    case "vendor_assigned":
+    case "vendor_changed":
+    case "vendor_removed": return <Briefcase className={cls} />;
     default: return <DollarSign className={cls} />;
   }
 }
@@ -680,6 +765,9 @@ function describeEvent(e: EventRow, personName: (id: string | null) => string | 
     case "cost_approval_rejected": return `Cost approval rejected`;
     case "reopened": return `Reopened`;
     case "note": return e.description ?? "Note added";
+    case "vendor_assigned": return `Vendor assigned`;
+    case "vendor_changed": return `Vendor changed`;
+    case "vendor_removed": return `Vendor removed`;
     default: return e.description ?? e.event_type;
   }
 }
