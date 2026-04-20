@@ -323,11 +323,6 @@ export default function UnitDetail() {
               className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-gold rounded-none px-4 py-3 text-xs uppercase tracking-wider"
             >
               {t.l}
-              {t.soon && (
-                <span className="ml-2 text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded-sm normal-case tracking-normal">
-                  Soon
-                </span>
-              )}
             </TabsTrigger>
           ))}
         </TabsList>
