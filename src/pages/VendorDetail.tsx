@@ -135,6 +135,7 @@ export default function VendorDetail() {
   const [notesCount, setNotesCount] = useState(0);
   const [ticketsCount, setTicketsCount] = useState(0);
   const [agreementsCount, setAgreementsCount] = useState(0);
+  const [schedulesCount, setSchedulesCount] = useState(0);
   const [newSaOpen, setNewSaOpen] = useState(false);
   const [newTicketForVendorOpen, setNewTicketForVendorOpen] = useState(false);
   const [newTicketAboutVendorOpen, setNewTicketAboutVendorOpen] = useState(false);
