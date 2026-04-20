@@ -899,8 +899,7 @@ export default function ContractDetail() {
         <LeaseWizard
           open={editOpen}
           onOpenChange={setEditOpen}
-          editContractId={contract.id}
-          onSaved={reloadAll}
+          onSaved={() => reloadAll()}
         />
       )}
 
