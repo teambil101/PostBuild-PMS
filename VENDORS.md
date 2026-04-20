@@ -93,10 +93,50 @@ No DB migration is required; new keys are stored alongside existing ones.
   primaries when a new one is set. Application code can naively flip
   `is_primary=true` and trust the DB to maintain the invariant.
 
-## Planned extensions
+## Service agreements (V3)
 
-- **V3:** Service agreements (subtype of contracts) with auto-renewal,
-  scope of services, and compliance-driven auto-tickets via T3a sweep.
+Service agreements are a contract subtype (`contract_type='service_agreement'`,
+prefix `SVA-YYYY-NNNN`) with a direct `vendor_id` FK on
+`service_agreements.vendor_id`. They cover the commercial relationship
+between the PM and a vendor for ongoing or on-call work.
+
+- **Schema** — `service_agreements` child table holds fee model
+  (`fixed_monthly | fixed_annual | per_call | per_unit | hybrid |
+  time_and_materials | quote_based`), service frequency, scope as a
+  `jsonb` array, materials handling, and SLA response times.
+- **Vendor as entity, signatory as party** — the vendor entity is
+  `service_agreements.vendor_id`. The person signing on the vendor's
+  behalf is a `contract_parties` row with `role='service_provider'`,
+  picked from `vendor_contacts`. PM (self-person) is `role='client'`.
+- **Wizard** — `ServiceAgreementWizard` (4 steps): Parties & Period →
+  Properties Covered → Scope & Fees → Documents, Review & Activate.
+  Reused in edit mode from the contract detail page.
+- **Vendor detail integration** — Service Agreements tab on the vendor
+  page lists every agreement (active first, inactive muted). Empty
+  state launches the wizard with the vendor pre-filled.
+- **Soft precondition on vendor assignment** — when assigning a vendor
+  to a maintenance ticket targeting a unit, the Assign Vendor dialog
+  calls `has_active_service_agreement_for_vendor_and_unit(vendor, unit)`.
+  If no active agreement covers vendor + unit (or its building), an
+  amber, non-blocking warning surfaces with a "Create agreement" CTA
+  that launches the wizard pre-filled with the vendor. Users can
+  proceed without an agreement.
+
+## Compliance auto-tickets (T3a extension)
+
+`detectVendorComplianceExpiry()` in `src/lib/automations.ts` sweeps
+active vendors whose `trade_license_expiry_date` or
+`insurance_expiry_date` falls within 60 days (or is already past).
+
+- **Dedup key** — `vendor_compliance:{trade_license|insurance}:{vendor_id}:{expiry_iso}`.
+  The expiry date is part of the key so renewals (which move the date
+  forward) cleanly trigger a fresh ticket on the next sweep without
+  needing the prior ticket to be deleted.
+- **Priority** — already expired → `urgent`; ≤30 days → `high`;
+  ≤60 days → `medium`.
+- **Target** — `target_entity_type='vendor'`, surfaced via the vendor
+  detail page Tickets tab.
+- **Type** — `compliance_reminder`. Canonical target is `vendor`.
 
 ## Ticket integration (V2)
 
@@ -133,4 +173,4 @@ No DB migration is required; new keys are stored alongside existing ones.
 
 ---
 
-Last updated: V2 shipped. Next: V3 — service agreements + compliance automation.
+Last updated: V3 shipped.

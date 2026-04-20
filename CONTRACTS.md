@@ -442,11 +442,7 @@ a boolean, soft-block in the UI, audit log on override.
 
 ### `leases` — **shipped (Pass B)**. See §12b below for the worked example.
 
-### `service_agreements` — ships with vendor management
-
-Parties: PM (service_provider... wait, flipped — PM is `client` here,
-vendor is `service_provider`). Scope of work, SLA terms, rates,
-renewal terms.
+### `service_agreements` — **shipped (V3)**. See §12c for the worked example.
 
 ### `brokerage_agreements` — ships with broker/deal tracking
 
@@ -455,6 +451,78 @@ Commission %, exclusivity, territories, duration.
 ### `sale_purchase_agreements`, `noc`, `addendum`
 
 Future, no prioritization yet.
+
+---
+
+## 12c. Worked Example: `service_agreements` (Third Reference Subtype)
+
+Adds a vendor-anchored subtype: every service agreement is owned by
+exactly one vendor, captured as a direct FK on the child table.
+
+### Child table
+
+`service_agreements` (1:1 with `contracts`):
+- `vendor_id` — direct FK to `vendors`, `ON DELETE RESTRICT`
+  (don't allow deleting a vendor with active or historical agreements).
+- `scope_of_services` — `jsonb` array of scope codes
+  (`preventive_maintenance`, `cleaning`, `pest_control`,
+  `hvac_maintenance`, `plumbing_services`, etc.) plus an
+  `scope_of_services_other` free-text fallback.
+- `service_frequency` — `on_demand | weekly | biweekly | monthly |
+  quarterly | semi_annually | annually`.
+- Fee model — `fixed_monthly | fixed_annual | per_call | per_unit |
+  hybrid | time_and_materials | quote_based`. Conditional fields:
+  `fee_value` (single-number models), `hybrid_base_monthly` +
+  `hybrid_per_call_or_unit` + `hybrid_mode` (hybrid),
+  `hourly_rate` + `call_out_fee` + `materials_markup_percent` (T&M).
+- `materials_included` boolean + `materials_notes`.
+- `response_time_urgent_hours`, `response_time_standard_hours`,
+  `sla_notes` (optional MVP-simple SLA).
+
+### Number prefix
+
+`SVA` (e.g., `SVA-2026-0001`). Independent counter from `CTR` and `LSE`.
+
+### Allowed roles
+
+`getAllowedPartyRoles('service_agreement')` returns `service_provider`,
+`client`, `other`. **Convention:**
+- PM (self-person) → `client`
+- Vendor signatory (a person from `vendor_contacts`) → `service_provider`
+- The vendor entity itself is on `service_agreements.vendor_id`, not
+  `contract_parties`.
+
+### Wizard
+
+`ServiceAgreementWizard` (4 steps): (1) vendor + signatory + period,
+(2) properties covered, (3) scope/frequency/fee model, (4) docs +
+review + activate. Reused in edit mode from the detail page (matches
+the wizard-as-edit pattern set by mgmt agreements and leases).
+
+### Detail page
+
+Standard contract detail scaffold with a service-agreement-specific
+Overview block: vendor card + signatory, scope chips + frequency,
+fee structure (model-specific rendering), materials block, optional
+SLA block, coverage list. Inline-editable: `sla_notes`,
+`materials_notes`, `scope_of_services_other`, parent `notes` and
+`external_reference`. Structural fields (fee model, fee values,
+vendor) require opening the wizard.
+
+### Soft precondition (cross-module)
+
+The vendor-assignment dialog on tickets calls
+`has_active_service_agreement_for_vendor_and_unit(p_vendor_id, p_unit_id)`
+to surface a non-blocking warning when no active agreement covers
+the vendor + unit (or its building). Same SECURITY DEFINER + soft-block
++ wizard quick-launch pattern as the mgmt-agreement precondition for
+leases (see §12b).
+
+### Triggers
+
+None. Service agreements don't cascade state to other tables — they're
+the contractual backing for ad-hoc and scheduled vendor work, but
+they don't gate ticket creation or vendor assignment hard.
 
 ---
 
@@ -486,4 +554,4 @@ Reasons for choices that might otherwise be re-litigated:
 
 ---
 
-*Last updated: Pass B1 shipped — lease schema, triggers, and helpers landed. See §12b for the lease worked example. Next update: when Pass B2 (lease wizard + detail page UI) lands.*
+*Last updated: V3 shipped — service_agreements subtype + soft precondition for vendor assignment. See §12c for the service-agreement worked example.*

@@ -572,13 +572,14 @@ unify the keys.
 ## 12. Automation & Auto-Generated Tickets
 
 System-generated tickets (`is_system_generated = true`) come from
-three sources:
+four sources:
 
 | # | Source | Mechanism | Latency |
 |---|--------|-----------|---------|
 | 1 | Cheque marked bounced | DB trigger on `lease_cheques` | Immediate (in-txn) |
 | 2 | Lease expiry detection | `detectExpiringLeases()` sweep | 6h throttle |
 | 3 | Data gap sweep | `detectDataGaps()` sweep | 6h throttle |
+| 4 | Vendor compliance expiry | `detectVendorComplianceExpiry()` sweep | 6h throttle |
 
 ### 12.1 `system_dedup_key` convention
 
@@ -592,6 +593,8 @@ so dedup logic doesn't depend on subject wording. Pattern:
 | Lease renewal | `lease_renewal:<contract_id>` |
 | Missing lease gap | `data_gap:missing_lease:<unit_id>` |
 | Missing ownership gap | `data_gap:missing_ownership:<unit_id>` |
+| Vendor trade license | `vendor_compliance:trade_license:<vendor_id>:<expiry_iso>` |
+| Vendor insurance | `vendor_compliance:insurance:<vendor_id>:<expiry_iso>` |
 
 New automations should follow the same prefix pattern and rely on
 the partial index `idx_tickets_system_dedup`.
@@ -605,6 +608,12 @@ the partial index `idx_tickets_system_dedup`.
   renewal ticket for its lifetime. Follow-ups created manually.
 - **Data gaps** — non-terminal only. The gap may legitimately
   recur (e.g., owner removed again).
+- **Vendor compliance** — expiry-scoped: dedup key includes the
+  expiry date. A renewed document with a new expiry date cleanly
+  triggers a fresh ticket on the next sweep without needing the
+  prior ticket to be reopened or deleted. Priority buckets:
+  expired → `urgent`; ≤30 days → `high`; ≤60 days → `medium`.
+  Canonical target: `vendor`.
 
 ### 12.3 Scheduling
 
@@ -688,5 +697,5 @@ badge counts distinct active tickets across all sections.
 
 ---
 
-_Last updated: V2.1 shipped — target discipline + cross-entity
-Tickets tabs. Next: V3 — service agreements._
+_Last updated: V3 shipped — service agreements subtype + vendor
+compliance expiry sweep._
