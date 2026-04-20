@@ -494,7 +494,7 @@ export default function ContractDetail() {
           {contract.contract_type === "lease" && lease ? (
             <>
               <LeaseOverviewBlocks
-                lease={lease}
+                lease={lease as any}
                 currency={contract.currency}
                 tenant={leaseTenant}
                 unit={leaseUnit}
@@ -694,6 +694,7 @@ export default function ContractDetail() {
         </TabsContent>
 
         <TabsContent value="parties" className="mt-6 space-y-3">
+          {/* fall-through */}
           {isActive && canEdit && (
             <div className="border hairline rounded-sm bg-amber-500/10 border-amber-500/30 p-3 flex gap-2.5">
               <AlertTriangle className="h-4 w-4 text-amber-700 shrink-0 mt-0.5" />
