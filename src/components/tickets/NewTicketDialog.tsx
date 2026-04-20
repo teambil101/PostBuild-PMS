@@ -221,6 +221,18 @@ export function NewTicketDialog({ open, onOpenChange }: Props) {
       }
 
       toast.success(`Ticket ${created.ticket_number} created.`);
+
+      // Initialize workflow if one was selected.
+      if (workflowKey !== "__none") {
+        try {
+          await initializeTicketWorkflow(created.id, workflowKey as WorkflowKey);
+        } catch (wfErr: any) {
+          toast.error(
+            `Ticket created but workflow could not be initialized: ${wfErr.message ?? "unknown"}. Add it from the ticket page.`,
+          );
+        }
+      }
+
       onOpenChange(false);
       navigate(`/tickets/${created.id}`);
     } catch (e: any) {
