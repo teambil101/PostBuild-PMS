@@ -9,7 +9,6 @@ import { EmptyState } from "@/components/EmptyState";
 import { useAuth } from "@/contexts/AuthContext";
 import { PersonFormDialog } from "@/components/people/PersonFormDialog";
 import { PersonRoleBadge } from "@/components/people/PersonRoleBadge";
-import { AuthLinksSection } from "@/components/settings/AuthLinksSection";
 import { initials } from "@/lib/format";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -184,10 +183,6 @@ export default function People() {
         onOpenChange={setOpen}
         onSaved={() => { setOpen(false); load(); }}
       />
-
-      <div className="mt-10">
-        <AuthLinksSection />
-      </div>
     </>
   );
 }

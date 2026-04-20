@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import { PersonRoleBadge } from "@/components/people/PersonRoleBadge";
 import { PersonFormDialog } from "@/components/people/PersonFormDialog";
+import { PersonLoginLink } from "@/components/people/PersonLoginLink";
 import { EmptyState } from "@/components/EmptyState";
 import { initials } from "@/lib/format";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -171,6 +172,12 @@ export default function PersonDetail() {
         <Meta label="Phone" icon={<Phone className="h-3.5 w-3.5" />} value={person.phone ?? "—"} />
         <Meta label="Location" icon={<Building2 className="h-3.5 w-3.5" />} value={[person.city, person.country].filter(Boolean).join(", ") || "—"} />
       </div>
+
+      <PersonLoginLink
+        personId={person.id}
+        currentAuthUserId={person.auth_user_id ?? null}
+        onChanged={load}
+      />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="bg-transparent border-b hairline rounded-none w-full justify-start gap-0 h-auto p-0">
