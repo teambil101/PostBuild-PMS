@@ -167,7 +167,7 @@ export default function PropertyDetail() {
       <PageHeader
         eyebrow={`Building · ${building.ref_code}`}
         title={building.name}
-        description={building.description ?? undefined}
+        description={building.address_formatted ?? undefined}
         actions={
           canEdit && (
             <>
@@ -204,8 +204,8 @@ export default function PropertyDetail() {
       {/* Meta strip */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-warm-stone/60 border hairline rounded-sm overflow-hidden mb-10">
         <Meta label="Location" value={[building.city, building.country].filter(Boolean).join(", ") || "—"} icon={<MapPin className="h-3.5 w-3.5" />} />
-        <Meta label="Year built" value={building.year_built?.toString() ?? "—"} icon={<Calendar className="h-3.5 w-3.5" />} />
-        <Meta label="Floors" value={building.total_floors?.toString() ?? "—"} icon={<Building2 className="h-3.5 w-3.5" />} />
+        <Meta label="Type" value={building.building_type?.replace(/_/g, " ") ?? "—"} icon={<Building2 className="h-3.5 w-3.5" />} />
+        <Meta label="Community" value={building.community ?? "—"} icon={<MapPin className="h-3.5 w-3.5" />} />
         <Meta label="Units" value={units.length.toString()} icon={<Building2 className="h-3.5 w-3.5" />} />
       </div>
 
