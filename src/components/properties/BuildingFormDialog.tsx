@@ -7,7 +7,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ComboboxFree } from "@/components/ui/combobox-free";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,7 +14,6 @@ import { toast } from "sonner";
 import { newBuildingCode } from "@/lib/refcode";
 import { BUILDING_TYPES, COUNTRIES, UAE_CITIES, UAE_COMMUNITIES } from "@/lib/countries";
 import { cn } from "@/lib/utils";
-import { PlacesAutocomplete, type PlaceResult } from "@/components/properties/PlacesAutocomplete";
 
 interface Props {
   open: boolean;
@@ -28,36 +26,27 @@ interface FormState {
   name: string;
   building_type: string;
   community: string;
-  address: string;
+  location_url: string;
   city: string;
   country: string; // ISO-2
-  latitude: number | null;
-  longitude: number | null;
-  place_id: string | null;
 }
 
 const emptyForm = (): FormState => ({
   name: "",
   building_type: "residential_tower",
   community: "",
-  address: "",
+  location_url: "",
   city: "Dubai",
   country: "AE",
-  latitude: null,
-  longitude: null,
-  place_id: null,
 });
 
 const fromInitial = (i: any): FormState => ({
   name: i?.name ?? "",
   building_type: i?.building_type ?? "residential_tower",
   community: i?.community ?? "",
-  address: i?.address_formatted ?? i?.address ?? "",
+  location_url: i?.location_url ?? "",
   city: i?.city ?? "Dubai",
   country: i?.country ?? "AE",
-  latitude: i?.latitude ?? null,
-  longitude: i?.longitude ?? null,
-  place_id: i?.place_id ?? null,
 });
 
 type Errors = Partial<Record<keyof FormState, string>>;

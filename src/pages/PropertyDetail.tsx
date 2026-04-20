@@ -22,7 +22,7 @@ interface Building {
   id: string;
   ref_code: string;
   name: string;
-  address: string;
+  location_url: string | null;
   city: string;
   country: string;
   building_type: string;
