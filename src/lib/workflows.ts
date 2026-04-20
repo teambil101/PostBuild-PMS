@@ -15,7 +15,11 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
-export type WorkflowKey = "lease_renewal" | "move_in" | "move_out";
+export type WorkflowKey =
+  | "lease_renewal"
+  | "move_in"
+  | "move_out"
+  | "vendor_dispatch";
 
 export interface WorkflowStep {
   key: string;
@@ -185,10 +189,67 @@ const MOVE_OUT: Workflow = {
   ],
 };
 
+/* ---------- vendor_dispatch ---------- */
+const VENDOR_DISPATCH: Workflow = {
+  key: "vendor_dispatch",
+  label: "Vendor Dispatch",
+  description: "End-to-end workflow when an external vendor handles the work.",
+  stages: [
+    {
+      key: "quotation",
+      label: "Quotation",
+      steps: [
+        { key: "vendor_quote_requested", label: "Quote requested from vendor" },
+        { key: "vendor_quote_received", label: "Quote received" },
+        {
+          key: "vendor_quote_landlord_approval",
+          label: "Landlord approval obtained",
+          description: "Auto-completes when cost approval is granted, or auto-skips when below the repair threshold.",
+        },
+        { key: "vendor_quote_accepted", label: "Quote accepted by PM" },
+      ],
+    },
+    {
+      key: "scheduling",
+      label: "Scheduling",
+      steps: [
+        { key: "vendor_schedule_agreed", label: "Work date agreed with vendor" },
+        { key: "vendor_tenant_notified", label: "Tenant notified of schedule" },
+        { key: "vendor_tenant_confirmed", label: "Tenant confirmed availability" },
+        {
+          key: "vendor_access_arranged",
+          label: "Access arrangements made (keys, building NOC if needed)",
+          required: false,
+        },
+      ],
+    },
+    {
+      key: "execution",
+      label: "Execution",
+      steps: [
+        { key: "vendor_onsite", label: "Vendor arrived on site" },
+        { key: "vendor_work_complete", label: "Work completed" },
+        { key: "vendor_inspection_passed", label: "PM inspection passed", required: false },
+      ],
+    },
+    {
+      key: "settlement",
+      label: "Settlement",
+      steps: [
+        { key: "vendor_invoice_received", label: "Invoice received from vendor" },
+        { key: "vendor_invoice_approved", label: "Invoice approved for payment" },
+        { key: "vendor_payment_processed", label: "Payment processed" },
+        { key: "vendor_warranty_documented", label: "Warranty / guarantee documented", required: false },
+      ],
+    },
+  ],
+};
+
 export const WORKFLOWS: Record<WorkflowKey, Workflow> = {
   lease_renewal: LEASE_RENEWAL,
   move_in: MOVE_IN,
   move_out: MOVE_OUT,
+  vendor_dispatch: VENDOR_DISPATCH,
 };
 
 /* =========================================================

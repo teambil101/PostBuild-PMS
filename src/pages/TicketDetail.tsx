@@ -43,6 +43,8 @@ import { AssignDialog } from "@/components/tickets/actions/AssignDialog";
 import { CancelTicketDialog } from "@/components/tickets/actions/CancelTicketDialog";
 import { DeleteTicketDialog } from "@/components/tickets/actions/DeleteTicketDialog";
 import { CostApprovalBanner } from "@/components/tickets/actions/CostApprovalBanner";
+import { AssignVendorDialog } from "@/components/vendors/AssignVendorDialog";
+import { vendorDisplayName } from "@/lib/vendors";
 import { toast } from "sonner";
 
 interface Ticket {
@@ -75,6 +77,7 @@ interface Ticket {
   created_at: string;
   workflow_key: string | null;
   current_stage_key: string | null;
+  vendor_id: string | null;
 }
 
 interface EventRow {
@@ -117,6 +120,8 @@ export default function TicketDetail() {
   const [addWfOpen, setAddWfOpen] = useState(false);
   const [changeWfOpen, setChangeWfOpen] = useState(false);
   const [removeWfOpen, setRemoveWfOpen] = useState(false);
+  const [vendorOpen, setVendorOpen] = useState(false);
+  const [vendorInfo, setVendorInfo] = useState<{ id: string; legal_name: string; display_name: string | null; vendor_number: string } | null>(null);
   const [stepStatusMap, setStepStatusMap] = useState<Record<string, "pending" | "complete" | "skipped">>({});
 
   useEffect(() => {
