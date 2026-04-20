@@ -95,6 +95,10 @@ export default function TicketDetail() {
   const [photosCount, setPhotosCount] = useState(0);
   const [docsCount, setDocsCount] = useState(0);
   const [workflowRefresh, setWorkflowRefresh] = useState(0);
+  const [addWfOpen, setAddWfOpen] = useState(false);
+  const [changeWfOpen, setChangeWfOpen] = useState(false);
+  const [removeWfOpen, setRemoveWfOpen] = useState(false);
+  const [stepStatusMap, setStepStatusMap] = useState<Record<string, "pending" | "complete" | "skipped">>({});
 
   useEffect(() => {
     if (!ticketId) return;
@@ -162,6 +166,13 @@ export default function TicketDetail() {
   }
 
   const hasWorkflow = Boolean(ticket.workflow_key);
+
+  const refetchTicket = async () => {
+    if (!ticketId) return;
+    const { data } = await supabase.from("tickets").select("*").eq("id", ticketId).maybeSingle();
+    if (data) setTicket(data as Ticket);
+    setWorkflowRefresh((n) => n + 1);
+  };
 
   return (
     <div className="space-y-8">
