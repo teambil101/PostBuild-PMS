@@ -53,7 +53,6 @@ export function MarkContractSignedDialog({ open, onOpenChange, lead, onConverted
     if (!open) {
       setMode("intent");
       setChoice("create");
-      setWizardOpen(false);
     }
   }, [open]);
 

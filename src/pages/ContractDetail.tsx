@@ -40,7 +40,7 @@ import {
 import { formatEnumLabel } from "@/lib/format";
 import {
   Loader2, Building2, Home, ExternalLink, Pencil, Trash2, Power, FileSignature, XCircle, Copy as CopyIcon,
-  ArrowLeft, History as HistoryIcon, Plus, Check, X, AlertTriangle,
+  ArrowLeft, History as HistoryIcon, Plus, Check, X, AlertTriangle, Trophy,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 
@@ -146,6 +146,12 @@ export default function ContractDetail() {
   const [events, setEvents] = useState<EventRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [selfPersonId, setSelfPersonId] = useState<string | null>(null);
+  /** Originating lead (only set when a management agreement was won via the conversion flow). */
+  const [wonFromLead, setWonFromLead] = useState<{
+    id: string;
+    lead_number: string;
+    won_at: string | null;
+  } | null>(null);
 
   // Action dialog state
   const [editOpen, setEditOpen] = useState(false);
@@ -230,6 +236,19 @@ export default function ContractDetail() {
         building_id: s.entity_type === "unit" ? uMap.get(s.entity_id)?.building_id : undefined,
       })),
     );
+
+    // Fetch the originating lead, if any (only meaningful for management agreements).
+    if ((cRes.data as Contract | null)?.contract_type === "management_agreement") {
+      const { data: leadRow } = await supabase
+        .from("leads")
+        .select("id, lead_number, won_at")
+        .eq("won_contract_id", contractId)
+        .maybeSingle();
+      setWonFromLead(leadRow ?? null);
+    } else {
+      setWonFromLead(null);
+    }
+
     setLoading(false);
   };
 
@@ -499,6 +518,32 @@ export default function ContractDetail() {
           )}
         </div>
       </div>
+
+      {/* Originating-lead banner — only on management agreements won via the conversion flow. */}
+      {wonFromLead && (
+        <Link
+          to={`/leads/${wonFromLead.id}`}
+          className="mb-6 flex items-center justify-between gap-3 rounded-sm border hairline border-status-occupied/40 bg-status-occupied/5 px-4 py-2.5 text-sm hover:bg-status-occupied/10 transition-colors"
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Trophy className="h-4 w-4 text-status-occupied shrink-0" strokeWidth={1.5} />
+            <span className="text-architect">
+              Won from lead{" "}
+              <span className="mono text-[11px] uppercase tracking-wider">
+                {wonFromLead.lead_number}
+              </span>
+              {wonFromLead.won_at && (
+                <span className="text-muted-foreground">
+                  {" "}· {new Date(wonFromLead.won_at).toLocaleDateString()}
+                </span>
+              )}
+            </span>
+          </div>
+          <span className="text-[11px] uppercase tracking-wider text-muted-foreground hover:text-architect">
+            View lead →
+          </span>
+        </Link>
+      )}
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-8">

@@ -1,6 +1,6 @@
 # Leads
 
-_Last updated: L1 shipped. Next: L2 — kanban + conversion flow._
+_Last updated: L2 shipped — kanban, conversion ritual, aging-lead automation._
 
 ## 1. Purpose
 
@@ -46,13 +46,18 @@ Required when marking lost: `price`, `scope_mismatch`, `chose_competitor`, `timi
 - **No photos** — leads aren't a visual content type.
 - **Triggers handle lifecycle timestamps** — `manage_lead_lifecycle_timestamps` sets/clears `stage_entered_at`, `won_at`, `lost_at`, `hold_since` server-side.
 - **`log_lead_events` trigger detects field changes** — audit log generated server-side, so external SQL edits also produce events.
+- **Unique partial index on `won_contract_id`** — at most one lead can claim any given management agreement; double-counted wins are impossible.
+- **Conversion is atomic** — the wizard's save transaction creates the contract, links `won_contract_id`, flips status to `contract_signed`, and inserts a `marked_contract_signed` event in one shot. Failure leaves the lead untouched.
+- **Aging tickets target leads directly** — the T3a `detectStuckLeads` sweep emits `compliance_reminder` tickets with `target_entity_type='lead'`, so the nudge appears in the lead's own Tickets tab without any extra mapping table.
+- **Stage-entry dedup key** — stuck-lead tickets dedup by `(lead_id, stage_entered_at)`, so moving a lead out and back into a stage opens a fresh nudge cycle instead of being swallowed by a stale closed ticket.
 
-## 9. Planned extensions (L2)
+## 9. L2 features (shipped)
 
-- Kanban view with drag-drop between stage columns.
-- Mark Contract Signed flow → mgmt agreement wizard pre-filled with proposed terms → atomic link of `won_contract_id` + status transition.
-- T3a sweep extensions for stuck leads.
-- Leads tab on Management Agreement detail page (which lead won this agreement).
+- **Kanban view** — `/leads` toggles between table and 7-column kanban (`new` … `lost`). Drag-drop transitions; dropping on `lost` opens the lost-reason dialog, dropping on `contract_signed` opens the conversion ritual. `on_hold` is shown as a desaturated overlay, not a column.
+- **Mark Contract Signed conversion ritual** — intent picker (Create now vs Link existing), then either the mgmt-agreement wizard pre-filled from `proposed_*` fields or a filtered picker of eligible existing agreements for this landlord. Atomic post-save link.
+- **Aging-lead T3a sweep** — `detectStuckLeads` emits a `compliance_reminder` ticket for any lead in `proposal`/`negotiating` stuck >14 days, routed to the lead's assignee. Priority escalates with age (medium → high >21d → urgent >30d).
+- **Reciprocal banner on management agreements** — the contract detail page shows a green "Won from LEAD-…" banner linking back to the originating lead.
+- **Tickets can target leads** — `tickets.target_entity_type` enum extended; `compliance_reminder` and `data_gap` allow `lead` as a target.
 
 ## 10. Glossary
 

@@ -584,7 +584,123 @@ export async function processScheduledServices(): Promise<AutomationResult> {
 }
 
 /* =========================================================
- * 5. Orchestrator — throttled, silent.
+ * 5. Aging lead sweep (proposal/negotiating stuck >14d)
+ * ========================================================= */
+
+const STUCK_LEAD_THRESHOLD_DAYS = 14;
+
+/** Stuck stages that warrant a follow-up nudge ticket. */
+const STUCK_LEAD_STAGES = ["proposal", "negotiating"] as const;
+
+function leadStuckPriority(days: number): "urgent" | "high" | "medium" {
+  if (days > 30) return "urgent";
+  if (days > 21) return "high";
+  return "medium";
+}
+
+export async function detectStuckLeads(): Promise<AutomationResult> {
+  const result: AutomationResult = { created: 0, skipped: 0, errors: 0 };
+
+  // Cutoff = leads whose stage_entered_at is older than threshold.
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - STUCK_LEAD_THRESHOLD_DAYS);
+  const cutoffIso = cutoff.toISOString();
+
+  const { data: leads, error } = await supabase
+    .from("leads")
+    .select(
+      "id, lead_number, status, stage_entered_at, primary_contact_id, assignee_id",
+    )
+    .in("status", STUCK_LEAD_STAGES as unknown as string[])
+    .lt("stage_entered_at", cutoffIso);
+
+  if (error || !leads) {
+    result.errors++;
+    return result;
+  }
+  if (leads.length === 0) return result;
+
+  // Resolve contact names (company fallback) for ticket subject lines.
+  const contactIds = Array.from(
+    new Set(leads.map((l) => l.primary_contact_id).filter(Boolean) as string[]),
+  );
+  const { data: contacts } = contactIds.length
+    ? await supabase
+        .from("people")
+        .select("id, first_name, last_name, company")
+        .in("id", contactIds)
+    : { data: [] as { id: string; first_name: string; last_name: string; company: string | null }[] };
+  const contactById = new Map(
+    (contacts ?? []).map((c) => [c.id, c] as const),
+  );
+
+  // Bulk-check existing dedup keys (one open ticket per lead-stage entry).
+  const dedupKeys = leads.map(
+    (l) => `lead_stuck:${l.id}:${l.stage_entered_at}`,
+  );
+  const { data: existing } = await supabase
+    .from("tickets")
+    .select("system_dedup_key, status")
+    .in("system_dedup_key", dedupKeys);
+  const blocked = new Set(
+    (existing ?? [])
+      .filter((r) => r.status !== "closed" && r.status !== "cancelled")
+      .map((r) => r.system_dedup_key),
+  );
+
+  for (const l of leads) {
+    const dedup = `lead_stuck:${l.id}:${l.stage_entered_at}`;
+    if (blocked.has(dedup)) {
+      result.skipped++;
+      continue;
+    }
+    const days = Math.floor(
+      (Date.now() - new Date(l.stage_entered_at).getTime()) / (1000 * 60 * 60 * 24),
+    );
+    const priority = leadStuckPriority(days);
+    const contact = contactById.get(l.primary_contact_id);
+    const contactName = contact
+      ? contact.company || `${contact.first_name ?? ""} ${contact.last_name ?? ""}`.trim()
+      : "Unknown contact";
+    const stageLabel = l.status === "proposal" ? "Proposal" : "Negotiating";
+
+    const created = await insertTicketWithRetry({
+      subject: `Lead stuck in ${stageLabel.toLowerCase()}: ${l.lead_number}`,
+      description:
+        `Lead ${l.lead_number} (${contactName}) has been in ${stageLabel} for ${days} days.\n\n` +
+        `Reach out to advance the conversation, or move the lead to On Hold / Lost ` +
+        `if it has gone cold.`,
+      ticket_type: "compliance_reminder",
+      priority,
+      status: "open",
+      target_entity_type: "lead",
+      target_entity_id: l.id,
+      is_system_generated: true,
+      created_by: null,
+      system_dedup_key: dedup,
+    });
+
+    if (!created) {
+      result.errors++;
+      continue;
+    }
+
+    // If the lead has an assignee, route the ticket to them.
+    if (l.assignee_id) {
+      await supabase
+        .from("tickets")
+        .update({ assignee_id: l.assignee_id })
+        .eq("id", created.id);
+    }
+
+    result.created++;
+  }
+
+  return result;
+}
+
+/* =========================================================
+ * 6. Orchestrator — throttled, silent.
  * ========================================================= */
 
 export async function processSystemAutomations(force = false): Promise<void> {
@@ -601,6 +717,7 @@ export async function processSystemAutomations(force = false): Promise<void> {
       detectDataGaps(),
       detectVendorComplianceExpiry(),
       processScheduledServices(),
+      detectStuckLeads(),
     ]);
   } catch (e) {
     console.warn("[automations] sweep failed", e);
