@@ -8,8 +8,8 @@ interface Props {
   onSelect: (type: ContractType) => void;
 }
 
-const AVAILABLE: ContractType[] = ["management_agreement", "other"];
-const COMING_SOON: ContractType[] = ["lease", "service_agreement", "brokerage_agreement"];
+const AVAILABLE: ContractType[] = ["management_agreement", "lease", "other"];
+const COMING_SOON: ContractType[] = ["service_agreement", "brokerage_agreement"];
 
 export function ContractTypePickerDialog({ open, onOpenChange, onSelect }: Props) {
   const renderCard = (t: ContractType, available: boolean) => {
@@ -49,6 +49,11 @@ export function ContractTypePickerDialog({ open, onOpenChange, onSelect }: Props
               Authorize yourself to manage a landlord's properties.
             </p>
           )}
+          {available && t === "lease" && (
+            <p className="text-xs text-muted-foreground leading-snug">
+              Tenant lease with rent schedule, deposit, and cheque tracking.
+            </p>
+          )}
           {available && t === "other" && (
             <p className="text-xs text-muted-foreground leading-snug">
               Generic contract — minimal fields, free-form.
@@ -70,6 +75,7 @@ export function ContractTypePickerDialog({ open, onOpenChange, onSelect }: Props
         </DialogHeader>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
           {renderCard("management_agreement", true)}
+          {renderCard("lease", true)}
           {COMING_SOON.map((t) => renderCard(t, false))}
           {renderCard("other", true)}
         </div>

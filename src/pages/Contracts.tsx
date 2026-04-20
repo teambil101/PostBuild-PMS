@@ -10,6 +10,7 @@ import { CompanyProfileGate } from "@/components/contracts/CompanyProfileGate";
 import { ContractTypePickerDialog } from "@/components/contracts/ContractTypePickerDialog";
 import { ManagementAgreementWizard } from "@/components/contracts/ManagementAgreementWizard";
 import { GenericContractDialog } from "@/components/contracts/GenericContractDialog";
+import { LeaseWizard } from "@/components/contracts/lease/LeaseWizard";
 import { ContractStatusPill } from "@/components/contracts/StatusPill";
 import { useAuth } from "@/contexts/AuthContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -56,6 +57,7 @@ function ContractsListInner() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [maOpen, setMaOpen] = useState(false);
   const [genericOpen, setGenericOpen] = useState(false);
+  const [leaseOpen, setLeaseOpen] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -138,6 +140,7 @@ function ContractsListInner() {
   const handleSelectType = (t: ContractType) => {
     setPickerOpen(false);
     if (t === "management_agreement") setMaOpen(true);
+    else if (t === "lease") setLeaseOpen(true);
     else if (t === "other") setGenericOpen(true);
   };
 
@@ -255,6 +258,7 @@ function ContractsListInner() {
 
       <ContractTypePickerDialog open={pickerOpen} onOpenChange={setPickerOpen} onSelect={handleSelectType} />
       <ManagementAgreementWizard open={maOpen} onOpenChange={setMaOpen} />
+      <LeaseWizard open={leaseOpen} onOpenChange={setLeaseOpen} />
       <GenericContractDialog open={genericOpen} onOpenChange={setGenericOpen} />
     </>
   );
