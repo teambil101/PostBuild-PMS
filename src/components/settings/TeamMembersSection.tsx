@@ -55,7 +55,9 @@ export function TeamMembersSection() {
     if (!confirm(`Remove ${p.first_name} ${p.last_name} from the team? They'll stay in your People directory but won't be assignable to leads or tickets.`)) {
       return;
     }
-    const nextRoles = (p.roles ?? []).filter((r) => r !== "staff");
+    const nextRoles = (p.roles ?? []).filter((r) => r !== "staff") as (
+      "owner" | "prospect" | "staff" | "tenant" | "vendor"
+    )[];
     const { error } = await supabase
       .from("people")
       .update({ roles: nextRoles })
