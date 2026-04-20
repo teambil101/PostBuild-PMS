@@ -27,6 +27,7 @@ import {
   CONTRACT_TYPE_LABELS, type ContractType, type ContractStatus,
   formatContractValue, summarizePeriod, daysUntil, duplicateContract,
   SCOPE_LABELS, type ScopeService, FEE_MODEL_LABELS, PARTY_ROLES,
+  getAllowedPartyRoles,
 } from "@/lib/contracts";
 import { formatEnumLabel } from "@/lib/format";
 import {
@@ -647,9 +648,17 @@ export default function ContractDetail() {
                             <Select value={p.role} onValueChange={(v) => updatePartyRole(p.id, v)}>
                               <SelectTrigger className="h-8 w-44"><SelectValue /></SelectTrigger>
                               <SelectContent>
-                                {PARTY_ROLES.map((r) => (
-                                  <SelectItem key={r} value={r}>{formatEnumLabel(r)}</SelectItem>
-                                ))}
+                                {(() => {
+                                  const allowed = getAllowedPartyRoles(contract.contract_type);
+                                  // Always include the current role even if not in the allowed list
+                                  // (legacy data) so the Select can render its current value.
+                                  const list = allowed.includes(p.role as any)
+                                    ? allowed
+                                    : [p.role as any, ...allowed];
+                                  return list.map((r) => (
+                                    <SelectItem key={r} value={r}>{formatEnumLabel(r)}</SelectItem>
+                                  ));
+                                })()}
                               </SelectContent>
                             </Select>
                           ) : (
@@ -825,6 +834,7 @@ export default function ContractDetail() {
         open={addPartyOpen}
         onOpenChange={setAddPartyOpen}
         contractId={contract.id}
+        contractType={contract.contract_type}
         excludePersonIds={existingPartyPersonIds}
         onAdded={reloadAll}
       />
