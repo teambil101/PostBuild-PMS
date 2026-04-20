@@ -153,33 +153,6 @@ export default function LifecyclePage() {
   }, [data, debouncedSearch, buildingFilter]);
 
   /* ============= KPIs ============= */
-  const kpis = useMemo(() => {
-    if (!data || !filtered) return null;
-    const totalUnits = Object.values(filtered.byStage).reduce((s, arr) => s + arr.length, 0);
-    const buildingsCount = buildingFilter.size > 0 ? buildingFilter.size : data.buildings.length;
-    const activeCount = filtered.byStage.active.length + filtered.byStage.ending_soon.length;
-    const occupancyPct = totalUnits === 0 ? 0 : Math.round((activeCount / totalUnits) * 100);
-    const sumActiveRent = [...filtered.byStage.active, ...filtered.byStage.ending_soon]
-      .reduce((s, c) => s + (c.lease?.annual_rent ?? 0), 0);
-    const expiringSoonCount = filtered.expiringSoon.length;
-    const expiringIn30 = filtered.expiringSoon.filter((l) => l.end_date && daysBetween(new Date(), l.end_date) <= 30).length;
-
-    const recentlyEnded = filtered.byStage.recently_ended.length;
-    const attentionNeeded = recentlyEnded + filtered.overdueCheques.length + filtered.dataGaps.length;
-
-    return {
-      totalUnits,
-      buildingsCount,
-      vacant: filtered.byStage.vacant.length,
-      occupancyPct,
-      activeCount,
-      sumActiveRent,
-      expiringSoonCount,
-      expiringIn30,
-      attentionNeeded,
-    };
-  }, [data, filtered, buildingFilter]);
-
   /* ============= Scroll-to handlers ============= */
   const focusStage = (s: LifecycleStage) => {
     if (view === "table") setView("pipeline");
@@ -188,10 +161,6 @@ export default function LifecyclePage() {
       stageRefs.current[s]?.scrollIntoView({ behavior: "smooth", block: "start", inline: "start" });
     }, 50);
     setTimeout(() => setHighlightStage(null), 2000);
-  };
-
-  const focusAttention = (k: "expiring" | "overdue" | "gaps") => {
-    attentionRefs.current[k]?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   /* ============= Render ============= */
