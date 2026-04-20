@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { PersonRoleBadge } from "@/components/people/PersonRoleBadge";
 import { PersonFormDialog } from "@/components/people/PersonFormDialog";
 import { PersonLoginLink } from "@/components/people/PersonLoginLink";
+import { NewLeadDialog } from "@/components/leads/NewLeadDialog";
 import { EmptyState } from "@/components/EmptyState";
 import { initials } from "@/lib/format";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -40,6 +41,8 @@ export default function PersonDetail() {
   const [editOpen, setEditOpen] = useState(false);
   const [ticketCount, setTicketCount] = useState<number>(0);
   const [leadCount, setLeadCount] = useState<number>(0);
+  const [newLeadOpen, setNewLeadOpen] = useState(false);
+  const [pipelineRefreshKey, setPipelineRefreshKey] = useState(0);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get("tab") ?? "ownership";
   const setActiveTab = (v: string) => {
@@ -185,7 +188,7 @@ export default function PersonDetail() {
             { v: "ownership", l: "Ownership" },
             { v: "tenancy", l: "Tenancy" },
             { v: "documents", l: `Documents (${docs.length})` },
-            { v: "leads", l: `Leads (${leadCount})` },
+            { v: "leads", l: `Pipeline (${leadCount})` },
             { v: "tickets", l: `Tickets (${ticketCount})` },
             { v: "notes", l: "Notes" },
           ].map((t) => (
@@ -331,7 +334,19 @@ export default function PersonDetail() {
         </TabsContent>
 
         <TabsContent value="leads" className="pt-6">
-          <PersonLeadsTab personId={person.id} onActiveCountChange={setLeadCount} />
+          <div className="flex justify-between items-center mb-4">
+            <div className="label-eyebrow">Leads & opportunities</div>
+            {canEdit && (
+              <Button variant="gold" size="sm" onClick={() => setNewLeadOpen(true)}>
+                <Plus className="h-3.5 w-3.5" /> New lead
+              </Button>
+            )}
+          </div>
+          <PersonLeadsTab
+            key={pipelineRefreshKey}
+            personId={person.id}
+            onActiveCountChange={setLeadCount}
+          />
         </TabsContent>
 
         <TabsContent value="notes" className="pt-6">
@@ -346,6 +361,16 @@ export default function PersonDetail() {
         onOpenChange={setEditOpen}
         initial={person}
         onSaved={() => { setEditOpen(false); load(); }}
+      />
+
+      <NewLeadDialog
+        open={newLeadOpen}
+        onOpenChange={setNewLeadOpen}
+        defaultPersonId={person.id}
+        onSaved={() => {
+          setNewLeadOpen(false);
+          setPipelineRefreshKey((k) => k + 1);
+        }}
       />
     </>
   );
