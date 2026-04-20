@@ -394,7 +394,7 @@ export default function LifecyclePage() {
       {filtered && (
         <div className="space-y-4 mt-10">
           <AttentionSection
-            ref={(el) => { attentionRefs.current.expiring = el; }}
+            refSet={(el) => { attentionRefs.current.expiring = el; }}
             title="Expiring in the next 90 days"
             count={filtered.expiringSoon.length}
             tone={filtered.expiringSoon.length > 0 ? "amber" : "neutral"}
@@ -406,7 +406,7 @@ export default function LifecyclePage() {
           </AttentionSection>
 
           <AttentionSection
-            ref={(el) => { attentionRefs.current.overdue = el; }}
+            refSet={(el) => { attentionRefs.current.overdue = el; }}
             title="Overdue cheques"
             count={filtered.overdueCheques.length}
             tone={filtered.overdueCheques.length > 0 ? "red" : "neutral"}
@@ -423,7 +423,7 @@ export default function LifecyclePage() {
           </AttentionSection>
 
           <AttentionSection
-            ref={(el) => { attentionRefs.current.gaps = el; }}
+            refSet={(el) => { attentionRefs.current.gaps = el; }}
             title="Data gaps"
             count={filtered.dataGaps.length}
             tone={filtered.dataGaps.length > 0 ? "red" : "neutral"}
@@ -709,13 +709,12 @@ function CardShell({ children, onClick }: { children: ReactNode; onClick: () => 
 /* =========================================================
  * Attention section
  * ========================================================= */
-const AttentionSection = (() => {
-  const Comp = ({
-    title, count, tone, empty, children, refSet,
-  }: {
-    title: string; count: number; tone: "neutral" | "amber" | "red"; empty: string;
-    children?: ReactNode; refSet?: (el: HTMLDivElement | null) => void;
-  }) => {
+function AttentionSection({
+  title, count, tone, empty, children, refSet,
+}: {
+  title: string; count: number; tone: "neutral" | "amber" | "red"; empty: string;
+  children?: ReactNode; refSet?: (el: HTMLDivElement | null) => void;
+}) {
     const [open, setOpen] = useState(true);
     const toneClass = tone === "red" ? "text-destructive" : tone === "amber" ? "text-amber-700" : "text-muted-foreground";
     return (
@@ -743,10 +742,7 @@ const AttentionSection = (() => {
         )}
       </div>
     );
-  };
-  // Wrap in forwardRef-like manual ref prop (simple)
-  return (props: any) => <Comp {...props} refSet={props.ref} />;
-})();
+}
 
 /* Tables for attention sections */
 function ExpiringTable({ leases, units, navigate }: { leases: LifecycleLease[]; units: LifecycleUnit[]; navigate: (p: string) => void }) {
