@@ -235,7 +235,39 @@ export default function TicketDetail() {
               <TooltipContent>Coming in next pass</TooltipContent>
             </Tooltip>
           ))}
-          <Button variant="ghost" size="sm" onClick={() => navigate("/tickets")} className="ml-auto">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="ml-auto px-2">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {hasWorkflow ? (
+                <>
+                  <DropdownMenuItem onSelect={() => setChangeWfOpen(true)}>
+                    Change workflow
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => setRemoveWfOpen(true)}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    Remove workflow
+                  </DropdownMenuItem>
+                </>
+              ) : (
+                <DropdownMenuItem onSelect={() => setAddWfOpen(true)}>
+                  Add workflow
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem disabled>Cancel ticket</DropdownMenuItem>
+              <DropdownMenuItem disabled>Reopen</DropdownMenuItem>
+              <DropdownMenuItem disabled className="text-destructive focus:text-destructive">
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button variant="ghost" size="sm" onClick={() => navigate("/tickets")}>
             <ArrowLeft className="h-4 w-4 mr-1" />
             Back
           </Button>
