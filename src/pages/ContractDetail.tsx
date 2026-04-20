@@ -176,9 +176,14 @@ export default function ContractDetail() {
   const reloadAll = async () => {
     if (!contractId) return;
     setLoading(true);
-    const [cRes, maRes, lRes, pRes, sRes, eRes, settingsRes] = await Promise.all([
+    const [cRes, maRes, saRes, lRes, pRes, sRes, eRes, settingsRes] = await Promise.all([
       supabase.from("contracts").select("*").eq("id", contractId).maybeSingle(),
       supabase.from("management_agreements").select("*").eq("contract_id", contractId).maybeSingle(),
+      supabase
+        .from("service_agreements")
+        .select("*, vendor:vendor_id(id, legal_name, display_name, vendor_number, specialties)")
+        .eq("contract_id", contractId)
+        .maybeSingle(),
       supabase.from("leases" as never).select("*").eq("contract_id" as never, contractId as never).maybeSingle(),
       supabase
         .from("contract_parties")
@@ -190,6 +195,7 @@ export default function ContractDetail() {
     ]);
     setContract(cRes.data as Contract | null);
     setMa(maRes.data as MA | null);
+    setSa((saRes.data ?? null) as unknown as SA | null);
     setLease((lRes.data ?? null) as unknown as LeaseRow | null);
     setParties(((pRes.data ?? []) as any[]).map((p) => ({ ...p, person: p.people })));
     setEvents((eRes.data ?? []) as EventRow[]);
