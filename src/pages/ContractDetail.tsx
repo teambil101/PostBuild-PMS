@@ -601,7 +601,24 @@ export default function ContractDetail() {
         </TabsList>
 
         <TabsContent value="overview" className="mt-6 space-y-6">
-          {contract.contract_type === "lease" && lease ? (
+          {contract.contract_type === "service_agreement" && sa ? (
+            <ServiceAgreementOverview
+              sa={sa}
+              contract={contract}
+              subjects={subjects}
+              parties={parties}
+              partyName={partyName}
+              editable={canEdit && !isImmutable}
+              onAutoRenewToggle={handleAutoRenewToggle}
+              editingExtRef={editingExtRef}
+              extRefDraft={extRefDraft}
+              setExtRefDraft={setExtRefDraft}
+              setEditingExtRef={setEditingExtRef}
+              saveExtRef={saveExtRef}
+              isImmutable={isImmutable}
+              isTerminated={isTerminated}
+            />
+          ) : contract.contract_type === "lease" && lease ? (
             <>
               <LeaseOverviewBlocks
                 lease={lease as any}
@@ -1026,6 +1043,15 @@ export default function ContractDetail() {
       {/* ============== Dialogs ============== */}
       {contract.contract_type === "management_agreement" && (
         <ManagementAgreementWizard
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          editContractId={contract.id}
+          onSaved={reloadAll}
+        />
+      )}
+
+      {contract.contract_type === "service_agreement" && (
+        <ServiceAgreementWizard
           open={editOpen}
           onOpenChange={setEditOpen}
           editContractId={contract.id}
