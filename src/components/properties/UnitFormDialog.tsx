@@ -22,6 +22,13 @@ import { toast } from "sonner";
 import { newUnitCode } from "@/lib/refcode";
 import { formatEnumLabel, sqmToSqft } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { OwnerPicker } from "@/components/owners/OwnerPicker";
+import {
+  OwnerDraft,
+  fetchOwners,
+  validateOwners,
+  replaceOwners,
+} from "@/lib/ownership";
 import {
   BuildingType,
   UNIT_STATUS_OPTIONS,
@@ -116,6 +123,11 @@ export function UnitFormDialog({
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [attachOpen, setAttachOpen] = useState(false);
 
+  // Ownership (only used on create)
+  const [buildingOwners, setBuildingOwners] = useState<OwnerDraft[]>([]);
+  const [ownerMode, setOwnerMode] = useState<"inherit" | "explicit">("inherit");
+  const [ownerDraft, setOwnerDraft] = useState<OwnerDraft[]>([]);
+
   const unitNumberRef = useRef<HTMLInputElement>(null);
   const typeRef = useRef<HTMLButtonElement>(null);
   const statusRef = useRef<HTMLButtonElement>(null);
@@ -133,6 +145,35 @@ export function UnitFormDialog({
     setBaseline(next);
     setErrors({});
   }, [open, initial, typeOptions]);
+
+  // Load parent building owners on open (create mode only)
+  useEffect(() => {
+    if (!open || initial?.id) {
+      setBuildingOwners([]);
+      setOwnerMode("inherit");
+      setOwnerDraft([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const own = await fetchOwners("building", buildingId);
+        if (cancelled) return;
+        setBuildingOwners(own);
+        if (own.length > 0) {
+          setOwnerMode("inherit");
+          setOwnerDraft([]);
+        } else {
+          // JOP scenario — no building owners, must set unit owners
+          setOwnerMode("explicit");
+          setOwnerDraft([]);
+        }
+      } catch (e: any) {
+        toast.error(e.message ?? "Failed to load building owners.");
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [open, initial?.id, buildingId]);
 
   // Force studio bedrooms = 0
   useEffect(() => {
