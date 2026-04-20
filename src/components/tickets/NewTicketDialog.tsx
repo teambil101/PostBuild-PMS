@@ -244,6 +244,7 @@ export function NewTicketDialog({
             estimated_cost: estimatedCost ? Number(estimatedCost) : null,
             is_system_generated: false,
             created_by: user?.id ?? null,
+            vendor_id: presetVendor?.vendor_id ?? vendor?.id ?? null,
           })
           .select("id, ticket_number")
           .maybeSingle();
@@ -268,12 +269,26 @@ export function NewTicketDialog({
       toast.success(`Ticket ${created.ticket_number} created.`);
 
       // Initialize workflow if one was selected.
+      const finalVendorId = presetVendor?.vendor_id ?? vendor?.id ?? null;
+      let workflowInitialized = false;
       if (workflowKey !== "__none") {
         try {
           await initializeTicketWorkflow(created.id, workflowKey as WorkflowKey);
+          workflowInitialized = true;
         } catch (wfErr: any) {
           toast.error(
             `Ticket created but workflow could not be initialized: ${wfErr.message ?? "unknown"}. Add it from the ticket page.`,
+          );
+        }
+      }
+
+      // If vendor was set AND no workflow initialized above, auto-init Vendor Dispatch.
+      if (finalVendorId && !workflowInitialized) {
+        try {
+          await initializeTicketWorkflow(created.id, "vendor_dispatch");
+        } catch (wfErr: any) {
+          toast.error(
+            `Vendor assigned but Vendor Dispatch workflow could not be initialized: ${wfErr.message ?? "unknown"}.`,
           );
         }
       }
