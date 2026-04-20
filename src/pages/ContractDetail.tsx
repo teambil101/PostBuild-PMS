@@ -480,6 +480,9 @@ export default function ContractDetail() {
       <Tabs defaultValue="overview">
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          {contract.contract_type === "lease" && lease && (
+            <TabsTrigger value="cheques">Cheques</TabsTrigger>
+          )}
           <TabsTrigger value="parties">Parties ({parties.length})</TabsTrigger>
           <TabsTrigger value="subjects">Subjects ({subjects.length})</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
@@ -488,7 +491,54 @@ export default function ContractDetail() {
         </TabsList>
 
         <TabsContent value="overview" className="mt-6 space-y-6">
-          {ma ? (
+          {contract.contract_type === "lease" && lease ? (
+            <>
+              <LeaseOverviewBlocks
+                lease={lease}
+                currency={contract.currency}
+                tenant={leaseTenant}
+                unit={leaseUnit}
+              />
+              <Section title="Terms">
+                <DL>
+                  <DLRow label="Start" value={contract.start_date ? format(new Date(contract.start_date), "PPP") : "—"} />
+                  <DLRow label="End" value={contract.end_date ? format(new Date(contract.end_date), "PPP") : "—"} />
+                  <DLRow
+                    label="Auto-renew"
+                    value={
+                      canEdit ? (
+                        <Switch checked={contract.auto_renew} onCheckedChange={handleAutoRenewToggle} disabled={isImmutable || isTerminated} />
+                      ) : (contract.auto_renew ? "Yes" : "No")
+                    }
+                  />
+                  <DLRow
+                    label="External reference"
+                    value={
+                      editingExtRef && canEdit ? (
+                        <div className="flex items-center gap-1.5">
+                          <Input value={extRefDraft} onChange={(e) => setExtRefDraft(e.target.value)} className="h-8 w-48" />
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={saveExtRef}><Check className="h-3.5 w-3.5 text-status-occupied" /></Button>
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingExtRef(false)}><X className="h-3.5 w-3.5" /></Button>
+                        </div>
+                      ) : (
+                        <button
+                          className={canEdit && !isImmutable ? "hover:text-gold-deep inline-flex items-center gap-1.5" : ""}
+                          onClick={() => {
+                            if (!canEdit || isImmutable) return;
+                            setExtRefDraft(contract.external_reference ?? "");
+                            setEditingExtRef(true);
+                          }}
+                        >
+                          {contract.external_reference || "—"}
+                          {canEdit && !isImmutable && <Pencil className="h-3 w-3 opacity-50" />}
+                        </button>
+                      )
+                    }
+                  />
+                </DL>
+              </Section>
+            </>
+          ) : ma ? (
             <>
               <Section title="Fee structure">
                 <DL>
