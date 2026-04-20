@@ -11,7 +11,7 @@ import { BuildingFormDialog } from "@/components/properties/BuildingFormDialog";
 import { UnitFormDialog } from "@/components/properties/UnitFormDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSearchParams } from "react-router-dom";
-import { EntityTicketsTab } from "@/components/tickets/EntityTicketsTab";
+import { EntityTicketsTab, type TicketSection } from "@/components/tickets/EntityTicketsTab";
 import { PhotoGallery } from "@/components/attachments/PhotoGallery";
 import { DocumentList } from "@/components/attachments/DocumentList";
 import { NotesPanel } from "@/components/notes/NotesPanel";
@@ -356,10 +356,9 @@ export default function PropertyDetail() {
 
         {/* TICKETS */}
         <TabsContent value="tickets" className="pt-6">
-          <EntityTicketsTab
-            entityType="building"
-            entityId={building.id}
-            entityLabel={building.name}
+          <BuildingTicketsTabSection
+            buildingId={building.id}
+            buildingName={building.name}
             onActiveCountChange={setTicketCount}
           />
         </TabsContent>
