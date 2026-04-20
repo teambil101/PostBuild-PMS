@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, ShieldAlert, Info } from "lucide-react";
+import { Loader2, ShieldAlert, Info, FileWarning } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { VendorPicker, type PickedVendor } from "./VendorPicker";
 import { maintenanceTypeToSpecialty, complianceState, vendorDisplayName } from "@/lib/vendors";
+import { ServiceAgreementWizard } from "@/components/contracts/service/ServiceAgreementWizard";
 import {
   initializeTicketWorkflow,
   WORKFLOWS,

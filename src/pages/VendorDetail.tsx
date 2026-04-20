@@ -14,6 +14,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { NewVendorDialog } from "@/components/vendors/NewVendorDialog";
+import { ServiceAgreementWizard } from "@/components/contracts/service/ServiceAgreementWizard";
 import { DocumentList } from "@/components/attachments/DocumentList";
 import { NotesPanel } from "@/components/notes/NotesPanel";
 import { EntityTicketsTab, type TicketSection, type EntityTicketRow } from "@/components/tickets/EntityTicketsTab";
@@ -37,6 +38,12 @@ import {
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal } from "lucide-react";
+import {
+  CONTRACT_STATUS_LABELS, CONTRACT_STATUS_STYLES, type ContractStatus,
+  SERVICE_FREQUENCY_LABELS, formatServiceFee,
+  type ServiceFeeModel, type ServiceFrequency,
+} from "@/lib/contracts";
+import { summarizePeriod } from "@/lib/contracts";
 import {
   SPECIALTIES,
   SPECIALTY_LABELS,
