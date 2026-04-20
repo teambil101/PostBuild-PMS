@@ -66,16 +66,45 @@ export const CONTRACT_STATUS_STYLES: Record<ContractStatus, string> = {
 export const PARTY_ROLES = [
   "landlord",
   "tenant",
-  "lessor",
-  "lessee",
   "service_provider",
   "client",
   "broker",
   "guarantor",
-  "witness",
+  "seller",
+  "buyer",
+  "issuer",
+  "recipient",
   "other",
 ] as const;
 export type PartyRole = typeof PARTY_ROLES[number];
+
+/**
+ * Returns the contextually-allowed party roles for a given contract type.
+ * For "addendum", pass the parent contract's type as `parentType`.
+ */
+export function getAllowedPartyRoles(
+  contractType: string,
+  parentType?: string | null,
+): PartyRole[] {
+  switch (contractType) {
+    case "management_agreement":
+    case "service_agreement":
+      return ["service_provider", "client", "other"];
+    case "lease":
+      return ["landlord", "tenant", "broker", "guarantor", "other"];
+    case "brokerage_agreement":
+      return ["broker", "client", "other"];
+    case "sale_purchase_agreement":
+      return ["seller", "buyer", "broker", "other"];
+    case "noc":
+      return ["issuer", "recipient", "other"];
+    case "addendum":
+      return parentType ? getAllowedPartyRoles(parentType) : [...PARTY_ROLES];
+    case "other":
+    default:
+      return [...PARTY_ROLES];
+  }
+}
 
 /* ============ Management Agreement ============ */
 

@@ -7,26 +7,32 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PersonCombobox, type PickedPerson } from "@/components/owners/PersonCombobox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { PARTY_ROLES } from "@/lib/contracts";
+import { getAllowedPartyRoles } from "@/lib/contracts";
 import { formatEnumLabel } from "@/lib/format";
 
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   contractId: string;
+  contractType: string;
+  parentContractType?: string | null;
   excludePersonIds?: string[];
   onAdded?: () => void;
 }
 
-export function AddPartyDialog({ open, onOpenChange, contractId, excludePersonIds = [], onAdded }: Props) {
+export function AddPartyDialog({
+  open, onOpenChange, contractId, contractType, parentContractType,
+  excludePersonIds = [], onAdded,
+}: Props) {
+  const allowedRoles = getAllowedPartyRoles(contractType, parentContractType);
   const [person, setPerson] = useState<PickedPerson | null>(null);
-  const [role, setRole] = useState<string>("witness");
+  const [role, setRole] = useState<string>(allowedRoles[0] ?? "other");
   const [signatory, setSignatory] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
   const reset = () => {
     setPerson(null);
-    setRole("witness");
+    setRole(allowedRoles[0] ?? "other");
     setSignatory(true);
   };
 
@@ -87,7 +93,7 @@ export function AddPartyDialog({ open, onOpenChange, contractId, excludePersonId
             <Select value={role} onValueChange={setRole}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {PARTY_ROLES.map((r) => (
+                {allowedRoles.map((r) => (
                   <SelectItem key={r} value={r}>{formatEnumLabel(r)}</SelectItem>
                 ))}
               </SelectContent>
