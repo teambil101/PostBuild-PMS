@@ -519,6 +519,32 @@ export default function ContractDetail() {
         </div>
       </div>
 
+      {/* Originating-lead banner — only on management agreements won via the conversion flow. */}
+      {wonFromLead && (
+        <Link
+          to={`/leads/${wonFromLead.id}`}
+          className="mb-6 flex items-center justify-between gap-3 rounded-sm border hairline border-status-occupied/40 bg-status-occupied/5 px-4 py-2.5 text-sm hover:bg-status-occupied/10 transition-colors"
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Trophy className="h-4 w-4 text-status-occupied shrink-0" strokeWidth={1.5} />
+            <span className="text-architect">
+              Won from lead{" "}
+              <span className="mono text-[11px] uppercase tracking-wider">
+                {wonFromLead.lead_number}
+              </span>
+              {wonFromLead.won_at && (
+                <span className="text-muted-foreground">
+                  {" "}· {new Date(wonFromLead.won_at).toLocaleDateString()}
+                </span>
+              )}
+            </span>
+          </div>
+          <span className="text-[11px] uppercase tracking-wider text-muted-foreground hover:text-architect">
+            View lead →
+          </span>
+        </Link>
+      )}
+
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-8">
         <SummaryCard label="Status">
