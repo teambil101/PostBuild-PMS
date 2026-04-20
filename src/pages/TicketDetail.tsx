@@ -308,6 +308,10 @@ export default function TicketDetail() {
                 Cancel ticket
               </Button>
             )}
+            <Button variant="outline" size="sm" onClick={() => setVendorOpen(true)} disabled={isTerminal}>
+              <Briefcase className="h-3.5 w-3.5" />
+              {ticket.vendor_id ? "Change vendor" : "Assign vendor"}
+            </Button>
             {isTerminal && (
               <Button variant="outline" size="sm" onClick={handleReopen}>
                 <RotateCcw className="h-3.5 w-3.5" /> Reopen
@@ -373,7 +377,7 @@ export default function TicketDetail() {
       )}
 
       {/* Summary cards */}
-      <div className={cn("grid grid-cols-2 gap-3", hasWorkflow ? "lg:grid-cols-4" : "lg:grid-cols-5")}>
+      <div className={cn("grid grid-cols-2 gap-3", hasWorkflow ? "lg:grid-cols-5" : "lg:grid-cols-6")}>
         <SummaryCard label="Status">
           <TicketStatusPill status={ticket.status} />
           {ticket.status === "awaiting" && ticket.waiting_on && (
