@@ -927,6 +927,93 @@ export type Database = {
           },
         ]
       }
+      service_agreements: {
+        Row: {
+          call_out_fee: number | null
+          contract_id: string
+          created_at: string
+          fee_model: string
+          fee_value: number | null
+          hourly_rate: number | null
+          hybrid_base_monthly: number | null
+          hybrid_mode: string | null
+          hybrid_per_call_or_unit: number | null
+          id: string
+          materials_included: boolean
+          materials_markup_percent: number | null
+          materials_notes: string | null
+          response_time_standard_hours: number | null
+          response_time_urgent_hours: number | null
+          scope_of_services: Json
+          scope_of_services_other: string | null
+          service_frequency: string
+          sla_notes: string | null
+          updated_at: string
+          vendor_id: string
+        }
+        Insert: {
+          call_out_fee?: number | null
+          contract_id: string
+          created_at?: string
+          fee_model: string
+          fee_value?: number | null
+          hourly_rate?: number | null
+          hybrid_base_monthly?: number | null
+          hybrid_mode?: string | null
+          hybrid_per_call_or_unit?: number | null
+          id?: string
+          materials_included?: boolean
+          materials_markup_percent?: number | null
+          materials_notes?: string | null
+          response_time_standard_hours?: number | null
+          response_time_urgent_hours?: number | null
+          scope_of_services?: Json
+          scope_of_services_other?: string | null
+          service_frequency?: string
+          sla_notes?: string | null
+          updated_at?: string
+          vendor_id: string
+        }
+        Update: {
+          call_out_fee?: number | null
+          contract_id?: string
+          created_at?: string
+          fee_model?: string
+          fee_value?: number | null
+          hourly_rate?: number | null
+          hybrid_base_monthly?: number | null
+          hybrid_mode?: string | null
+          hybrid_per_call_or_unit?: number | null
+          id?: string
+          materials_included?: boolean
+          materials_markup_percent?: number | null
+          materials_notes?: string | null
+          response_time_standard_hours?: number | null
+          response_time_urgent_hours?: number | null
+          scope_of_services?: Json
+          scope_of_services_other?: string | null
+          service_frequency?: string
+          sla_notes?: string | null
+          updated_at?: string
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_agreements_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: true
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_agreements_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ticket_events: {
         Row: {
           actor_id: string | null
@@ -1699,6 +1786,10 @@ export type Database = {
       }
       has_active_mgmt_agreement_for_unit: {
         Args: { p_unit_id: string }
+        Returns: boolean
+      }
+      has_active_service_agreement_for_vendor_and_unit: {
+        Args: { p_unit_id: string; p_vendor_id: string }
         Returns: boolean
       }
       has_any_role: { Args: { _user_id: string }; Returns: boolean }
