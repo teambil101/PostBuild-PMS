@@ -295,7 +295,11 @@ export default function PropertyDetail() {
                 </thead>
                 <tbody>
                   {units.map((u) => (
-                    <tr key={u.id} className="border-b hairline last:border-0 hover:bg-muted/30">
+                    <tr
+                      key={u.id}
+                      onClick={() => navigate(`/properties/${building.id}/units/${u.id}`)}
+                      className="border-b hairline last:border-0 hover:bg-muted/30 cursor-pointer"
+                    >
                       <td className="px-4 py-3 ref-code">{u.ref_code}</td>
                       <td className="px-4 py-3 font-medium text-architect">{u.unit_number}</td>
                       <td className="px-4 py-3 text-muted-foreground">{formatEnumLabel(u.unit_type)}</td>
@@ -316,7 +320,7 @@ export default function PropertyDetail() {
                         {(u.bedrooms ?? "—") + " / " + (u.bathrooms ?? "—")}
                       </td>
                       {canEdit && (
-                        <td className="px-2 py-3">
+                        <td className="px-2 py-3" onClick={(e) => e.stopPropagation()}>
                           <Button variant="ghost" size="icon" onClick={() => { setEditingUnit(u); setUnitOpen(true); }}>
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
