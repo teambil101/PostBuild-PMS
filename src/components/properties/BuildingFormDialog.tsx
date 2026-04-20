@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { newBuildingCode } from "@/lib/refcode";
 import { BUILDING_TYPES, COUNTRIES, UAE_CITIES, UAE_COMMUNITIES } from "@/lib/countries";
 import { cn } from "@/lib/utils";
+import { PlacesAutocomplete, type PlaceResult } from "@/components/properties/PlacesAutocomplete";
 
 interface Props {
   open: boolean;
@@ -30,6 +31,9 @@ interface FormState {
   address: string;
   city: string;
   country: string; // ISO-2
+  latitude: number | null;
+  longitude: number | null;
+  place_id: string | null;
 }
 
 const emptyForm = (): FormState => ({
@@ -39,15 +43,21 @@ const emptyForm = (): FormState => ({
   address: "",
   city: "Dubai",
   country: "AE",
+  latitude: null,
+  longitude: null,
+  place_id: null,
 });
 
 const fromInitial = (i: any): FormState => ({
   name: i?.name ?? "",
   building_type: i?.building_type ?? "residential_tower",
   community: i?.community ?? "",
-  address: i?.address ?? "",
+  address: i?.address_formatted ?? i?.address ?? "",
   city: i?.city ?? "Dubai",
   country: i?.country ?? "AE",
+  latitude: i?.latitude ?? null,
+  longitude: i?.longitude ?? null,
+  place_id: i?.place_id ?? null,
 });
 
 type Errors = Partial<Record<keyof FormState, string>>;
@@ -62,7 +72,7 @@ export function BuildingFormDialog({ open, onOpenChange, onSaved, initial }: Pro
   const nameRef = useRef<HTMLInputElement>(null);
   const typeRef = useRef<HTMLButtonElement>(null);
   const communityRef = useRef<HTMLDivElement>(null);
-  const addressRef = useRef<HTMLTextAreaElement>(null);
+  const addressRef = useRef<HTMLDivElement>(null);
   const cityRef = useRef<HTMLDivElement>(null);
   const countryRef = useRef<HTMLButtonElement>(null);
 
@@ -114,7 +124,7 @@ export function BuildingFormDialog({ open, onOpenChange, onSaved, initial }: Pro
   };
 
   const focusFirstError = (e: Errors) => {
-    const map: Record<keyof FormState, HTMLElement | null> = {
+    const map: Partial<Record<keyof FormState, HTMLElement | null>> = {
       name: nameRef.current,
       building_type: typeRef.current,
       community: communityRef.current,
@@ -146,6 +156,10 @@ export function BuildingFormDialog({ open, onOpenChange, onSaved, initial }: Pro
       building_type: form.building_type,
       community: form.community.trim() || null,
       address: form.address.trim(),
+      address_formatted: form.address.trim(),
+      latitude: form.latitude,
+      longitude: form.longitude,
+      place_id: form.place_id,
       city: form.city.trim(),
       country: form.country,
     };
@@ -254,18 +268,36 @@ export function BuildingFormDialog({ open, onOpenChange, onSaved, initial }: Pro
             {/* Address */}
             <div>
               <Label htmlFor="b-address" className={labelClass}>
-                Address <span className="text-destructive">*</span>
+                Location <span className="text-destructive">*</span>
               </Label>
-              <Textarea
-                id="b-address"
-                ref={addressRef}
-                value={form.address}
-                onChange={(e) => set("address", e.target.value)}
-                placeholder="Street, area, landmark — whatever helps locate the building"
-                rows={2}
-                className={cn("mt-1.5", errors.address && "border-destructive")}
-                aria-invalid={!!errors.address}
-              />
+              <div ref={addressRef} className="mt-1.5">
+                <PlacesAutocomplete
+                  id="b-address"
+                  value={form.address}
+                  onChange={(v) => set("address", v)}
+                  countryBias={form.country ? [form.country.toLowerCase()] : ["ae"]}
+                  placeholder="Search a building, street, or landmark"
+                  invalid={!!errors.address}
+                  onPlaceSelected={(p) => {
+                    setForm((f) => ({
+                      ...f,
+                      address: p.address_formatted,
+                      latitude: p.latitude,
+                      longitude: p.longitude,
+                      place_id: p.place_id,
+                      city: p.city ?? f.city,
+                      country: p.country ?? f.country,
+                      community: p.community ?? f.community,
+                    }));
+                    setErrors((e) => ({ ...e, address: undefined, city: undefined, country: undefined }));
+                  }}
+                />
+              </div>
+              {form.latitude != null && form.longitude != null && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Pinned: {form.latitude.toFixed(5)}, {form.longitude.toFixed(5)}
+                </p>
+              )}
               {errors.address && <p className={errorClass}>{errors.address}</p>}
             </div>
 
