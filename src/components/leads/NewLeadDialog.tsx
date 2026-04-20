@@ -32,9 +32,11 @@ interface Props {
   /** Edit mode — pass an existing lead. */
   editLead?: LeadRow | null;
   onSaved?: (leadId: string) => void;
+  /** Pre-fill the primary contact when launched from a person page. */
+  defaultPersonId?: string;
 }
 
-export function NewLeadDialog({ open, onOpenChange, editLead, onSaved }: Props) {
+export function NewLeadDialog({ open, onOpenChange, editLead, onSaved, defaultPersonId }: Props) {
   const navigate = useNavigate();
   const isEdit = !!editLead;
   const [busy, setBusy] = useState(false);
@@ -97,7 +99,19 @@ export function NewLeadDialog({ open, onOpenChange, editLead, onSaved }: Props) 
         });
       }
     } else {
-      setPrimaryContact(null);
+      // Fresh form — optionally pre-fill primary contact from defaultPersonId.
+      if (defaultPersonId) {
+        supabase
+          .from("people")
+          .select("id, first_name, last_name, company")
+          .eq("id", defaultPersonId)
+          .maybeSingle()
+          .then(({ data }) => {
+            if (data) setPrimaryContact(data as PickedPerson);
+          });
+      } else {
+        setPrimaryContact(null);
+      }
       setCompany(null);
       setSource("inbound");
       setSourceDetails("");
@@ -115,7 +129,7 @@ export function NewLeadDialog({ open, onOpenChange, editLead, onSaved }: Props) 
       setAssignee(null);
       setInitialNotes("");
     }
-  }, [open, editLead]);
+  }, [open, editLead, defaultPersonId]);
 
   const sourceHelper = useMemo(() => LEAD_SOURCE_DETAIL_HELPERS[source], [source]);
 

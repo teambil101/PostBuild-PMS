@@ -24,7 +24,12 @@ export function AppShell({ children }: AppShellProps) {
   const location = useLocation();
   const { user, signOut, roles } = useAuth();
 
-  const currentModule = MODULES.find((m) => location.pathname.startsWith(m.path));
+  const currentModule = MODULES.find((m) => {
+    if (location.pathname.startsWith(m.path)) return true;
+    // /leads/* (legacy) belongs to People now
+    if (m.key === "people" && location.pathname.startsWith("/leads")) return true;
+    return false;
+  });
   const role = roles[0] ?? "viewer";
 
   return (
@@ -41,7 +46,9 @@ export function AppShell({ children }: AppShellProps) {
         <nav className="flex-1 px-3 space-y-0.5">
           <div className="label-eyebrow px-3 pb-2 text-sidebar-foreground/50">Modules</div>
           {MODULES.map((m) => {
-            const isActive = location.pathname.startsWith(m.path);
+            const isActive =
+              location.pathname.startsWith(m.path) ||
+              (m.key === "people" && location.pathname.startsWith("/leads"));
             const Icon = m.icon;
             return (
               <Link
