@@ -32,6 +32,9 @@ interface Props {
   currentVendorLabel?: string | null;
   currentWorkflowKey: WorkflowKey | null;
   costApprovalStatus: string | null;
+  /** Ticket target — used for service-agreement soft-precondition check. */
+  targetEntityType?: string | null;
+  targetEntityId?: string | null;
   onDone: () => void;
 }
 
