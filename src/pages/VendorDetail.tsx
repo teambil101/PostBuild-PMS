@@ -499,6 +499,15 @@ export default function VendorDetail() {
           />
         </TabsContent>
 
+        <TabsContent value="agreements" className="mt-6">
+          <ServiceAgreementsTab
+            vendorId={vendor.id}
+            canEdit={canEdit}
+            onCountChange={setAgreementsCount}
+            onNew={() => setNewSaOpen(true)}
+          />
+        </TabsContent>
+
         <TabsContent value="tickets" className="mt-6">
           <VendorTicketsTabSection
             vendor={vendor}
@@ -535,6 +544,13 @@ export default function VendorDetail() {
         onOpenChange={setEditOpen}
         vendor={editOpen ? vendor : null}
         onSaved={() => { setEditOpen(false); load(); }}
+      />
+
+      <ServiceAgreementWizard
+        open={newSaOpen}
+        onOpenChange={setNewSaOpen}
+        presetVendorId={vendor.id}
+        onSaved={() => { setNewSaOpen(false); load(); }}
       />
 
       <ContactDialog
