@@ -346,19 +346,7 @@ one doesn't change any other table.
 
 ## 13. Deferred Subtypes (Roadmap)
 
-### `leases` — next up (Pass B)
-
-Will add: `annual_rent`, `payment_frequency`, `security_deposit_*`,
-`commission_*`, `ejari_number`. Plus the grandchild table
-`lease_cheques` for individual cheque tracking.
-
-Additional UI: Cheques tab on the detail page. Status cascade trigger:
-active lease → unit.status='occupied' + status_locked_by_lease_id.
-Precondition check on creation: an active management agreement must
-cover the target unit's building or the unit itself. Soft-block
-with prompt to create one first if missing.
-
-Prefix: `LSE` (e.g., `LSE-2026-0042`).
+### `leases` — **shipped (Pass B)**. See §12b below for the worked example.
 
 ### `service_agreements` — ships with vendor management
 
