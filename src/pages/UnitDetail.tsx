@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft, Pencil, Trash2, AlertTriangle,
-  StickyNote, History, Lock, Receipt,
+  History, Lock, Receipt,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { UnitFormDialog } from "@/components/properties/UnitFormDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PhotoGallery } from "@/components/attachments/PhotoGallery";
 import { DocumentList } from "@/components/attachments/DocumentList";
+import { NotesPanel } from "@/components/notes/NotesPanel";
 import { toast } from "sonner";
 import { format, formatDistanceToNow } from "date-fns";
 import { formatEnumLabel, sqmToSqft } from "@/lib/format";
@@ -335,10 +336,10 @@ export default function UnitDetail() {
 
         {/* NOTES — composer + feed land in pass 3 */}
         <TabsContent value="notes" className="pt-6">
-          <EmptyState
-            icon={<StickyNote className="h-8 w-8" strokeWidth={1.2} />}
-            title="Notes coming soon"
-            description="A composer + reverse-chronological feed for tracking internal context about this unit."
+          <NotesPanel
+            entityType="unit"
+            entityId={unit.id}
+            onCountChange={setNoteCount}
           />
         </TabsContent>
 
