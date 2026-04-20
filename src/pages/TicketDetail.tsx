@@ -25,7 +25,19 @@ import { PhotoGallery } from "@/components/attachments/PhotoGallery";
 import { DocumentList } from "@/components/attachments/DocumentList";
 import { NotesPanel } from "@/components/notes/NotesPanel";
 import { WorkflowSection } from "@/components/tickets/workflow/WorkflowSection";
+import { WorkflowSummaryCard } from "@/components/tickets/workflow/WorkflowSummaryCard";
+import { AddWorkflowDialog } from "@/components/tickets/workflow/AddWorkflowDialog";
+import { ChangeWorkflowDialog } from "@/components/tickets/workflow/ChangeWorkflowDialog";
+import { RemoveWorkflowDialog } from "@/components/tickets/workflow/RemoveWorkflowDialog";
 import type { WorkflowKey } from "@/lib/workflows";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { MoreHorizontal } from "lucide-react";
 
 interface Ticket {
   id: string;
