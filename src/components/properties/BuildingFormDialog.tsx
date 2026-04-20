@@ -124,7 +124,7 @@ export function BuildingFormDialog({ open, onOpenChange, onSaved, initial }: Pro
   };
 
   const focusFirstError = (e: Errors) => {
-    const map: Record<keyof FormState, HTMLElement | null> = {
+    const map: Partial<Record<keyof FormState, HTMLElement | null>> = {
       name: nameRef.current,
       building_type: typeRef.current,
       community: communityRef.current,
