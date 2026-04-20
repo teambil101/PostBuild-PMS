@@ -188,31 +188,43 @@ export function NewTicketDialog({ open, onOpenChange }: Props) {
     }
     setSubmitting(true);
     try {
-      const ticket_number = await nextTicketNumber();
       const reporter = reporterId ?? selfPersonId ?? null;
 
-      const { data: created, error: insErr } = await supabase
-        .from("tickets")
-        .insert({
-          ticket_number,
-          subject: subject.trim(),
-          description: description.trim() || null,
-          ticket_type: type as string,
-          priority,
-          target_entity_type: target.type,
-          target_entity_id: target.id as string,
-          assignee_id: assigneeId,
-          reporter_id: reporter,
-          due_date: dueDate ? format(dueDate, "yyyy-MM-dd") : null,
-          estimated_cost: estimatedCost ? Number(estimatedCost) : null,
-          is_system_generated: false,
-          created_by: user?.id ?? null,
-        })
-        .select("id, ticket_number")
-        .maybeSingle();
-
-      if (insErr || !created) {
-        throw new Error(insErr?.message ?? "Could not create ticket.");
+      // Retry on ticket_number collision (sequence drift / race).
+      let created: { id: string; ticket_number: string } | null = null;
+      let lastErr: any = null;
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const ticket_number = await nextTicketNumber();
+        const { data, error: insErr } = await supabase
+          .from("tickets")
+          .insert({
+            ticket_number,
+            subject: subject.trim(),
+            description: description.trim() || null,
+            ticket_type: type as string,
+            priority,
+            target_entity_type: target.type,
+            target_entity_id: target.id as string,
+            assignee_id: assigneeId,
+            reporter_id: reporter,
+            due_date: dueDate ? format(dueDate, "yyyy-MM-dd") : null,
+            estimated_cost: estimatedCost ? Number(estimatedCost) : null,
+            is_system_generated: false,
+            created_by: user?.id ?? null,
+          })
+          .select("id, ticket_number")
+          .maybeSingle();
+        if (!insErr && data) {
+          created = data as { id: string; ticket_number: string };
+          break;
+        }
+        lastErr = insErr;
+        // Only retry on unique-violation on ticket_number; otherwise bail.
+        const msg = insErr?.message ?? "";
+        if (!/tickets_ticket_number_key|duplicate key/i.test(msg)) break;
+      }
+      if (!created) {
+        throw new Error(lastErr?.message ?? "Could not create ticket.");
       }
 
       // Upload attached files
@@ -343,33 +355,22 @@ export function NewTicketDialog({ open, onOpenChange }: Props) {
             />
           </div>
 
-          <div className="space-y-1.5">
-            <Label>Workflow</Label>
-            <Select
+          {type && (
+            <WorkflowPickerInline
+              ticketType={type}
               value={workflowKey}
-              onValueChange={(v) => {
-                setWorkflowKey(v as WorkflowKey | "__none");
+              overridden={workflowOverridden}
+              onChange={(v) => {
+                setWorkflowKey(v);
                 setWorkflowOverridden(true);
               }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Pick a workflow…" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none">None (freeform ticket)</SelectItem>
-                {Object.values(WORKFLOWS).map((w) => (
-                  <SelectItem key={w.key} value={w.key}>
-                    {w.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-[11px] text-muted-foreground">
-              {type && getDefaultWorkflow(type) && !workflowOverridden
-                ? `Default for this type: ${WORKFLOWS[getDefaultWorkflow(type) as WorkflowKey].label}.`
-                : "Workflows structure a ticket into stages and steps. You can change or remove the workflow later."}
-            </p>
-          </div>
+              onResetDefault={() => {
+                const def = getDefaultWorkflow(type);
+                setWorkflowKey(def ?? "__none");
+                setWorkflowOverridden(false);
+              }}
+            />
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
@@ -538,6 +539,87 @@ export function NewTicketDialog({ open, onOpenChange }: Props) {
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function WorkflowPickerInline({
+  ticketType,
+  value,
+  overridden,
+  onChange,
+  onResetDefault,
+}: {
+  ticketType: string;
+  value: WorkflowKey | "__none";
+  overridden: boolean;
+  onChange: (v: WorkflowKey | "__none") => void;
+  onResetDefault: () => void;
+}) {
+  const def = getDefaultWorkflow(ticketType);
+  const [picking, setPicking] = useState(false);
+
+  // If a default exists and we're not overridden and not picking, render compact line.
+  if (def && !overridden && !picking) {
+    return (
+      <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground border hairline rounded-sm px-3 py-2 bg-muted/20">
+        <span>
+          Workflow:{" "}
+          <span className="text-architect">{WORKFLOWS[def].label}</span>{" "}
+          <span className="italic">(default for this type)</span>
+        </span>
+        <button
+          type="button"
+          onClick={() => setPicking(true)}
+          className="text-architect underline decoration-gold/60 underline-offset-2 hover:decoration-gold"
+        >
+          Change
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <Label>Workflow</Label>
+      <Select
+        value={value}
+        onValueChange={(v) => {
+          onChange(v as WorkflowKey | "__none");
+          setPicking(true);
+        }}
+      >
+        <SelectTrigger>
+          <SelectValue placeholder="Pick a workflow…" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="__none">None (freeform ticket)</SelectItem>
+          {Object.values(WORKFLOWS).map((w) => (
+            <SelectItem key={w.key} value={w.key}>
+              {w.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+        <span>
+          {def
+            ? `Default for this type: ${WORKFLOWS[def].label}.`
+            : "No default workflow for this type. You can leave it blank or pick one."}
+        </span>
+        {def && (
+          <button
+            type="button"
+            onClick={() => {
+              setPicking(false);
+              onResetDefault();
+            }}
+            className="text-architect underline decoration-gold/60 underline-offset-2 hover:decoration-gold"
+          >
+            Reset to default
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
 
