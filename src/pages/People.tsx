@@ -184,6 +184,10 @@ export default function People() {
         onOpenChange={setOpen}
         onSaved={() => { setOpen(false); load(); }}
       />
+
+      <div className="mt-10">
+        <AuthLinksSection />
+      </div>
     </>
   );
 }
