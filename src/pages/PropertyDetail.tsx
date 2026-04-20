@@ -161,18 +161,7 @@ export default function PropertyDetail() {
       <PageHeader
         eyebrow={`Building · ${building.ref_code}`}
         title={building.name}
-        description={
-          building.location_url ? (
-            <a
-              href={building.location_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline"
-            >
-              View location
-            </a>
-          ) : null
-        }
+        description={building.location_url ?? undefined}
         actions={
           canEdit && (
             <>
