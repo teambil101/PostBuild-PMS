@@ -248,6 +248,27 @@ export function AssignVendorDialog({
             </div>
           )}
 
+          {showAgreementWarning && picked && (
+            <div className="flex items-start gap-2 border border-amber-500/30 bg-amber-500/10 text-amber-800 rounded-sm px-3 py-2 text-xs">
+              <FileWarning className="h-4 w-4 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                No active service agreement covers{" "}
+                <span className="font-medium">{vendorDisplayName(picked)}</span>{" "}
+                for this property. You can assign the vendor anyway, or set up an
+                agreement first.
+                <div className="mt-1.5">
+                  <button
+                    type="button"
+                    className="underline decoration-amber-700/40 underline-offset-2 hover:decoration-amber-700"
+                    onClick={() => setCreateSaOpen(true)}
+                  >
+                    Create service agreement →
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {willInitWorkflow && (
             <div className="flex items-start gap-2 border hairline bg-muted/30 rounded-sm px-3 py-2 text-xs text-architect">
               <Info className="h-4 w-4 shrink-0 mt-0.5 text-true-taupe" />
@@ -301,5 +322,20 @@ export function AssignVendorDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    {/* Quick-launch SA wizard from the soft-precondition warning. */}
+    {picked && (
+      <ServiceAgreementWizard
+        open={createSaOpen}
+        onOpenChange={setCreateSaOpen}
+        presetVendorId={picked.id}
+        onSaved={() => {
+          setCreateSaOpen(false);
+          // Re-check coverage so the warning disappears.
+          setHasAgreement(true);
+        }}
+      />
+    )}
+    </>
   );
 }
