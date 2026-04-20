@@ -238,7 +238,7 @@ export default function PropertyDetail() {
       {/* Meta strip */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-warm-stone/60 border hairline rounded-sm overflow-hidden mb-10">
         <Meta label="Location" value={[building.city, COUNTRY_BY_CODE[building.country] ?? building.country].filter(Boolean).join(", ") || "—"} icon={<MapPin className="h-3.5 w-3.5" />} />
-        <Meta label="Type" value={building.building_type?.replace(/_/g, " ") ?? "—"} icon={<Building2 className="h-3.5 w-3.5" />} />
+        <Meta label="Type" value={formatEnumLabel(building.building_type) || "—"} icon={<Building2 className="h-3.5 w-3.5" />} />
         <Meta label="Community" value={building.community ?? "—"} icon={<MapPin className="h-3.5 w-3.5" />} />
         <Meta label="Units" value={units.length.toString()} icon={<Building2 className="h-3.5 w-3.5" />} />
       </div>
