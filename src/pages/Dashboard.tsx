@@ -396,7 +396,7 @@ function MyWorkTab() {
           </Link>
         </Button>
         <Button asChild variant="outline" size="sm">
-          <Link to="/leads">
+          <Link to="/people?tab=pipeline">
             <Plus className="h-4 w-4" />
             New lead
           </Link>
@@ -485,7 +485,7 @@ function OverviewTab() {
           label="Weighted Pipeline"
           value={formatCurrencyCompact(kpis.weighted_pipeline_value.amount, kpis.weighted_pipeline_value.currency)}
           subtitle="Expected fee value"
-          to="/leads"
+          to="/people?tab=pipeline"
         />
         <KpiCard
           label="Attention Score"
@@ -540,7 +540,7 @@ function OverviewTab() {
                 : "Pipeline moving"
             }
             topItems={a.stuck_leads.top_5}
-            viewAllTo="/leads"
+            viewAllTo="/people?tab=pipeline"
             tone={a.stuck_leads.count > 0 ? "warn" : "ok"}
           />
           <AttentionCard
