@@ -40,7 +40,7 @@ import {
 import { formatEnumLabel } from "@/lib/format";
 import {
   Loader2, Building2, Home, ExternalLink, Pencil, Trash2, Power, FileSignature, XCircle, Copy as CopyIcon,
-  ArrowLeft, History as HistoryIcon, Plus, Check, X, AlertTriangle,
+  ArrowLeft, History as HistoryIcon, Plus, Check, X, AlertTriangle, Trophy,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 
