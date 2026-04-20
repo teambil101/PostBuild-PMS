@@ -486,4 +486,4 @@ Reasons for choices that might otherwise be re-litigated:
 
 ---
 
-*Last updated: Pass A2 shipped. Next update: when Pass B (lease subtype) lands — add §13.1 specifics and lease-specific triggers.*
+*Last updated: Pass B1 shipped — lease schema, triggers, and helpers landed. See §12b for the lease worked example. Next update: when Pass B2 (lease wizard + detail page UI) lands.*
