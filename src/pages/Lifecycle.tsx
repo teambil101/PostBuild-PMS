@@ -225,51 +225,6 @@ export default function LifecyclePage() {
         }
       />
 
-      {/* ============= KPI strip ============= */}
-      {kpis && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-          <KpiCard
-            label="Total units"
-            value={kpis.totalUnits}
-            sublabel={`${kpis.buildingsCount} building${kpis.buildingsCount === 1 ? "" : "s"}`}
-            onClick={() => focusStage("active")}
-          />
-          <KpiCard
-            label="Vacant & ready"
-            value={kpis.vacant}
-            sublabel="Ready to list"
-            tone={kpis.vacant > 0 ? "amber" : "neutral"}
-            onClick={() => focusStage("vacant")}
-          />
-          <KpiCard
-            label="Occupancy"
-            value={`${kpis.occupancyPct}%`}
-            sublabel={`${kpis.activeCount} of ${kpis.totalUnits} occupied`}
-            onClick={() => focusStage("active")}
-          />
-          <KpiCard
-            label="Active leases"
-            value={kpis.activeCount}
-            sublabel={`${fmtMoney(kpis.sumActiveRent)} annual`}
-            onClick={() => focusStage("active")}
-          />
-          <KpiCard
-            label="Expiring soon"
-            value={kpis.expiringSoonCount}
-            sublabel="Next 90 days"
-            tone={kpis.expiringIn30 > 0 ? "red" : kpis.expiringSoonCount > 0 ? "amber" : "neutral"}
-            onClick={() => focusStage("ending_soon")}
-          />
-          <KpiCard
-            label="Attention needed"
-            value={kpis.attentionNeeded}
-            sublabel="Requires action"
-            tone={kpis.attentionNeeded > 0 ? "red" : "neutral"}
-            onClick={() => focusAttention("expiring")}
-          />
-        </div>
-      )}
-
       {/* ============= Filter bar ============= */}
       <div className="flex flex-col md:flex-row md:items-center gap-3 mb-6">
         <div className="relative flex-1 max-w-md">
@@ -320,8 +275,8 @@ export default function LifecyclePage() {
 
       {/* ============= Pipeline / Table ============= */}
       {view === "pipeline" && filtered && (
-        <div className="overflow-x-auto pb-2 mb-10">
-          <div className="grid grid-flow-col auto-cols-[minmax(280px,1fr)] gap-3 min-w-full">
+        <div className="pb-2 mb-10">
+          <div className="grid grid-cols-6 gap-3 min-w-full">
             {LIFECYCLE_STAGE_ORDER.map((stage) => (
               <PipelineColumn
                 key={stage}
@@ -347,52 +302,6 @@ export default function LifecyclePage() {
             else navigate(`/properties/${c.unit.building_id}/units/${c.unit.id}`);
           }}
         />
-      )}
-
-      {/* ============= Attention sections ============= */}
-      {filtered && (
-        <div className="space-y-4 mt-10">
-          <AttentionSection
-            refSet={(el) => { attentionRefs.current.expiring = el; }}
-            title="Expiring in the next 90 days"
-            count={filtered.expiringSoon.length}
-            tone={filtered.expiringSoon.length > 0 ? "amber" : "neutral"}
-            empty="No leases expiring in the next 90 days."
-          >
-            {filtered.expiringSoon.length > 0 && (
-              <ExpiringTable leases={filtered.expiringSoon} units={data.units} navigate={navigate} />
-            )}
-          </AttentionSection>
-
-          <AttentionSection
-            refSet={(el) => { attentionRefs.current.overdue = el; }}
-            title="Overdue cheques"
-            count={filtered.overdueCheques.length}
-            tone={filtered.overdueCheques.length > 0 ? "red" : "neutral"}
-            empty="No overdue cheques. Nice."
-          >
-            {filtered.overdueCheques.length > 0 && (
-              <OverdueChequesTable
-                cheques={filtered.overdueCheques}
-                onView={(ch) => navigate(`/contracts/${ch.contract_id}?tab=cheques`)}
-                onDeposit={(ch) => setDepositCheque(ch)}
-                onBounce={(ch) => setBounceCheque(ch)}
-              />
-            )}
-          </AttentionSection>
-
-          <AttentionSection
-            refSet={(el) => { attentionRefs.current.gaps = el; }}
-            title="Data gaps"
-            count={filtered.dataGaps.length}
-            tone={filtered.dataGaps.length > 0 ? "red" : "neutral"}
-            empty="No data gaps. Every occupied unit has a lease on file."
-          >
-            {filtered.dataGaps.length > 0 && (
-              <DataGapsTable units={filtered.dataGaps} navigate={navigate} />
-            )}
-          </AttentionSection>
-        </div>
       )}
 
       {/* ============= Cheque action dialogs ============= */}
