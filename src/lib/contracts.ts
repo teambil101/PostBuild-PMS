@@ -158,3 +158,115 @@ export function daysUntil(dateStr: string | null): number | null {
   const now = Date.now();
   return Math.ceil((target - now) / (1000 * 60 * 60 * 24));
 }
+
+/* ============ Duplicate helper ============ */
+
+import { supabase } from "@/integrations/supabase/client";
+
+/**
+ * Duplicates a contract (parent + child + parties + subjects) as a fresh draft.
+ * Returns the new contract id, or throws.
+ * - Title prefixed with "Copy of "
+ * - Status reset to 'draft'
+ * - start_date / end_date / terminated_at cleared
+ * - documents / notes / events NOT copied
+ */
+export async function duplicateContract(contractId: string): Promise<string> {
+  const { data: u } = await supabase.auth.getUser();
+  const { data: src, error: srcErr } = await supabase
+    .from("contracts")
+    .select("*")
+    .eq("id", contractId)
+    .maybeSingle();
+  if (srcErr || !src) throw new Error(srcErr?.message ?? "Original contract not found.");
+
+  // Get prefix
+  const { data: settings } = await supabase
+    .from("app_settings")
+    .select("contract_number_prefix")
+    .maybeSingle();
+  const prefix = settings?.contract_number_prefix ?? "CTR";
+  const year = new Date().getFullYear();
+  const { data: numRes, error: numErr } = await supabase.rpc("next_number", {
+    p_prefix: prefix,
+    p_year: year,
+  });
+  if (numErr || !numRes) throw new Error("Could not generate new contract number.");
+
+  const { data: created, error: cErr } = await supabase
+    .from("contracts")
+    .insert({
+      contract_type: src.contract_type,
+      contract_number: numRes as string,
+      title: `Copy of ${src.title}`,
+      currency: src.currency,
+      auto_renew: src.auto_renew,
+      total_value: src.total_value,
+      notes: src.notes,
+      external_reference: null,
+      status: "draft",
+      start_date: null,
+      end_date: null,
+      parent_contract_id: null,
+      created_by: u.user?.id,
+    })
+    .select("id")
+    .maybeSingle();
+  if (cErr || !created) throw new Error(cErr?.message ?? "Could not create duplicate.");
+  const newId = created.id as string;
+
+  // MA child
+  if (src.contract_type === "management_agreement") {
+    const { data: ma } = await supabase
+      .from("management_agreements")
+      .select("*")
+      .eq("contract_id", contractId)
+      .maybeSingle();
+    if (ma) {
+      const { id: _ignore, contract_id: _ignore2, created_at: _ignore3, updated_at: _ignore4, ...rest } = ma as any;
+      await supabase.from("management_agreements").insert({ ...rest, contract_id: newId });
+    }
+  }
+
+  // Parties
+  const { data: parties } = await supabase
+    .from("contract_parties")
+    .select("person_id, role, is_signatory")
+    .eq("contract_id", contractId);
+  if (parties && parties.length > 0) {
+    await supabase.from("contract_parties").insert(
+      parties.map((p: any) => ({
+        contract_id: newId,
+        person_id: p.person_id,
+        role: p.role,
+        is_signatory: p.is_signatory,
+      })),
+    );
+  }
+
+  // Subjects
+  const { data: subjects } = await supabase
+    .from("contract_subjects")
+    .select("entity_type, entity_id, role")
+    .eq("contract_id", contractId);
+  if (subjects && subjects.length > 0) {
+    await supabase.from("contract_subjects").insert(
+      subjects.map((s: any) => ({
+        contract_id: newId,
+        entity_type: s.entity_type,
+        entity_id: s.entity_id,
+        role: s.role ?? "subject",
+      })),
+    );
+  }
+
+  await supabase.from("contract_events").insert({
+    contract_id: newId,
+    event_type: "created",
+    to_value: "draft",
+    description: `Duplicated from ${src.contract_number}`,
+    actor_id: u.user?.id,
+  });
+
+  return newId;
+}

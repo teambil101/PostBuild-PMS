@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,6 +27,10 @@ import { cn } from "@/lib/utils";
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  /** When provided, the wizard runs in edit mode against this contract id. */
+  editContractId?: string;
+  /** Called after a successful create or save. Receives the contract id. */
+  onSaved?: (contractId: string) => void;
 }
 
 interface SelfPerson {
@@ -83,12 +91,22 @@ function addYears(iso: string, years: number) {
   return d.toISOString().slice(0, 10);
 }
 
-export function ManagementAgreementWizard({ open, onOpenChange }: Props) {
+export function ManagementAgreementWizard({ open, onOpenChange, editContractId, onSaved }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [self, setSelf] = useState<SelfPerson | null>(null);
   const [selfLoading, setSelfLoading] = useState(true);
+  const [confirmActiveEditOpen, setConfirmActiveEditOpen] = useState(false);
+  const [originalSnapshot, setOriginalSnapshot] = useState<{
+    status: string;
+    feeModel: string;
+    feeValue: number;
+    startDate: string | null;
+    endDate: string | null;
+  } | null>(null);
+
+  const isEdit = !!editContractId;
 
   const [form, setForm] = useState<FormState>(() => ({
     landlord: null,
@@ -142,8 +160,129 @@ export function ManagementAgreementWizard({ open, onOpenChange }: Props) {
     })();
   }, [open]);
 
+  // Pre-fill in edit mode
+  useEffect(() => {
+    if (!open || !editContractId) return;
+    (async () => {
+      const [cRes, maRes, pRes, sRes] = await Promise.all([
+        supabase.from("contracts").select("*").eq("id", editContractId).maybeSingle(),
+        supabase.from("management_agreements").select("*").eq("contract_id", editContractId).maybeSingle(),
+        supabase
+          .from("contract_parties")
+          .select("id, person_id, role, is_signatory, people(id, first_name, last_name, company)")
+          .eq("contract_id", editContractId),
+        supabase
+          .from("contract_subjects")
+          .select("id, entity_type, entity_id")
+          .eq("contract_id", editContractId),
+      ]);
+      const c = cRes.data as any;
+      const ma = maRes.data as any;
+      if (!c) return;
+
+      // Find the landlord (role='client' or 'landlord' or 'lessor')
+      const allParties = (pRes.data ?? []) as any[];
+      const landlordRow =
+        allParties.find((p) => ["client", "landlord", "lessor"].includes(p.role) && p.person_id !== self?.id) ??
+        null;
+      const landlord: PickedPerson | null = landlordRow
+        ? {
+            id: landlordRow.people.id,
+            first_name: landlordRow.people.first_name,
+            last_name: landlordRow.people.last_name,
+            company: landlordRow.people.company,
+          }
+        : null;
+
+      const additionalSignatories: AdditionalSignatory[] = allParties
+        .filter(
+          (p) =>
+            !["service_provider", "client", "landlord", "lessor"].includes(p.role) &&
+            p.person_id !== self?.id,
+        )
+        .map((p) => ({
+          person: {
+            id: p.people.id,
+            first_name: p.people.first_name,
+            last_name: p.people.last_name,
+            company: p.people.company,
+          },
+          role: (["witness", "guarantor"].includes(p.role) ? p.role : "other") as AdditionalSignatory["role"],
+        }));
+
+      // Resolve subject labels
+      const subjList = (sRes.data ?? []) as any[];
+      const buildingIds = subjList.filter((s) => s.entity_type === "building").map((s) => s.entity_id);
+      const unitIds = subjList.filter((s) => s.entity_type === "unit").map((s) => s.entity_id);
+      const [bRes, uRes] = await Promise.all([
+        buildingIds.length
+          ? supabase.from("buildings").select("id, name").in("id", buildingIds)
+          : Promise.resolve({ data: [] as any[] }),
+        unitIds.length
+          ? supabase.from("units").select("id, unit_number, building_id, buildings(name)").in("id", unitIds)
+          : Promise.resolve({ data: [] as any[] }),
+      ]);
+      const bMap = new Map<string, string>();
+      ((bRes.data ?? []) as any[]).forEach((b) => bMap.set(b.id, b.name));
+      const uMap = new Map<string, { label: string; building_name: string }>();
+      ((uRes.data ?? []) as any[]).forEach((u) =>
+        uMap.set(u.id, {
+          label: `${u.buildings?.name ?? ""} · ${u.unit_number}`,
+          building_name: u.buildings?.name ?? "",
+        }),
+      );
+      const subjects: PickedSubject[] = subjList.map((s) => ({
+        entity_type: s.entity_type,
+        entity_id: s.entity_id,
+        label:
+          s.entity_type === "building"
+            ? bMap.get(s.entity_id) ?? "(deleted)"
+            : uMap.get(s.entity_id)?.label ?? "(deleted)",
+        building_name: s.entity_type === "unit" ? uMap.get(s.entity_id)?.building_name : undefined,
+      }));
+
+      setForm({
+        landlord,
+        additionalSignatories,
+        title: c.title ?? "",
+        externalReference: c.external_reference ?? "",
+        startDate: c.start_date ?? todayISO(),
+        endDate: c.end_date ?? addYears(todayISO(), 1),
+        durationPreset: "custom",
+        autoRenew: !!c.auto_renew,
+        terminationNoticeDays: ma?.termination_notice_days ?? 60,
+        subjects,
+        feeModel: (ma?.fee_model ?? "percentage_of_rent") as FeeModel,
+        feeValue: String(ma?.fee_value ?? "5"),
+        feeAppliesTo: (ma?.fee_applies_to ?? "contracted_rent") as any,
+        hybridBaseFlat: ma?.hybrid_base_flat != null ? String(ma.hybrid_base_flat) : "",
+        hybridThreshold: ma?.hybrid_threshold != null ? String(ma.hybrid_threshold) : "",
+        hybridOveragePct: ma?.hybrid_overage_percentage != null ? String(ma.hybrid_overage_percentage) : "",
+        hasLeaseUpFee: ma?.lease_up_fee_model && ma.lease_up_fee_model !== "none",
+        leaseUpModel: (ma?.lease_up_fee_model === "flat" ? "flat" : "percentage") as any,
+        leaseUpValue: ma?.lease_up_fee_value != null ? String(ma.lease_up_fee_value) : "",
+        repairThreshold: ma?.repair_approval_threshold != null ? String(ma.repair_approval_threshold) : "500",
+        scope: (ma?.scope_of_services ?? []) as ScopeService[],
+        scopeOther: ma?.scope_of_services_other ?? "",
+        notes: c.notes ?? "",
+        pendingFiles: [],
+        status: c.status,
+      });
+
+      setOriginalSnapshot({
+        status: c.status,
+        feeModel: ma?.fee_model ?? "",
+        feeValue: Number(ma?.fee_value ?? 0),
+        startDate: c.start_date,
+        endDate: c.end_date,
+      });
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, editContractId, self?.id]);
+
   // Auto-update title when landlord changes
   useEffect(() => {
+    if (isEdit) return; // don't override user-provided title in edit mode
     if (!form.landlord) return;
     const name = form.landlord.company || `${form.landlord.first_name} ${form.landlord.last_name}`.trim();
     if (!form.title || form.title.startsWith("Management Agreement —")) {
@@ -196,7 +335,7 @@ export function ManagementAgreementWizard({ open, onOpenChange }: Props) {
   const canProceed = step === 1 ? step1Valid : step === 2 ? step2Valid : step === 3 ? step3Valid : true;
 
   /* ===================== save ===================== */
-  const handleSave = async () => {
+  const performSave = async () => {
     if (!self) {
       toast.error("Set up your company profile first.");
       return;
@@ -207,6 +346,108 @@ export function ManagementAgreementWizard({ open, onOpenChange }: Props) {
     }
     setSubmitting(true);
     const { data: u } = await supabase.auth.getUser();
+
+    // ============ EDIT MODE ============
+    if (isEdit && editContractId) {
+      // Update parent
+      const { error: cErr } = await supabase
+        .from("contracts")
+        .update({
+          external_reference: form.externalReference.trim() || null,
+          title: form.title.trim(),
+          start_date: form.startDate,
+          end_date: form.endDate,
+          auto_renew: form.autoRenew,
+          notes: form.notes.trim() || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", editContractId);
+      if (cErr) {
+        setSubmitting(false);
+        toast.error(cErr.message);
+        return;
+      }
+
+      // Update child management_agreements
+      const maPayload: any = {
+        fee_model: form.feeModel,
+        fee_value: Number(form.feeValue),
+        fee_applies_to: form.feeModel === "percentage_of_rent" ? form.feeAppliesTo : null,
+        lease_up_fee_model: form.hasLeaseUpFee ? form.leaseUpModel : "none",
+        lease_up_fee_value: form.hasLeaseUpFee && form.leaseUpValue ? Number(form.leaseUpValue) : null,
+        hybrid_base_flat: form.feeModel === "hybrid" ? Number(form.hybridBaseFlat) : null,
+        hybrid_threshold: form.feeModel === "hybrid" ? Number(form.hybridThreshold) : null,
+        hybrid_overage_percentage: form.feeModel === "hybrid" ? Number(form.hybridOveragePct) : null,
+        repair_approval_threshold: form.repairThreshold ? Number(form.repairThreshold) : null,
+        termination_notice_days: form.terminationNoticeDays,
+        scope_of_services: form.scope,
+        scope_of_services_other: form.scopeOther.trim() || null,
+        updated_at: new Date().toISOString(),
+      };
+      const { error: maErr } = await supabase
+        .from("management_agreements")
+        .update(maPayload)
+        .eq("contract_id", editContractId);
+      if (maErr) {
+        setSubmitting(false);
+        toast.error(maErr.message);
+        return;
+      }
+
+      // Replace parties (keep self + landlord + signatories) — simplest correct approach
+      await supabase.from("contract_parties").delete().eq("contract_id", editContractId);
+      const newParties = [
+        { contract_id: editContractId, person_id: self.id, role: "service_provider", is_signatory: true },
+        { contract_id: editContractId, person_id: form.landlord!.id, role: "client", is_signatory: true },
+        ...form.additionalSignatories
+          .filter((s) => !!s.person)
+          .map((s) => ({
+            contract_id: editContractId,
+            person_id: s.person!.id,
+            role: s.role,
+            is_signatory: true,
+          })),
+      ];
+      await supabase.from("contract_parties").insert(newParties);
+
+      // Replace subjects
+      await supabase.from("contract_subjects").delete().eq("contract_id", editContractId);
+      await supabase.from("contract_subjects").insert(
+        form.subjects.map((s) => ({
+          contract_id: editContractId,
+          entity_type: s.entity_type,
+          entity_id: s.entity_id,
+          role: "subject",
+        })),
+      );
+
+      // Build a description of what changed
+      const changes: string[] = [];
+      if (originalSnapshot) {
+        if (originalSnapshot.feeModel !== form.feeModel) changes.push("fee model");
+        if (originalSnapshot.feeValue !== Number(form.feeValue)) changes.push("fee value");
+        if (originalSnapshot.startDate !== form.startDate) changes.push("start date");
+        if (originalSnapshot.endDate !== form.endDate) changes.push("end date");
+      }
+      const desc = changes.length > 0
+        ? `Amended: ${changes.join(", ")}`
+        : "Amended contract details";
+
+      await supabase.from("contract_events").insert({
+        contract_id: editContractId,
+        event_type: "amended",
+        description: desc,
+        actor_id: u.user?.id,
+      });
+
+      setSubmitting(false);
+      toast.success("Contract updated.");
+      onOpenChange(false);
+      onSaved?.(editContractId);
+      return;
+    }
+
+    // ============ CREATE MODE ============
 
     // Generate contract number
     const year = new Date().getFullYear();
@@ -336,7 +577,24 @@ export function ManagementAgreementWizard({ open, onOpenChange }: Props) {
     setSubmitting(false);
     toast.success(`Contract ${contractNumber} created.`);
     onOpenChange(false);
+    onSaved?.(contractId);
     navigate(`/contracts/${contractId}`);
+  };
+
+  const handleSave = () => {
+    // If editing an active contract and changing risky fields, confirm first.
+    if (isEdit && originalSnapshot?.status === "active") {
+      const risky =
+        originalSnapshot.feeModel !== form.feeModel ||
+        originalSnapshot.feeValue !== Number(form.feeValue) ||
+        originalSnapshot.startDate !== form.startDate ||
+        originalSnapshot.endDate !== form.endDate;
+      if (risky) {
+        setConfirmActiveEditOpen(true);
+        return;
+      }
+    }
+    performSave();
   };
 
   /* ===================== render ===================== */
@@ -345,10 +603,13 @@ export function ManagementAgreementWizard({ open, onOpenChange }: Props) {
     : null;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[720px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="font-display text-2xl">New Management Agreement</DialogTitle>
+          <DialogTitle className="font-display text-2xl">
+            {isEdit ? "Edit Management Agreement" : "New Management Agreement"}
+          </DialogTitle>
           <DialogDescription>
             Capture a landlord engagement: properties under management, fee structure, scope, and term.
           </DialogDescription>
@@ -766,6 +1027,7 @@ export function ManagementAgreementWizard({ open, onOpenChange }: Props) {
                   />
                 </div>
 
+                {!isEdit && (
                 <div className="space-y-2">
                   <Label className="label-eyebrow">Status on save</Label>
                   <RadioGroup
@@ -787,6 +1049,7 @@ export function ManagementAgreementWizard({ open, onOpenChange }: Props) {
                     </label>
                   </RadioGroup>
                 </div>
+                )}
               </div>
             )}
 
@@ -822,7 +1085,7 @@ export function ManagementAgreementWizard({ open, onOpenChange }: Props) {
                   {submitting ? (
                     <><Loader2 className="h-4 w-4 animate-spin" /> Creating…</>
                   ) : (
-                    "Create contract"
+                    isEdit ? "Save changes" : "Create contract"
                   )}
                 </Button>
               )}
@@ -831,6 +1094,23 @@ export function ManagementAgreementWizard({ open, onOpenChange }: Props) {
         )}
       </DialogContent>
     </Dialog>
+    <AlertDialog open={confirmActiveEditOpen} onOpenChange={setConfirmActiveEditOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Save changes to an active contract?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This contract is active. Changes to fee model, fee value, or contract dates will be logged in history. Continue?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={() => { setConfirmActiveEditOpen(false); performSave(); }}>
+            Continue
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
 
