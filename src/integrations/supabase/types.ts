@@ -334,6 +334,184 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          description: string | null
+          event_type: string
+          from_value: string | null
+          id: string
+          lead_id: string
+          to_value: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          description?: string | null
+          event_type: string
+          from_value?: string | null
+          id?: string
+          lead_id: string
+          to_value?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          description?: string | null
+          event_type?: string
+          from_value?: string | null
+          id?: string
+          lead_id?: string
+          to_value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leads: {
+        Row: {
+          assignee_id: string | null
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          estimated_annual_fee: number | null
+          hold_reason: string | null
+          hold_since: string | null
+          id: string
+          lead_number: string
+          lost_at: string | null
+          lost_reason: string | null
+          lost_reason_notes: string | null
+          notes: string | null
+          portfolio_description: string | null
+          pre_hold_status: string | null
+          primary_contact_id: string
+          probability_percent: number | null
+          property_count_estimated: number | null
+          proposed_duration_months: number | null
+          proposed_fee_applies_to: string | null
+          proposed_fee_model: string | null
+          proposed_fee_value: number | null
+          proposed_scope_of_services: Json
+          proposed_terms_notes: string | null
+          source: string
+          source_details: string | null
+          stage_entered_at: string
+          status: string
+          target_close_date: string | null
+          updated_at: string
+          won_at: string | null
+          won_contract_id: string | null
+        }
+        Insert: {
+          assignee_id?: string | null
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          estimated_annual_fee?: number | null
+          hold_reason?: string | null
+          hold_since?: string | null
+          id?: string
+          lead_number: string
+          lost_at?: string | null
+          lost_reason?: string | null
+          lost_reason_notes?: string | null
+          notes?: string | null
+          portfolio_description?: string | null
+          pre_hold_status?: string | null
+          primary_contact_id: string
+          probability_percent?: number | null
+          property_count_estimated?: number | null
+          proposed_duration_months?: number | null
+          proposed_fee_applies_to?: string | null
+          proposed_fee_model?: string | null
+          proposed_fee_value?: number | null
+          proposed_scope_of_services?: Json
+          proposed_terms_notes?: string | null
+          source?: string
+          source_details?: string | null
+          stage_entered_at?: string
+          status?: string
+          target_close_date?: string | null
+          updated_at?: string
+          won_at?: string | null
+          won_contract_id?: string | null
+        }
+        Update: {
+          assignee_id?: string | null
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          estimated_annual_fee?: number | null
+          hold_reason?: string | null
+          hold_since?: string | null
+          id?: string
+          lead_number?: string
+          lost_at?: string | null
+          lost_reason?: string | null
+          lost_reason_notes?: string | null
+          notes?: string | null
+          portfolio_description?: string | null
+          pre_hold_status?: string | null
+          primary_contact_id?: string
+          probability_percent?: number | null
+          property_count_estimated?: number | null
+          proposed_duration_months?: number | null
+          proposed_fee_applies_to?: string | null
+          proposed_fee_model?: string | null
+          proposed_fee_value?: number | null
+          proposed_scope_of_services?: Json
+          proposed_terms_notes?: string | null
+          source?: string
+          source_details?: string | null
+          stage_entered_at?: string
+          status?: string
+          target_close_date?: string | null
+          updated_at?: string
+          won_at?: string | null
+          won_contract_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_assignee_id_fkey"
+            columns: ["assignee_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_primary_contact_id_fkey"
+            columns: ["primary_contact_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_won_contract_id_fkey"
+            columns: ["won_contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lease_cheques: {
         Row: {
           amount: number
