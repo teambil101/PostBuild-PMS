@@ -164,12 +164,13 @@ export default function PersonDetail() {
         <Meta label="Location" icon={<Building2 className="h-3.5 w-3.5" />} value={[person.city, person.country].filter(Boolean).join(", ") || "—"} />
       </div>
 
-      <Tabs defaultValue="ownership" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="bg-transparent border-b hairline rounded-none w-full justify-start gap-0 h-auto p-0">
           {[
             { v: "ownership", l: "Ownership" },
             { v: "tenancy", l: "Tenancy" },
             { v: "documents", l: `Documents (${docs.length})` },
+            { v: "tickets", l: `Tickets (${ticketCount})` },
             { v: "notes", l: "Notes" },
           ].map((t) => (
             <TabsTrigger
