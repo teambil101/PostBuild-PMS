@@ -1,19 +1,16 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
   Search,
   RefreshCw,
-  AlertTriangle,
   ChevronDown,
   ChevronRight,
   LayoutGrid,
   TableIcon,
   Building2,
   Workflow,
-  CalendarClock,
   CheckCircle2,
-  Clock,
   X,
   Plus,
 } from "lucide-react";
@@ -41,7 +38,6 @@ import {
   LIFECYCLE_STAGE_STYLES,
   LIFECYCLE_STAGE_ORDER,
   daysBetween,
-  todayISO,
 } from "@/lib/lifecycle";
 import { DepositChequeDialog } from "@/components/contracts/lease/dialogs/DepositChequeDialog";
 import { BounceChequeDialog } from "@/components/contracts/lease/dialogs/BounceChequeDialog";
@@ -58,11 +54,6 @@ function fmtMoney(amount: number | null | undefined, currency = "AED"): string {
 function fmtDate(d: string | null | undefined): string {
   if (!d) return "—";
   return new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-}
-
-function daysFromNow(d: string | null | undefined): number | null {
-  if (!d) return null;
-  return daysBetween(new Date(), d);
 }
 
 /* =========================================================
