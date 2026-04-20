@@ -56,6 +56,81 @@ export type Database = {
         }
         Relationships: []
       }
+      documents: {
+        Row: {
+          created_at: string
+          doc_type: string
+          entity_id: string
+          entity_type: string
+          file_name: string
+          file_size_bytes: number
+          id: string
+          mime_type: string
+          notes: string | null
+          storage_path: string
+          title: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          doc_type?: string
+          entity_id: string
+          entity_type: string
+          file_name: string
+          file_size_bytes: number
+          id?: string
+          mime_type: string
+          notes?: string | null
+          storage_path: string
+          title?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          doc_type?: string
+          entity_id?: string
+          entity_type?: string
+          file_name?: string
+          file_size_bytes?: number
+          id?: string
+          mime_type?: string
+          notes?: string | null
+          storage_path?: string
+          title?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
+      notes: {
+        Row: {
+          author_id: string | null
+          body: string
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          author_id?: string | null
+          body: string
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          author_id?: string | null
+          body?: string
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       people: {
         Row: {
           address: string | null
@@ -228,6 +303,51 @@ export type Database = {
           },
         ]
       }
+      photos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          entity_id: string
+          entity_type: string
+          file_name: string
+          file_size_bytes: number
+          id: string
+          is_cover: boolean
+          mime_type: string
+          sort_order: number
+          storage_path: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          file_name: string
+          file_size_bytes: number
+          id?: string
+          is_cover?: boolean
+          mime_type: string
+          sort_order?: number
+          storage_path: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          file_name?: string
+          file_size_bytes?: number
+          id?: string
+          is_cover?: boolean
+          mime_type?: string
+          sort_order?: number
+          storage_path?: string
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
       property_documents: {
         Row: {
           building_id: string | null
@@ -330,6 +450,51 @@ export type Database = {
           },
           {
             foreignKeyName: "property_status_history_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_with_data_gaps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      unit_status_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          id: string
+          new_status: Database["public"]["Enums"]["property_status"]
+          old_status: Database["public"]["Enums"]["property_status"] | null
+          reason: string | null
+          unit_id: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          new_status: Database["public"]["Enums"]["property_status"]
+          old_status?: Database["public"]["Enums"]["property_status"] | null
+          reason?: string | null
+          unit_id: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          new_status?: Database["public"]["Enums"]["property_status"]
+          old_status?: Database["public"]["Enums"]["property_status"] | null
+          reason?: string | null
+          unit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unit_status_history_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unit_status_history_unit_id_fkey"
             columns: ["unit_id"]
             isOneToOne: false
             referencedRelation: "units_with_data_gaps"
