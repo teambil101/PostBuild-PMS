@@ -122,6 +122,7 @@ export default function ContractDetail() {
   const [addPartyOpen, setAddPartyOpen] = useState(false);
   const [addSubjectOpen, setAddSubjectOpen] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>("overview");
 
   // Inline edit state
   const [editingNotes, setEditingNotes] = useState(false);
@@ -304,6 +305,24 @@ export default function ContractDetail() {
     reloadAll();
   };
 
+  const saveEjariNumber = async (value: string | null) => {
+    if (!lease) return;
+    const prev = lease.ejari_number;
+    const { error } = await supabase
+      .from("leases" as never)
+      .update({ ejari_number: value, updated_at: new Date().toISOString() } as never)
+      .eq("contract_id" as never, contract.id as never);
+    if (error) { toast.error(error.message); throw error; }
+    await logEvent(
+      "amended",
+      value ? `Ejari number set to ${value}` : "Ejari number cleared",
+      prev ?? undefined,
+      value ?? undefined,
+    );
+    toast.success("Ejari registration saved.");
+    reloadAll();
+  };
+
   const handleAutoRenewToggle = (next: boolean) => {
     if (isActive) {
       setPendingAutoRenew(next);
@@ -476,7 +495,7 @@ export default function ContractDetail() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="overview">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           {contract.contract_type === "lease" && lease && (
@@ -497,6 +516,9 @@ export default function ContractDetail() {
                 currency={contract.currency}
                 tenant={leaseTenant}
                 unit={leaseUnit}
+                editable={canEdit && !isImmutable}
+                onSaveEjariNumber={saveEjariNumber}
+                onUploadEjariDoc={() => setActiveTab("documents")}
               />
               <Section title="Terms">
                 <DL>
