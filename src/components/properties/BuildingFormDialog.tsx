@@ -250,40 +250,27 @@ export function BuildingFormDialog({ open, onOpenChange, onSaved, initial }: Pro
               {errors.community && <p className={errorClass}>{errors.community}</p>}
             </div>
 
-            {/* Address */}
+            {/* Location URL */}
             <div>
-              <Label htmlFor="b-address" className={labelClass}>
-                Location <span className="text-destructive">*</span>
+              <Label htmlFor="b-location-url" className={labelClass}>
+                Location URL
               </Label>
               <div ref={addressRef} className="mt-1.5">
-                <PlacesAutocomplete
-                  id="b-address"
-                  value={form.address}
-                  onChange={(v) => set("address", v)}
-                  countryBias={form.country ? [form.country.toLowerCase()] : ["ae"]}
-                  placeholder="Search a building, street, or landmark"
-                  invalid={!!errors.address}
-                  onPlaceSelected={(p) => {
-                    setForm((f) => ({
-                      ...f,
-                      address: p.address_formatted,
-                      latitude: p.latitude,
-                      longitude: p.longitude,
-                      place_id: p.place_id,
-                      city: p.city ?? f.city,
-                      country: p.country ?? f.country,
-                      community: p.community ?? f.community,
-                    }));
-                    setErrors((e) => ({ ...e, address: undefined, city: undefined, country: undefined }));
-                  }}
+                <Input
+                  id="b-location-url"
+                  type="url"
+                  inputMode="url"
+                  value={form.location_url}
+                  onChange={(e) => set("location_url", e.target.value)}
+                  placeholder="https://maps.google.com/..."
+                  className={cn(errors.location_url && "border-destructive")}
+                  aria-invalid={!!errors.location_url}
                 />
               </div>
-              {form.latitude != null && form.longitude != null && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  Pinned: {form.latitude.toFixed(5)}, {form.longitude.toFixed(5)}
-                </p>
-              )}
-              {errors.address && <p className={errorClass}>{errors.address}</p>}
+              <p className="text-xs text-muted-foreground mt-1">
+                Optional. Paste a Google Maps, Apple Maps, or what3words link.
+              </p>
+              {errors.location_url && <p className={errorClass}>{errors.location_url}</p>}
             </div>
 
             {/* City */}
