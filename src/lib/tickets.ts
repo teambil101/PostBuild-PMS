@@ -229,6 +229,7 @@ export const TICKET_TARGET_TYPES = [
   "person",
   "cheque",
   "vendor",
+  "lead",
 ] as const;
 export type TicketTargetType = typeof TICKET_TARGET_TYPES[number];
 
@@ -239,6 +240,7 @@ export const TICKET_TARGET_TYPE_LABELS: Record<TicketTargetType, string> = {
   person: "Person",
   cheque: "Cheque",
   vendor: "Vendor",
+  lead: "Lead",
 };
 
 /* =========================================================
@@ -259,19 +261,19 @@ export const VALID_TARGETS_BY_TICKET_TYPE: Record<TicketType, TicketTargetType[]
   admin_ejari:               ["contract", "unit"],
   admin_dewa:                ["unit", "contract"],
   admin_noc:                 ["building", "unit", "contract"],
-  admin_other:               ["unit", "building", "contract", "person", "cheque", "vendor"],
+  admin_other:               ["unit", "building", "contract", "person", "cheque", "vendor", "lead"],
   request_renewal:           ["contract"],
   request_early_termination: ["contract"],
   request_sublease:          ["contract"],
   request_modification:      ["unit", "contract"],
-  request_other:             ["unit", "building", "contract", "person", "cheque", "vendor"],
-  compliance_reminder:       ["vendor", "contract", "building"],
+  request_other:             ["unit", "building", "contract", "person", "cheque", "vendor", "lead"],
+  compliance_reminder:       ["vendor", "contract", "building", "lead"],
   rent_follow_up:            ["cheque", "contract"],
   handover_task:             ["unit", "contract"],
   moveout_task:              ["unit", "contract"],
-  data_gap:                  ["unit", "building", "contract", "person", "cheque", "vendor"],
+  data_gap:                  ["unit", "building", "contract", "person", "cheque", "vendor", "lead"],
   complaint:                 ["unit", "person", "building"],
-  other:                     ["unit", "building", "contract", "person", "cheque", "vendor"],
+  other:                     ["unit", "building", "contract", "person", "cheque", "vendor", "lead"],
 };
 
 export function getValidTargetsForType(ticketType: TicketType | string): TicketTargetType[] {
