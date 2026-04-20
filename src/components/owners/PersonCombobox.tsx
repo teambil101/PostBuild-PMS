@@ -20,6 +20,10 @@ interface Props {
   placeholder?: string;
   invalid?: boolean;
   excludeIds?: string[];         // persons already picked in other rows
+  /** Restrict results to people whose `roles` array contains any of these. */
+  roleFilter?: ("tenant" | "owner" | "prospect" | "staff" | "vendor")[];
+  /** Hide the inline "Add new person" action (e.g. for assignee pickers). */
+  hideAddNew?: boolean;
 }
 
 /**
@@ -33,6 +37,8 @@ export function PersonCombobox({
   placeholder = "Search people…",
   invalid,
   excludeIds = [],
+  roleFilter,
+  hideAddNew = false,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -52,6 +58,11 @@ export function PersonCombobox({
         .select("id, first_name, last_name, company")
         .order("first_name")
         .limit(20);
+      if (roleFilter && roleFilter.length > 0) {
+        // people.roles is a person_role[] — overlaps operator returns rows
+        // whose array shares at least one value with the filter.
+        req = req.overlaps("roles", roleFilter);
+      }
       if (q) {
         // Search across name, company, ref_code
         const like = `%${q}%`;
@@ -66,7 +77,7 @@ export function PersonCombobox({
     return () => {
       if (debounceRef.current) window.clearTimeout(debounceRef.current);
     };
-  }, [open, query]);
+  }, [open, query, roleFilter]);
 
   const display = useMemo(() => valueLabel || (value ? "Selected person" : ""), [valueLabel, value]);
   const visibleResults = results.filter((r) => !excludeIds.includes(r.id) || r.id === value);
@@ -130,19 +141,21 @@ export function PersonCombobox({
                   })}
                 </CommandGroup>
               )}
-              <CommandGroup>
-                <CommandItem
-                  value="__add_new__"
-                  onSelect={() => {
-                    setOpen(false);
-                    setQuickAddOpen(true);
-                  }}
-                  className="text-architect"
-                >
-                  <UserPlus className="mr-2 h-4 w-4 text-gold" />
-                  <span>Add new person{query.trim() && <span className="text-muted-foreground"> — “{query.trim()}”</span>}</span>
-                </CommandItem>
-              </CommandGroup>
+              {!hideAddNew && (
+                <CommandGroup>
+                  <CommandItem
+                    value="__add_new__"
+                    onSelect={() => {
+                      setOpen(false);
+                      setQuickAddOpen(true);
+                    }}
+                    className="text-architect"
+                  >
+                    <UserPlus className="mr-2 h-4 w-4 text-gold" />
+                    <span>Add new person{query.trim() && <span className="text-muted-foreground"> — “{query.trim()}”</span>}</span>
+                  </CommandItem>
+                </CommandGroup>
+              )}
             </CommandList>
           </Command>
         </PopoverContent>
