@@ -1,13 +1,12 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Mail, Phone, Building2, Pencil, Trash2, Plus, FileText, Upload, Link2 } from "lucide-react";
+import { ArrowLeft, Mail, Phone, Building2, Pencil, Trash2, FileText, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/PageHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import { PersonRoleBadge } from "@/components/people/PersonRoleBadge";
 import { PersonFormDialog } from "@/components/people/PersonFormDialog";
-import { LinkToPropertyDialog } from "@/components/people/LinkToPropertyDialog";
 import { EmptyState } from "@/components/EmptyState";
 import { initials } from "@/lib/format";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -24,22 +23,15 @@ export default function PersonDetail() {
   const { canEdit } = useAuth();
 
   const [person, setPerson] = useState<any>(null);
-  const [links, setLinks] = useState<any[]>([]);
   const [docs, setDocs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
-  const [linkOpen, setLinkOpen] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
     setLoading(true);
-    const [p, l, d] = await Promise.all([
+    const [p, d] = await Promise.all([
       supabase.from("people").select("*").eq("id", id).maybeSingle(),
-      supabase
-        .from("people_property_links")
-        .select("*, buildings(id, name, ref_code), units(id, unit_number, ref_code)")
-        .eq("person_id", id)
-        .order("created_at", { ascending: false }),
       supabase.from("people_documents").select("*").eq("person_id", id).order("created_at", { ascending: false }),
     ]);
     if (p.error || !p.data) {
@@ -48,7 +40,6 @@ export default function PersonDetail() {
       return;
     }
     setPerson(p.data);
-    setLinks(l.data ?? []);
     setDocs(d.data ?? []);
     setLoading(false);
   }, [id, navigate]);
@@ -59,12 +50,6 @@ export default function PersonDetail() {
     const { error } = await supabase.from("people").delete().eq("id", person.id);
     if (error) toast.error(error.message);
     else { toast.success("Person deleted."); navigate("/people"); }
-  };
-
-  const handleUnlink = async (linkId: string) => {
-    const { error } = await supabase.from("people_property_links").delete().eq("id", linkId);
-    if (error) toast.error(error.message);
-    else { toast.success("Removed."); load(); }
   };
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -164,10 +149,11 @@ export default function PersonDetail() {
         <Meta label="Location" icon={<Building2 className="h-3.5 w-3.5" />} value={[person.city, person.country].filter(Boolean).join(", ") || "—"} />
       </div>
 
-      <Tabs defaultValue="properties" className="w-full">
+      <Tabs defaultValue="ownership" className="w-full">
         <TabsList className="bg-transparent border-b hairline rounded-none w-full justify-start gap-0 h-auto p-0">
           {[
-            { v: "properties", l: `Properties (${links.length})` },
+            { v: "ownership", l: "Ownership" },
+            { v: "tenancy", l: "Tenancy" },
             { v: "documents", l: `Documents (${docs.length})` },
             { v: "notes", l: "Notes" },
           ].map((t) => (
@@ -181,42 +167,18 @@ export default function PersonDetail() {
           ))}
         </TabsList>
 
-        <TabsContent value="properties" className="pt-6">
-          <div className="flex justify-between items-center mb-4">
-            <div className="label-eyebrow">Property links</div>
-            {canEdit && (
-              <Button variant="gold" size="sm" onClick={() => setLinkOpen(true)}>
-                <Link2 className="h-3.5 w-3.5" /> Link to property
-              </Button>
-            )}
-          </div>
-          {links.length === 0 ? (
-            <EmptyState title="No property links" description="Connect this person to a building or unit." />
-          ) : (
-            <div className="space-y-2">
-              {links.map((l) => (
-                <div key={l.id} className="flex items-center gap-4 px-4 py-3 border hairline rounded-sm bg-card">
-                  <Building2 className="h-4 w-4 text-true-taupe shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <Link to={`/properties/${l.buildings?.id}`} className="font-display text-base text-architect hover:text-gold">
-                      {l.buildings?.name}
-                      {l.units && <span className="text-muted-foreground"> · Unit {l.units.unit_number}</span>}
-                    </Link>
-                    <div className="text-xs text-muted-foreground">
-                      {l.relationship}
-                      {l.start_date && ` · since ${format(new Date(l.start_date), "MMM d, yyyy")}`}
-                      {l.end_date && ` — ${format(new Date(l.end_date), "MMM d, yyyy")}`}
-                    </div>
-                  </div>
-                  {canEdit && (
-                    <Button variant="ghost" size="icon" onClick={() => handleUnlink(l.id)}>
-                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                    </Button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+        <TabsContent value="ownership" className="pt-6">
+          <EmptyState
+            title="Ownership view rebuilding"
+            description="The new derived ownership view ships in the next pass. Properties owned by this person will appear here automatically."
+          />
+        </TabsContent>
+
+        <TabsContent value="tenancy" className="pt-6">
+          <EmptyState
+            title="No leases on record"
+            description="Tenancies will appear here once the lease module is active."
+          />
         </TabsContent>
 
         <TabsContent value="documents" className="pt-6">
@@ -269,12 +231,6 @@ export default function PersonDetail() {
         onOpenChange={setEditOpen}
         initial={person}
         onSaved={() => { setEditOpen(false); load(); }}
-      />
-      <LinkToPropertyDialog
-        open={linkOpen}
-        onOpenChange={setLinkOpen}
-        personId={person.id}
-        onSaved={() => { setLinkOpen(false); load(); }}
       />
     </>
   );
