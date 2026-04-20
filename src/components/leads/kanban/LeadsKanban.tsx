@@ -361,7 +361,7 @@ function LeadCard({
       )}
       {isLost && lead.lost_reason && (
         <div className="mt-1.5 pt-1.5 border-t hairline text-[10px] uppercase tracking-wider text-destructive/80 truncate">
-          {lead.lost_reason.replaceAll("_", " ")}
+          {lead.lost_reason.split("_").join(" ")}
         </div>
       )}
 
