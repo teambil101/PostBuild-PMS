@@ -156,6 +156,10 @@ export function BuildingFormDialog({ open, onOpenChange, onSaved, initial }: Pro
       building_type: form.building_type,
       community: form.community.trim() || null,
       address: form.address.trim(),
+      address_formatted: form.address.trim(),
+      latitude: form.latitude,
+      longitude: form.longitude,
+      place_id: form.place_id,
       city: form.city.trim(),
       country: form.country,
     };
