@@ -133,6 +133,8 @@ export default function VendorDetail() {
   const [docsCount, setDocsCount] = useState(0);
   const [notesCount, setNotesCount] = useState(0);
   const [ticketsCount, setTicketsCount] = useState(0);
+  const [agreementsCount, setAgreementsCount] = useState(0);
+  const [newSaOpen, setNewSaOpen] = useState(false);
   const [newTicketForVendorOpen, setNewTicketForVendorOpen] = useState(false);
   const [newTicketAboutVendorOpen, setNewTicketAboutVendorOpen] = useState(false);
 
@@ -381,6 +383,9 @@ export default function VendorDetail() {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="contacts">
             Contacts {contacts.length > 0 && <span className="ml-1 text-muted-foreground">({contacts.length})</span>}
+          </TabsTrigger>
+          <TabsTrigger value="agreements">
+            Service Agreements {agreementsCount > 0 && <span className="ml-1 text-muted-foreground">({agreementsCount})</span>}
           </TabsTrigger>
           <TabsTrigger value="tickets">
             Tickets {ticketsCount > 0 && <span className="ml-1 text-muted-foreground">({ticketsCount})</span>}
