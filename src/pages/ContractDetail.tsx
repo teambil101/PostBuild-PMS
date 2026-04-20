@@ -146,6 +146,12 @@ export default function ContractDetail() {
   const [events, setEvents] = useState<EventRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [selfPersonId, setSelfPersonId] = useState<string | null>(null);
+  /** Originating lead (only set when a management agreement was won via the conversion flow). */
+  const [wonFromLead, setWonFromLead] = useState<{
+    id: string;
+    lead_number: string;
+    won_at: string | null;
+  } | null>(null);
 
   // Action dialog state
   const [editOpen, setEditOpen] = useState(false);
