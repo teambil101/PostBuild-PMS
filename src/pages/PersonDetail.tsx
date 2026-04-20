@@ -323,6 +323,10 @@ export default function PersonDetail() {
           />
         </TabsContent>
 
+        <TabsContent value="leads" className="pt-6">
+          <PersonLeadsTab personId={person.id} onActiveCountChange={setLeadCount} />
+        </TabsContent>
+
         <TabsContent value="notes" className="pt-6">
           <div className="border hairline rounded-sm bg-card p-6 text-sm whitespace-pre-wrap text-foreground/90 min-h-[120px]">
             {person.notes || <span className="text-muted-foreground italic">No notes yet.</span>}
@@ -345,6 +349,117 @@ function Meta({ label, value, icon }: { label: string; value: string; icon: Reac
     <div className="bg-card p-4">
       <div className="label-eyebrow flex items-center gap-1.5">{icon} {label}</div>
       <div className="text-base text-architect mt-1 truncate">{value}</div>
+    </div>
+  );
+}
+
+function PersonLeadsTab({
+  personId,
+  onActiveCountChange,
+}: {
+  personId: string;
+  onActiveCountChange: (n: number) => void;
+}) {
+  const [rows, setRows] = useState<LeadRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [assignees, setAssignees] = useState<Record<string, { first_name: string; last_name: string }>>({});
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from("leads")
+        .select("*")
+        .or(`primary_contact_id.eq.${personId},company_id.eq.${personId}`)
+        .order("stage_entered_at", { ascending: false });
+      const list = ((data ?? []) as unknown as LeadRow[]).map((l) => ({
+        ...l,
+        proposed_scope_of_services: Array.isArray(l.proposed_scope_of_services)
+          ? l.proposed_scope_of_services
+          : (l.proposed_scope_of_services as any) ?? [],
+      }));
+      setRows(list);
+      onActiveCountChange(list.filter((l) => !TERMINAL_STATUSES.includes(l.status)).length);
+
+      const ids = Array.from(new Set(list.map((l) => l.assignee_id).filter(Boolean) as string[]));
+      if (ids.length) {
+        const { data: ppl } = await supabase
+          .from("people").select("id, first_name, last_name").in("id", ids);
+        const map: Record<string, { first_name: string; last_name: string }> = {};
+        for (const p of ppl ?? []) map[p.id] = p as any;
+        setAssignees(map);
+      }
+      setLoading(false);
+    })();
+  }, [personId, onActiveCountChange]);
+
+  if (loading) return <div className="h-32 bg-muted/40 animate-pulse rounded-sm" />;
+  if (rows.length === 0) {
+    return (
+      <EmptyState
+        title="No leads associated with this person"
+        description="Leads where this person is the primary contact or company will appear here."
+      />
+    );
+  }
+
+  return (
+    <div className="border hairline rounded-sm overflow-hidden bg-card">
+      <table className="w-full text-sm">
+        <thead className="bg-muted/40 border-b hairline text-left">
+          <tr>
+            <th className="px-4 py-3 label-eyebrow">Lead #</th>
+            <th className="px-4 py-3 label-eyebrow">Status</th>
+            <th className="px-4 py-3 label-eyebrow">Source</th>
+            <th className="px-4 py-3 label-eyebrow">Stage age</th>
+            <th className="px-4 py-3 label-eyebrow">Assignee</th>
+            <th className="px-4 py-3 label-eyebrow">Target close</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((l) => {
+            const a = l.assignee_id ? assignees[l.assignee_id] : null;
+            const dToClose = getDaysToClose(l.target_close_date);
+            const overdue = dToClose != null && dToClose < 0 && !TERMINAL_STATUSES.includes(l.status);
+            return (
+              <tr key={l.id} className="border-b hairline last:border-0 hover:bg-muted/30">
+                <td className="px-4 py-3 mono text-xs">
+                  <Link to={`/leads/${l.id}`} className="text-architect hover:underline">
+                    {l.lead_number}
+                  </Link>
+                </td>
+                <td className="px-4 py-3">
+                  <span className={cn(
+                    "px-1.5 py-0.5 border rounded-sm text-[10px] uppercase tracking-wider",
+                    LEAD_STATUS_STYLES[l.status],
+                  )}>
+                    {LEAD_STATUS_LABELS[l.status]}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-xs text-architect">{LEAD_SOURCE_LABELS[l.source]}</td>
+                <td className="px-4 py-3 text-xs text-muted-foreground">
+                  {getStageAgingDays(l)}d
+                </td>
+                <td className="px-4 py-3 text-xs">
+                  {a ? (
+                    <span className="text-architect">{a.first_name} {a.last_name}</span>
+                  ) : (
+                    <span className="text-muted-foreground">Unassigned</span>
+                  )}
+                </td>
+                <td className={cn(
+                  "px-4 py-3 text-xs whitespace-nowrap",
+                  overdue ? "text-destructive" : "text-muted-foreground",
+                )}>
+                  {l.target_close_date
+                    ? format(new Date(l.target_close_date + "T00:00:00"), "MMM d, yyyy")
+                    : "—"}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }
