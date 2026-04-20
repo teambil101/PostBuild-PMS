@@ -75,6 +75,35 @@ interface MA {
   scope_of_services_other: string | null;
 }
 
+interface SA {
+  id: string;
+  contract_id: string;
+  vendor_id: string;
+  fee_model: ServiceFeeModel;
+  fee_value: number | null;
+  hybrid_base_monthly: number | null;
+  hybrid_per_call_or_unit: number | null;
+  hybrid_mode: string | null;
+  hourly_rate: number | null;
+  call_out_fee: number | null;
+  materials_markup_percent: number | null;
+  materials_included: boolean;
+  materials_notes: string | null;
+  service_frequency: ServiceFrequency;
+  scope_of_services: string[];
+  scope_of_services_other: string | null;
+  response_time_urgent_hours: number | null;
+  response_time_standard_hours: number | null;
+  sla_notes: string | null;
+  vendor?: {
+    id: string;
+    legal_name: string;
+    display_name: string | null;
+    vendor_number: string;
+    specialties: unknown;
+  } | null;
+}
+
 interface LeaseRow {
   id: string;
   contract_id: string;
@@ -109,6 +138,7 @@ export default function ContractDetail() {
   const { contractId } = useParams<{ contractId: string }>();
   const [contract, setContract] = useState<Contract | null>(null);
   const [ma, setMa] = useState<MA | null>(null);
+  const [sa, setSa] = useState<SA | null>(null);
   const [lease, setLease] = useState<LeaseRow | null>(null);
   const [parties, setParties] = useState<PartyRow[]>([]);
   const [subjects, setSubjects] = useState<SubjectRow[]>([]);
