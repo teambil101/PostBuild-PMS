@@ -968,6 +968,124 @@ export type Database = {
           },
         ]
       }
+      ticket_workflow_stages: {
+        Row: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          id: string
+          order_index: number
+          skipped_reason: string | null
+          stage_key: string
+          stage_label: string
+          started_at: string | null
+          status: string
+          ticket_id: string
+          updated_at: string
+          workflow_key: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          id?: string
+          order_index: number
+          skipped_reason?: string | null
+          stage_key: string
+          stage_label: string
+          started_at?: string | null
+          status?: string
+          ticket_id: string
+          updated_at?: string
+          workflow_key: string
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          id?: string
+          order_index?: number
+          skipped_reason?: string | null
+          stage_key?: string
+          stage_label?: string
+          started_at?: string | null
+          status?: string
+          ticket_id?: string
+          updated_at?: string
+          workflow_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_workflow_stages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ticket_workflow_steps: {
+        Row: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          id: string
+          is_required: boolean
+          note: string | null
+          order_index: number
+          stage_key: string
+          status: string
+          step_description: string | null
+          step_key: string
+          step_label: string
+          ticket_id: string
+          updated_at: string
+          workflow_key: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          id?: string
+          is_required?: boolean
+          note?: string | null
+          order_index: number
+          stage_key: string
+          status?: string
+          step_description?: string | null
+          step_key: string
+          step_label: string
+          ticket_id: string
+          updated_at?: string
+          workflow_key: string
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          id?: string
+          is_required?: boolean
+          note?: string | null
+          order_index?: number
+          stage_key?: string
+          status?: string
+          step_description?: string | null
+          step_key?: string
+          step_label?: string
+          ticket_id?: string
+          updated_at?: string
+          workflow_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_workflow_steps_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tickets: {
         Row: {
           actual_cost: number | null
@@ -982,6 +1100,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           currency: string
+          current_stage_key: string | null
           description: string | null
           due_date: string | null
           estimated_cost: number | null
@@ -999,6 +1118,7 @@ export type Database = {
           ticket_type: string
           updated_at: string
           waiting_on: string | null
+          workflow_key: string | null
         }
         Insert: {
           actual_cost?: number | null
@@ -1013,6 +1133,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           currency?: string
+          current_stage_key?: string | null
           description?: string | null
           due_date?: string | null
           estimated_cost?: number | null
@@ -1030,6 +1151,7 @@ export type Database = {
           ticket_type: string
           updated_at?: string
           waiting_on?: string | null
+          workflow_key?: string | null
         }
         Update: {
           actual_cost?: number | null
@@ -1044,6 +1166,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           currency?: string
+          current_stage_key?: string | null
           description?: string | null
           due_date?: string | null
           estimated_cost?: number | null
@@ -1061,6 +1184,7 @@ export type Database = {
           ticket_type?: string
           updated_at?: string
           waiting_on?: string | null
+          workflow_key?: string | null
         }
         Relationships: [
           {
@@ -1336,9 +1460,35 @@ export type Database = {
       }
     }
     Functions: {
+      advance_ticket_stage: {
+        Args: { p_ticket_id: string }
+        Returns: undefined
+      }
+      change_ticket_workflow: {
+        Args: {
+          p_new_stages: Json
+          p_new_workflow_key: string
+          p_preserved_step_keys?: string[]
+          p_ticket_id: string
+        }
+        Returns: undefined
+      }
+      complete_ticket_step: {
+        Args: {
+          p_note?: string
+          p_stage_key: string
+          p_step_key: string
+          p_ticket_id: string
+        }
+        Returns: undefined
+      }
       get_applicable_repair_threshold: {
         Args: { p_entity_id: string; p_entity_type: string }
         Returns: number
+      }
+      get_ticket_workflow_summary: {
+        Args: { p_ticket_id: string }
+        Returns: Json
       }
       has_active_mgmt_agreement_for_unit: {
         Args: { p_unit_id: string }
@@ -1352,11 +1502,19 @@ export type Database = {
         }
         Returns: boolean
       }
+      initialize_ticket_workflow: {
+        Args: { p_stages: Json; p_ticket_id: string; p_workflow_key: string }
+        Returns: undefined
+      }
       next_number: {
         Args: { p_prefix: string; p_year: number }
         Returns: string
       }
       process_contract_lifecycle: { Args: never; Returns: Json }
+      remove_ticket_workflow: {
+        Args: { p_ticket_id: string }
+        Returns: undefined
+      }
       resolve_ticket_target_label: {
         Args: { p_entity_id: string; p_entity_type: string }
         Returns: string
@@ -1369,6 +1527,19 @@ export type Database = {
           person_id: string
           source: string
         }[]
+      }
+      skip_ticket_step: {
+        Args: {
+          p_reason: string
+          p_stage_key: string
+          p_step_key: string
+          p_ticket_id: string
+        }
+        Returns: undefined
+      }
+      uncomplete_ticket_step: {
+        Args: { p_stage_key: string; p_step_key: string; p_ticket_id: string }
+        Returns: undefined
       }
     }
     Enums: {
