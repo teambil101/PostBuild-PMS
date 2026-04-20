@@ -355,33 +355,22 @@ export function NewTicketDialog({ open, onOpenChange }: Props) {
             />
           </div>
 
-          <div className="space-y-1.5">
-            <Label>Workflow</Label>
-            <Select
+          {type && (
+            <WorkflowPickerInline
+              ticketType={type}
               value={workflowKey}
-              onValueChange={(v) => {
-                setWorkflowKey(v as WorkflowKey | "__none");
+              overridden={workflowOverridden}
+              onChange={(v) => {
+                setWorkflowKey(v);
                 setWorkflowOverridden(true);
               }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Pick a workflow…" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none">None (freeform ticket)</SelectItem>
-                {Object.values(WORKFLOWS).map((w) => (
-                  <SelectItem key={w.key} value={w.key}>
-                    {w.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-[11px] text-muted-foreground">
-              {type && getDefaultWorkflow(type) && !workflowOverridden
-                ? `Default for this type: ${WORKFLOWS[getDefaultWorkflow(type) as WorkflowKey].label}.`
-                : "Workflows structure a ticket into stages and steps. You can change or remove the workflow later."}
-            </p>
-          </div>
+              onResetDefault={() => {
+                const def = getDefaultWorkflow(type);
+                setWorkflowKey(def ?? "__none");
+                setWorkflowOverridden(false);
+              }}
+            />
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
