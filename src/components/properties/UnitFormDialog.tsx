@@ -113,6 +113,8 @@ export function UnitFormDialog({
   const [baseline, setBaseline] = useState<FormState>(() => emptyForm(typeOptions));
   const [errors, setErrors] = useState<Errors>({});
   const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [attachOpen, setAttachOpen] = useState(false);
 
   const unitNumberRef = useRef<HTMLInputElement>(null);
   const typeRef = useRef<HTMLButtonElement>(null);
@@ -293,7 +295,75 @@ export function UnitFormDialog({
       });
     }
 
-    toast.success(initial?.id ? "Unit updated" : "Unit added");
+    // Bulk-attach any pending files (only on create, when files were chosen)
+    if (resultId && !initial?.id && pendingFiles.length > 0) {
+      toast.message(`Unit added. Uploading ${pendingFiles.length} file${pendingFiles.length === 1 ? "" : "s"}…`);
+      const { data: u } = await supabase.auth.getUser();
+      const uploaderId = u.user?.id;
+      let uploaded = 0;
+      let failed = 0;
+      let assignCover = true; // first image becomes cover
+
+      const results = await Promise.allSettled(
+        pendingFiles.map(async (file) => {
+          const isImg = isPhotoMime(file.type);
+          const id = crypto.randomUUID();
+          if (isImg) {
+            const err = validateFile(file, PHOTO_MIMES, PHOTO_MAX_BYTES);
+            if (err) throw new Error(err);
+            const path = buildPhotoPath("unit", resultId!, id, file.name);
+            const { error: upErr } = await supabase.storage.from(PHOTO_BUCKET).upload(path, file, {
+              contentType: file.type, upsert: false,
+            });
+            if (upErr) throw new Error(upErr.message);
+            const cover = assignCover;
+            assignCover = false;
+            const { error: dbErr } = await supabase.from("photos").insert({
+              id, entity_type: "unit", entity_id: resultId,
+              storage_path: path, file_name: file.name,
+              file_size_bytes: file.size, mime_type: file.type,
+              is_cover: cover, sort_order: 0, uploaded_by: uploaderId,
+            });
+            if (dbErr) {
+              await supabase.storage.from(PHOTO_BUCKET).remove([path]);
+              throw new Error(dbErr.message);
+            }
+          } else {
+            if (file.size > DOC_MAX_BYTES) {
+              throw new Error(`${file.name}: exceeds 25 MB limit.`);
+            }
+            const path = buildDocPath("unit", resultId!, id, file.name);
+            const { error: upErr } = await supabase.storage.from(DOC_BUCKET).upload(path, file, {
+              contentType: file.type || "application/octet-stream", upsert: false,
+            });
+            if (upErr) throw new Error(upErr.message);
+            const { error: dbErr } = await supabase.from("documents").insert({
+              id, entity_type: "unit", entity_id: resultId,
+              storage_path: path, file_name: file.name,
+              file_size_bytes: file.size,
+              mime_type: file.type || "application/octet-stream",
+              doc_type: "other", uploaded_by: uploaderId,
+            });
+            if (dbErr) {
+              await supabase.storage.from(DOC_BUCKET).remove([path]);
+              throw new Error(dbErr.message);
+            }
+          }
+        }),
+      );
+      results.forEach((r) => { r.status === "fulfilled" ? uploaded++ : failed++; });
+      if (failed === 0) {
+        toast.success(`${uploaded} file${uploaded === 1 ? "" : "s"} uploaded.`);
+      } else {
+        toast.warning(
+          `Unit added, but ${failed} file${failed === 1 ? "" : "s"} failed to upload. Retry from the unit page.`,
+        );
+      }
+    } else {
+      toast.success(initial?.id ? "Unit updated" : "Unit added");
+    }
+
+    setPendingFiles([]);
     onSaved(resultId ? { id: resultId, status: form.status as UnitStatusValue } : undefined);
   };
 
