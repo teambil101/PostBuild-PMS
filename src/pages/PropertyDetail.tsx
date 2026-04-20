@@ -294,92 +294,22 @@ export default function PropertyDetail() {
 
         {/* PHOTOS */}
         <TabsContent value="photos" className="pt-6">
-          <div className="flex justify-between items-center mb-4">
-            <div className="label-eyebrow">Image gallery</div>
-            {canEdit && (
-              <label>
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => handleFileUpload(e, true)}
-                />
-                <Button variant="gold" size="sm" asChild>
-                  <span className="cursor-pointer"><Upload className="h-3.5 w-3.5" /> Upload photos</span>
-                </Button>
-              </label>
-            )}
-          </div>
-          {photos.length === 0 ? (
-            <EmptyState icon={<ImageIcon className="h-8 w-8" strokeWidth={1.2} />} title="No photos yet" />
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              {photos.map((p) => (
-                <div key={p.id} className="relative group aspect-square overflow-hidden border hairline rounded-sm">
-                  <img src={getPhotoUrl(p.file_path)} alt={p.name} className="h-full w-full object-cover" />
-                  {canEdit && (
-                    <button
-                      onClick={() => handleDeleteFile(p)}
-                      className="absolute top-2 right-2 h-7 w-7 bg-architect/80 text-chalk rounded-sm opacity-0 group-hover:opacity-100 flex items-center justify-center"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+          <PhotoGallery
+            entityType="building"
+            entityId={building.id}
+            editable={canEdit}
+            onCountChange={setPhotoCount}
+          />
         </TabsContent>
 
         {/* DOCUMENTS */}
         <TabsContent value="documents" className="pt-6">
-          <div className="flex justify-between items-center mb-4">
-            <div className="label-eyebrow">Documents</div>
-            {canEdit && (
-              <label>
-                <input
-                  type="file"
-                  multiple
-                  className="hidden"
-                  onChange={(e) => handleFileUpload(e, false)}
-                />
-                <Button variant="gold" size="sm" asChild>
-                  <span className="cursor-pointer"><Upload className="h-3.5 w-3.5" /> Upload documents</span>
-                </Button>
-              </label>
-            )}
-          </div>
-          {docs.length === 0 ? (
-            <EmptyState icon={<FileText className="h-8 w-8" strokeWidth={1.2} />} title="No documents yet" />
-          ) : (
-            <div className="border hairline rounded-sm divide-y divide-warm-stone/60 bg-card">
-              {docs.map((d) => (
-                <div key={d.id} className="flex items-center justify-between px-4 py-3 hover:bg-muted/30">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <FileText className="h-4 w-4 text-true-taupe shrink-0" />
-                    <div className="min-w-0">
-                      <button
-                        onClick={async () => {
-                          const url = await getDocUrl(d.file_path);
-                          if (url) window.open(url, "_blank");
-                        }}
-                        className="text-sm text-architect hover:text-gold truncate text-left"
-                      >
-                        {d.name}
-                      </button>
-                      <div className="ref-code">{format(new Date(d.created_at), "MMM d, yyyy")}</div>
-                    </div>
-                  </div>
-                  {canEdit && (
-                    <Button variant="ghost" size="icon" onClick={() => handleDeleteFile(d)}>
-                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                    </Button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+          <DocumentList
+            entityType="building"
+            entityId={building.id}
+            editable={canEdit}
+            onCountChange={setDocCount}
+          />
         </TabsContent>
 
         {/* HISTORY */}
