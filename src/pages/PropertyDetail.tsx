@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Plus, Pencil, Trash2, MapPin, Building2, Image as ImageIcon, FileText, Upload } from "lucide-react";
+import { ArrowLeft, Plus, Pencil, Trash2, MapPin, Building2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/PageHeader";
@@ -10,6 +10,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { BuildingFormDialog } from "@/components/properties/BuildingFormDialog";
 import { UnitFormDialog } from "@/components/properties/UnitFormDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PhotoGallery } from "@/components/attachments/PhotoGallery";
+import { DocumentList } from "@/components/attachments/DocumentList";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { COUNTRY_BY_CODE } from "@/lib/countries";
@@ -53,8 +55,8 @@ export default function PropertyDetail() {
 
   const [building, setBuilding] = useState<Building | null>(null);
   const [units, setUnits] = useState<Unit[]>([]);
-  const [photos, setPhotos] = useState<any[]>([]);
-  const [docs, setDocs] = useState<any[]>([]);
+  const [photoCount, setPhotoCount] = useState(0);
+  const [docCount, setDocCount] = useState(0);
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
@@ -65,10 +67,11 @@ export default function PropertyDetail() {
   const load = useCallback(async () => {
     if (!id) return;
     setLoading(true);
-    const [b, u, d, h] = await Promise.all([
+    const [b, u, ph, dc, h] = await Promise.all([
       supabase.from("buildings").select("*").eq("id", id).maybeSingle(),
       supabase.from("units").select("*").eq("building_id", id).order("unit_number"),
-      supabase.from("property_documents").select("*").eq("building_id", id).order("created_at", { ascending: false }),
+      supabase.from("photos").select("id", { count: "exact", head: true }).eq("entity_type", "building").eq("entity_id", id),
+      supabase.from("documents").select("id", { count: "exact", head: true }).eq("entity_type", "building").eq("entity_id", id),
       supabase
         .from("property_status_history")
         .select("*, units!inner(unit_number, ref_code, building_id)")
@@ -83,9 +86,8 @@ export default function PropertyDetail() {
     }
     setBuilding(b.data as Building);
     setUnits((u.data ?? []) as Unit[]);
-    const allDocs = d.data ?? [];
-    setPhotos(allDocs.filter((x: any) => x.is_image));
-    setDocs(allDocs.filter((x: any) => !x.is_image));
+    setPhotoCount(ph.count ?? 0);
+    setDocCount(dc.count ?? 0);
     setHistory(h.data ?? []);
     setLoading(false);
   }, [id, navigate]);

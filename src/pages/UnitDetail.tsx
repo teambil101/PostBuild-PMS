@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
-  ArrowLeft, Pencil, Trash2, AlertTriangle, ImageIcon, FileText,
+  ArrowLeft, Pencil, Trash2, AlertTriangle,
   StickyNote, History, Lock, Receipt,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +12,8 @@ import { EmptyState } from "@/components/EmptyState";
 import { useAuth } from "@/contexts/AuthContext";
 import { UnitFormDialog } from "@/components/properties/UnitFormDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PhotoGallery } from "@/components/attachments/PhotoGallery";
+import { DocumentList } from "@/components/attachments/DocumentList";
 import { toast } from "sonner";
 import { format, formatDistanceToNow } from "date-fns";
 import { formatEnumLabel, sqmToSqft } from "@/lib/format";
@@ -313,19 +315,21 @@ export default function UnitDetail() {
 
         {/* PHOTOS — gallery component lands in next pass */}
         <TabsContent value="photos" className="pt-6">
-          <EmptyState
-            icon={<ImageIcon className="h-8 w-8" strokeWidth={1.2} />}
-            title="Photo gallery coming next"
-            description="Upload, reorder, set cover, and caption photos. Wiring to the new photos table lands in the next pass."
+          <PhotoGallery
+            entityType="unit"
+            entityId={unit.id}
+            editable={canEdit}
+            onCountChange={setPhotoCount}
           />
         </TabsContent>
 
         {/* DOCUMENTS — list component lands in next pass */}
         <TabsContent value="documents" className="pt-6">
-          <EmptyState
-            icon={<FileText className="h-8 w-8" strokeWidth={1.2} />}
-            title="Documents coming next"
-            description="Upload title deeds, floor plans, Ejari, and more. Wiring to the new documents table lands in the next pass."
+          <DocumentList
+            entityType="unit"
+            entityId={unit.id}
+            editable={canEdit}
+            onCountChange={setDocCount}
           />
         </TabsContent>
 
