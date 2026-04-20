@@ -209,12 +209,19 @@ export async function duplicateContract(contractId: string): Promise<string> {
     .maybeSingle();
   if (srcErr || !src) throw new Error(srcErr?.message ?? "Original contract not found.");
 
-  // Get prefix
-  const { data: settings } = await supabase
-    .from("app_settings")
-    .select("contract_number_prefix")
-    .maybeSingle();
-  const prefix = settings?.contract_number_prefix ?? "CTR";
+  // Per-type number prefix. Each subtype owns its own counter sequence.
+  const PREFIX_BY_TYPE: Record<string, string> = {
+    lease: "LSE",
+    management_agreement: "MGT",
+  };
+  let prefix = PREFIX_BY_TYPE[src.contract_type as string];
+  if (!prefix) {
+    const { data: settings } = await supabase
+      .from("app_settings")
+      .select("contract_number_prefix")
+      .maybeSingle();
+    prefix = settings?.contract_number_prefix ?? "CTR";
+  }
   const year = new Date().getFullYear();
   const { data: numRes, error: numErr } = await supabase.rpc("next_number", {
     p_prefix: prefix,
