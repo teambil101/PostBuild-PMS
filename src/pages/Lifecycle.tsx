@@ -213,7 +213,7 @@ export default function LifecyclePage() {
   }
 
   return (
-    <div className="lg:-mx-10 lg:px-10 xl:-mx-[calc((100vw-1200px)/2-2.5rem)] xl:px-10">
+    <>
       <PageHeader
         eyebrow="Module"
         title="Lease Lifecycle"
