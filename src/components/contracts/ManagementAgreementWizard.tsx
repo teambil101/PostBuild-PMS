@@ -156,6 +156,126 @@ export function ManagementAgreementWizard({ open, onOpenChange, editContractId, 
     })();
   }, [open]);
 
+  // Pre-fill in edit mode
+  useEffect(() => {
+    if (!open || !editContractId) return;
+    (async () => {
+      const [cRes, maRes, pRes, sRes] = await Promise.all([
+        supabase.from("contracts").select("*").eq("id", editContractId).maybeSingle(),
+        supabase.from("management_agreements").select("*").eq("contract_id", editContractId).maybeSingle(),
+        supabase
+          .from("contract_parties")
+          .select("id, person_id, role, is_signatory, people(id, first_name, last_name, company)")
+          .eq("contract_id", editContractId),
+        supabase
+          .from("contract_subjects")
+          .select("id, entity_type, entity_id")
+          .eq("contract_id", editContractId),
+      ]);
+      const c = cRes.data as any;
+      const ma = maRes.data as any;
+      if (!c) return;
+
+      // Find the landlord (role='client' or 'landlord' or 'lessor')
+      const allParties = (pRes.data ?? []) as any[];
+      const landlordRow =
+        allParties.find((p) => ["client", "landlord", "lessor"].includes(p.role) && p.person_id !== self?.id) ??
+        null;
+      const landlord: PickedPerson | null = landlordRow
+        ? {
+            id: landlordRow.people.id,
+            first_name: landlordRow.people.first_name,
+            last_name: landlordRow.people.last_name,
+            company: landlordRow.people.company,
+          }
+        : null;
+
+      const additionalSignatories: AdditionalSignatory[] = allParties
+        .filter(
+          (p) =>
+            !["service_provider", "client", "landlord", "lessor"].includes(p.role) &&
+            p.person_id !== self?.id,
+        )
+        .map((p) => ({
+          person: {
+            id: p.people.id,
+            first_name: p.people.first_name,
+            last_name: p.people.last_name,
+            company: p.people.company,
+          },
+          role: (["witness", "guarantor"].includes(p.role) ? p.role : "other") as AdditionalSignatory["role"],
+        }));
+
+      // Resolve subject labels
+      const subjList = (sRes.data ?? []) as any[];
+      const buildingIds = subjList.filter((s) => s.entity_type === "building").map((s) => s.entity_id);
+      const unitIds = subjList.filter((s) => s.entity_type === "unit").map((s) => s.entity_id);
+      const [bRes, uRes] = await Promise.all([
+        buildingIds.length
+          ? supabase.from("buildings").select("id, name").in("id", buildingIds)
+          : Promise.resolve({ data: [] as any[] }),
+        unitIds.length
+          ? supabase.from("units").select("id, unit_number, building_id, buildings(name)").in("id", unitIds)
+          : Promise.resolve({ data: [] as any[] }),
+      ]);
+      const bMap = new Map<string, string>();
+      ((bRes.data ?? []) as any[]).forEach((b) => bMap.set(b.id, b.name));
+      const uMap = new Map<string, { label: string; building_name: string }>();
+      ((uRes.data ?? []) as any[]).forEach((u) =>
+        uMap.set(u.id, {
+          label: `${u.buildings?.name ?? ""} · ${u.unit_number}`,
+          building_name: u.buildings?.name ?? "",
+        }),
+      );
+      const subjects: PickedSubject[] = subjList.map((s) => ({
+        entity_type: s.entity_type,
+        entity_id: s.entity_id,
+        label:
+          s.entity_type === "building"
+            ? bMap.get(s.entity_id) ?? "(deleted)"
+            : uMap.get(s.entity_id)?.label ?? "(deleted)",
+        building_name: s.entity_type === "unit" ? uMap.get(s.entity_id)?.building_name : undefined,
+      }));
+
+      setForm({
+        landlord,
+        additionalSignatories,
+        title: c.title ?? "",
+        externalReference: c.external_reference ?? "",
+        startDate: c.start_date ?? todayISO(),
+        endDate: c.end_date ?? addYears(todayISO(), 1),
+        durationPreset: "custom",
+        autoRenew: !!c.auto_renew,
+        terminationNoticeDays: ma?.termination_notice_days ?? 60,
+        subjects,
+        feeModel: (ma?.fee_model ?? "percentage_of_rent") as FeeModel,
+        feeValue: String(ma?.fee_value ?? "5"),
+        feeAppliesTo: (ma?.fee_applies_to ?? "contracted_rent") as any,
+        hybridBaseFlat: ma?.hybrid_base_flat != null ? String(ma.hybrid_base_flat) : "",
+        hybridThreshold: ma?.hybrid_threshold != null ? String(ma.hybrid_threshold) : "",
+        hybridOveragePct: ma?.hybrid_overage_percentage != null ? String(ma.hybrid_overage_percentage) : "",
+        hasLeaseUpFee: ma?.lease_up_fee_model && ma.lease_up_fee_model !== "none",
+        leaseUpModel: (ma?.lease_up_fee_model === "flat" ? "flat" : "percentage") as any,
+        leaseUpValue: ma?.lease_up_fee_value != null ? String(ma.lease_up_fee_value) : "",
+        repairThreshold: ma?.repair_approval_threshold != null ? String(ma.repair_approval_threshold) : "500",
+        scope: (ma?.scope_of_services ?? []) as ScopeService[],
+        scopeOther: ma?.scope_of_services_other ?? "",
+        notes: c.notes ?? "",
+        pendingFiles: [],
+        status: c.status,
+      });
+
+      setOriginalSnapshot({
+        status: c.status,
+        feeModel: ma?.fee_model ?? "",
+        feeValue: Number(ma?.fee_value ?? 0),
+        startDate: c.start_date,
+        endDate: c.end_date,
+      });
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, editContractId, self?.id]);
+
   // Auto-update title when landlord changes
   useEffect(() => {
     if (!form.landlord) return;
