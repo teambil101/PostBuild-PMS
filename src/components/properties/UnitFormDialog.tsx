@@ -283,6 +283,16 @@ export function UnitFormDialog({
       return;
     }
 
+    // Validate ownership on create
+    if (!initial?.id && ownerMode === "explicit") {
+      const ov = validateOwners(ownerDraft);
+      if (!ov.valid) {
+        toast.error(ov.reason ?? "Owners are not valid.");
+        setBusy(false);
+        return;
+      }
+    }
+
     saveSizePref(form.size_unit);
 
     const sizeNum = form.size.trim() === "" ? null : toCanonicalSqm(Number(form.size), form.size_unit);
@@ -323,6 +333,15 @@ export function UnitFormDialog({
     if (error) {
       toast.error(error.message);
       return;
+    }
+
+    // Persist explicit unit ownership (create mode only)
+    if (resultId && !initial?.id && ownerMode === "explicit" && ownerDraft.length > 0) {
+      try {
+        await replaceOwners("unit", resultId, ownerDraft);
+      } catch (e: any) {
+        toast.error(`Unit created, but ownership failed to save: ${e.message}`);
+      }
     }
 
     // Log status change to richer history table
@@ -619,6 +638,81 @@ export function UnitFormDialog({
               </p>
               {errors.description && <p className={errorClass}>{errors.description}</p>}
             </div>
+
+            {/* Ownership (only on create) */}
+            {!initial?.id && (
+              <div className="border hairline rounded-sm p-4 space-y-3 bg-muted/20">
+                <div>
+                  <div className="text-sm font-medium text-architect">
+                    Ownership {buildingOwners.length === 0 && <span className="text-destructive">*</span>}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {buildingOwners.length > 0
+                      ? "This building has owners defined — units inherit by default."
+                      : "This building has no owners (JOP). Assign at least one owner for this unit."}
+                  </p>
+                </div>
+
+                {buildingOwners.length > 0 && (
+                  <>
+                    <div className="border hairline rounded-sm bg-card p-3 space-y-1">
+                      <div className="label-eyebrow mb-1">Building owners</div>
+                      {buildingOwners.map((o) => (
+                        <div key={o.person_id} className="flex items-center justify-between text-xs">
+                          <span className="text-architect truncate">
+                            {o.person_name || "Unnamed"} {o.is_primary && <span className="text-gold-deep">★</span>}
+                          </span>
+                          <span className="mono text-muted-foreground">
+                            {Number(o.ownership_percentage).toString().replace(/\.?0+$/, "")}%
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="flex items-start gap-2 cursor-pointer text-sm">
+                        <input
+                          type="radio"
+                          name="owner-mode"
+                          checked={ownerMode === "inherit"}
+                          onChange={() => { setOwnerMode("inherit"); setOwnerDraft([]); }}
+                          className="mt-0.5"
+                        />
+                        <span className="text-architect">Inherit from building <span className="text-muted-foreground text-xs">(default)</span></span>
+                      </label>
+                      <label className="flex items-start gap-2 cursor-pointer text-sm">
+                        <input
+                          type="radio"
+                          name="owner-mode"
+                          checked={ownerMode === "explicit"}
+                          onChange={() => {
+                            setOwnerMode("explicit");
+                            // Seed with copy of building owners
+                            setOwnerDraft(
+                              buildingOwners.map((o) => ({
+                                person_id: o.person_id,
+                                person_name: o.person_name,
+                                person_company: o.person_company,
+                                ownership_percentage: o.ownership_percentage,
+                                is_primary: o.is_primary,
+                              })),
+                            );
+                          }}
+                          className="mt-0.5"
+                        />
+                        <span className="text-architect">Set different owner(s) for this unit</span>
+                      </label>
+                    </div>
+                  </>
+                )}
+
+                {ownerMode === "explicit" && (
+                  <div className="pt-1">
+                    <OwnerPicker value={ownerDraft} onChange={setOwnerDraft} />
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Attach files (only on create) */}
             {!initial?.id && (
