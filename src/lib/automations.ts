@@ -609,8 +609,7 @@ export async function detectStuckLeads(): Promise<AutomationResult> {
   const { data: leads, error } = await supabase
     .from("leads")
     .select(
-      "id, lead_number, status, stage_entered_at, primary_contact_id, assignee_id, " +
-        "primary_contact:primary_contact_id(first_name, last_name, company)",
+      "id, lead_number, status, stage_entered_at, primary_contact_id, assignee_id",
     )
     .in("status", STUCK_LEAD_STAGES as unknown as string[])
     .lt("stage_entered_at", cutoffIso);
@@ -620,6 +619,20 @@ export async function detectStuckLeads(): Promise<AutomationResult> {
     return result;
   }
   if (leads.length === 0) return result;
+
+  // Resolve contact names (company fallback) for ticket subject lines.
+  const contactIds = Array.from(
+    new Set(leads.map((l) => l.primary_contact_id).filter(Boolean) as string[]),
+  );
+  const { data: contacts } = contactIds.length
+    ? await supabase
+        .from("people")
+        .select("id, first_name, last_name, company")
+        .in("id", contactIds)
+    : { data: [] as { id: string; first_name: string; last_name: string; company: string | null }[] };
+  const contactById = new Map(
+    (contacts ?? []).map((c) => [c.id, c] as const),
+  );
 
   // Bulk-check existing dedup keys (one open ticket per lead-stage entry).
   const dedupKeys = leads.map(
@@ -635,7 +648,7 @@ export async function detectStuckLeads(): Promise<AutomationResult> {
       .map((r) => r.system_dedup_key),
   );
 
-  for (const l of leads as any[]) {
+  for (const l of leads) {
     const dedup = `lead_stuck:${l.id}:${l.stage_entered_at}`;
     if (blocked.has(dedup)) {
       result.skipped++;
@@ -645,7 +658,7 @@ export async function detectStuckLeads(): Promise<AutomationResult> {
       (Date.now() - new Date(l.stage_entered_at).getTime()) / (1000 * 60 * 60 * 24),
     );
     const priority = leadStuckPriority(days);
-    const contact = l.primary_contact;
+    const contact = contactById.get(l.primary_contact_id);
     const contactName = contact
       ? contact.company || `${contact.first_name ?? ""} ${contact.last_name ?? ""}`.trim()
       : "Unknown contact";
