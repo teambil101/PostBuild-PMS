@@ -1126,7 +1126,7 @@ function ContractLeaseTicketsSection({
   const sections: TicketSection[] = [
     {
       key: "direct",
-      label: "Direct tickets",
+      label: "On this lease",
       emptyText: "No tickets target this lease directly.",
       fetch: async () => {
         const { data } = await supabase
@@ -1141,8 +1141,42 @@ function ContractLeaseTicketsSection({
       },
     },
     {
+      key: "units",
+      label: "On units covered by this lease",
+      emptyText: "No tickets on units covered by this lease.",
+      fetch: async () => {
+        const { data: subs } = await supabase
+          .from("contract_subjects")
+          .select("entity_id")
+          .eq("contract_id", contractId)
+          .eq("entity_type", "unit");
+        const ids = ((subs ?? []) as any[]).map((s) => s.entity_id as string);
+        if (ids.length === 0) return [];
+        const { data: units } = await supabase
+          .from("units")
+          .select("id, unit_number")
+          .in("id", ids);
+        const numMap = new Map(
+          ((units ?? []) as any[]).map((u) => [u.id as string, u.unit_number as string]),
+        );
+        const { data: tix } = await supabase
+          .from("tickets")
+          .select(
+            "id, ticket_number, subject, ticket_type, priority, status, assignee_id, due_date, created_at, target_entity_type, target_entity_id, is_system_generated",
+          )
+          .eq("target_entity_type", "unit")
+          .in("target_entity_id", ids)
+          .order("created_at", { ascending: false });
+        return ((tix ?? []) as any[]).map((t) => ({
+          ...t,
+          __unit_number: numMap.get(t.target_entity_id) ?? null,
+        }));
+      },
+      rowBadge: (row: any) => (row.__unit_number ? `Unit ${row.__unit_number}` : null),
+    },
+    {
       key: "cheques",
-      label: "Cheque-related tickets",
+      label: "On cheques for this lease",
       emptyText: "No tickets target any of this lease's cheques.",
       fetch: async () => {
         // Fetch this lease's cheque ids, then tickets that target them.
@@ -1179,6 +1213,93 @@ function ContractLeaseTicketsSection({
       entityType="contract"
       entityId={contractId}
       entityLabel={`Lease ${contractNumber}`}
+      groupedView
+      sections={sections}
+      onActiveCountChange={onActiveCountChange}
+    />
+  );
+}
+
+function ContractMgmtTicketsSection({
+  contractId,
+  contractLabel,
+  subjects,
+  onActiveCountChange,
+}: {
+  contractId: string;
+  contractLabel: string;
+  subjects: SubjectRow[];
+  onActiveCountChange: (n: number) => void;
+}) {
+  const unitIds = subjects.filter((s) => s.entity_type === "unit").map((s) => s.entity_id);
+  const buildingIds = subjects
+    .filter((s) => s.entity_type === "building")
+    .map((s) => s.entity_id);
+  const labelMap = new Map<string, string>();
+  for (const s of subjects) {
+    if (s.entity_label) labelMap.set(`${s.entity_type}:${s.entity_id}`, s.entity_label);
+  }
+
+  const sections: TicketSection[] = [
+    {
+      key: "direct",
+      label: "On this agreement",
+      emptyText: "No tickets target this agreement directly.",
+      fetch: async () => {
+        const { data } = await supabase
+          .from("tickets")
+          .select(
+            "id, ticket_number, subject, ticket_type, priority, status, assignee_id, due_date, created_at, target_entity_type, target_entity_id, is_system_generated",
+          )
+          .eq("target_entity_type", "contract")
+          .eq("target_entity_id", contractId)
+          .order("created_at", { ascending: false });
+        return (data ?? []) as any;
+      },
+    },
+    {
+      key: "properties",
+      label: "On properties covered",
+      emptyText: "No tickets on properties covered by this agreement.",
+      fetch: async () => {
+        const results: any[] = [];
+        if (unitIds.length > 0) {
+          const { data } = await supabase
+            .from("tickets")
+            .select(
+              "id, ticket_number, subject, ticket_type, priority, status, assignee_id, due_date, created_at, target_entity_type, target_entity_id, is_system_generated",
+            )
+            .eq("target_entity_type", "unit")
+            .in("target_entity_id", unitIds)
+            .order("created_at", { ascending: false });
+          results.push(...((data ?? []) as any[]));
+        }
+        if (buildingIds.length > 0) {
+          const { data } = await supabase
+            .from("tickets")
+            .select(
+              "id, ticket_number, subject, ticket_type, priority, status, assignee_id, due_date, created_at, target_entity_type, target_entity_id, is_system_generated",
+            )
+            .eq("target_entity_type", "building")
+            .in("target_entity_id", buildingIds)
+            .order("created_at", { ascending: false });
+          results.push(...((data ?? []) as any[]));
+        }
+        return results;
+      },
+      rowBadge: (row: any) => {
+        const lbl = labelMap.get(`${row.target_entity_type}:${row.target_entity_id}`);
+        if (!lbl) return null;
+        return row.target_entity_type === "unit" ? `Unit ${lbl}` : lbl;
+      },
+    },
+  ];
+
+  return (
+    <EntityTicketsTab
+      entityType="contract"
+      entityId={contractId}
+      entityLabel={contractLabel}
       groupedView
       sections={sections}
       onActiveCountChange={onActiveCountChange}
