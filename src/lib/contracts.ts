@@ -344,6 +344,8 @@ export async function duplicateContract(contractId: string): Promise<string> {
   let prefix: string;
   if (src.contract_type === "lease") {
     prefix = "LSE";
+  } else if (src.contract_type === "service_agreement") {
+    prefix = "SVA";
   } else {
     const { data: settings } = await supabase
       .from("app_settings")
@@ -397,6 +399,19 @@ export async function duplicateContract(contractId: string): Promise<string> {
   if (src.contract_type === "lease") {
     const { duplicateLeaseExtras } = await import("@/lib/leases");
     await duplicateLeaseExtras({ sourceContractId: contractId, newContractId: newId });
+  }
+
+  // Service agreement child — straightforward field copy. Vendor relationship preserved.
+  if (src.contract_type === "service_agreement") {
+    const { data: sa } = await supabase
+      .from("service_agreements")
+      .select("*")
+      .eq("contract_id", contractId)
+      .maybeSingle();
+    if (sa) {
+      const { id: _i, contract_id: _c, created_at: _ca, updated_at: _ua, ...rest } = sa as any;
+      await supabase.from("service_agreements").insert({ ...rest, contract_id: newId });
+    }
   }
 
   // Parties
