@@ -211,6 +211,7 @@ export default function PropertyDetail() {
             { v: "units", l: `Units (${units.length})` },
             { v: "photos", l: `Photos (${photoCount})` },
             { v: "documents", l: `Documents (${docCount})` },
+            { v: "notes", l: `Notes (${noteCount})` },
             { v: "history", l: "Status history" },
           ].map((t) => (
             <TabsTrigger
