@@ -603,6 +603,7 @@ export function ManagementAgreementWizard({ open, onOpenChange, editContractId, 
     : null;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[720px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
