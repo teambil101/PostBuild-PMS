@@ -473,6 +473,8 @@ export function targetPath(target: { type: string; id: string }, opts?: { unitBu
       return `/vendors/${target.id}`;
     case "cheque":
       return null; // no dedicated page; surfaced inside lease detail
+    case "lead":
+      return `/leads/${target.id}`;
     default:
       return null;
   }
