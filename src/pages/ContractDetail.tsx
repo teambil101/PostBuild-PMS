@@ -693,6 +693,17 @@ export default function ContractDetail() {
           </Section>
         </TabsContent>
 
+        {contract.contract_type === "lease" && lease && (
+          <TabsContent value="cheques" className="mt-6">
+            <ChequesTab
+              leaseId={lease.id}
+              contractId={contract.id}
+              currency={contract.currency}
+              canEdit={canEdit && !isImmutable}
+            />
+          </TabsContent>
+        )}
+
         <TabsContent value="parties" className="mt-6 space-y-3">
           {isActive && canEdit && (
             <div className="border hairline rounded-sm bg-amber-500/10 border-amber-500/30 p-3 flex gap-2.5">
