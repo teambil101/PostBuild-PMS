@@ -172,7 +172,7 @@ function MyWorkTab() {
               {kpis.my_leads.stuck} stage-stuck
             </span>
           }
-          to="/leads"
+          to="/people?tab=pipeline"
         />
         <KpiCard
           label="Awaiting My Response"
@@ -270,7 +270,7 @@ function MyWorkTab() {
         <QueueCard
           title="My Leads — Follow-up"
           count={queues.my_leads_follow_up.length}
-          viewAllTo="/leads"
+          viewAllTo="/people?tab=pipeline"
           emptyMessage="No leads needing follow-up."
         >
           <Table>
