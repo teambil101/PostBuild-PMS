@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Calendar, User as UserIcon, Plus, Activity, AlertTriangle, RefreshCw, DollarSign, RotateCcw, PlusCircle, Coins } from "lucide-react";
+import {
+  ArrowLeft, Calendar, User as UserIcon, Activity, AlertTriangle, RefreshCw,
+  DollarSign, RotateCcw, PlusCircle, Coins, Pencil, MoreHorizontal,
+} from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { EmptyState } from "@/components/EmptyState";
 import { TicketStatusPill, TicketPriorityPill, CostApprovalPill } from "@/components/tickets/TicketPills";
 import {
@@ -21,6 +23,7 @@ import {
   type TicketPriority,
 } from "@/lib/tickets";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 import { PhotoGallery } from "@/components/attachments/PhotoGallery";
 import { DocumentList } from "@/components/attachments/DocumentList";
 import { NotesPanel } from "@/components/notes/NotesPanel";
@@ -31,13 +34,16 @@ import { ChangeWorkflowDialog } from "@/components/tickets/workflow/ChangeWorkfl
 import { RemoveWorkflowDialog } from "@/components/tickets/workflow/RemoveWorkflowDialog";
 import type { WorkflowKey } from "@/lib/workflows";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal } from "lucide-react";
+import { EditTicketDialog } from "@/components/tickets/actions/EditTicketDialog";
+import { ChangeStatusDialog } from "@/components/tickets/actions/ChangeStatusDialog";
+import { AssignDialog } from "@/components/tickets/actions/AssignDialog";
+import { CancelTicketDialog } from "@/components/tickets/actions/CancelTicketDialog";
+import { DeleteTicketDialog } from "@/components/tickets/actions/DeleteTicketDialog";
+import { CostApprovalBanner } from "@/components/tickets/actions/CostApprovalBanner";
+import { toast } from "sonner";
 
 interface Ticket {
   id: string;
@@ -81,20 +87,33 @@ interface EventRow {
   created_at: string;
 }
 
+const TERMINAL: TicketStatus[] = ["closed", "cancelled"];
+
 export default function TicketDetail() {
   const { ticketId } = useParams<{ ticketId: string }>();
   const navigate = useNavigate();
+  const { canEdit, hasRole } = useAuth();
+  const isAdmin = hasRole("admin");
+
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [events, setEvents] = useState<EventRow[]>([]);
   const [people, setPeople] = useState<Record<string, { first_name: string; last_name: string }>>({});
   const [targetLabel, setTargetLabel] = useState<string>("—");
   const [targetBuildingId, setTargetBuildingId] = useState<string | null>(null);
+  const [selfPersonId, setSelfPersonId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("overview");
   const [notesCount, setNotesCount] = useState(0);
   const [photosCount, setPhotosCount] = useState(0);
   const [docsCount, setDocsCount] = useState(0);
   const [workflowRefresh, setWorkflowRefresh] = useState(0);
+
+  // Dialog state
+  const [editOpen, setEditOpen] = useState(false);
+  const [statusOpen, setStatusOpen] = useState(false);
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [addWfOpen, setAddWfOpen] = useState(false);
   const [changeWfOpen, setChangeWfOpen] = useState(false);
   const [removeWfOpen, setRemoveWfOpen] = useState(false);
@@ -105,10 +124,11 @@ export default function TicketDetail() {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const [tRes, eRes, pRes] = await Promise.all([
+      const [tRes, eRes, pRes, sRes] = await Promise.all([
         supabase.from("tickets").select("*").eq("id", ticketId).maybeSingle(),
         supabase.from("ticket_events").select("*").eq("ticket_id", ticketId).order("created_at", { ascending: false }).limit(50),
-        supabase.from("people").select("id, first_name, last_name"),
+        supabase.from("people").select("id, first_name, last_name, is_self"),
+        supabase.from("app_settings").select("self_person_id").maybeSingle(),
       ]);
       if (cancelled) return;
       const t = tRes.data as Ticket | null;
@@ -119,11 +139,12 @@ export default function TicketDetail() {
         pmap[(p as any).id] = { first_name: (p as any).first_name, last_name: (p as any).last_name };
       }
       setPeople(pmap);
+      const sid = (sRes.data as any)?.self_person_id ?? (pRes.data ?? []).find((p: any) => p.is_self)?.id ?? null;
+      setSelfPersonId(sid);
 
       if (t) {
         const lbl = await resolveTicketTargetLabel({ type: t.target_entity_type, id: t.target_entity_id });
         if (!cancelled) setTargetLabel(lbl);
-        // For unit, look up building so the click-through works
         if (t.target_entity_type === "unit") {
           const { data: u } = await supabase.from("units").select("building_id").eq("id", t.target_entity_id).maybeSingle();
           if (!cancelled) setTargetBuildingId((u as any)?.building_id ?? null);
@@ -152,6 +173,31 @@ export default function TicketDetail() {
     return `${p.first_name} ${p.last_name}`.trim();
   };
 
+  const refetch = async () => {
+    if (!ticketId) return;
+    const [{ data: t }, { data: e }] = await Promise.all([
+      supabase.from("tickets").select("*").eq("id", ticketId).maybeSingle(),
+      supabase.from("ticket_events").select("*").eq("ticket_id", ticketId).order("created_at", { ascending: false }).limit(50),
+    ]);
+    if (t) setTicket(t as Ticket);
+    setEvents((e ?? []) as EventRow[]);
+    setWorkflowRefresh((n) => n + 1);
+  };
+
+  const handleReopen = async () => {
+    if (!ticket) return;
+    const { error } = await supabase.from("tickets").update({
+      status: "open",
+      resolved_at: null,
+      closed_at: null,
+      cancelled_at: null,
+      cancelled_reason: null,
+    }).eq("id", ticket.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Ticket reopened.");
+    refetch();
+  };
+
   if (loading) {
     return <div className="h-64 bg-muted/40 animate-pulse rounded-sm" />;
   }
@@ -166,17 +212,12 @@ export default function TicketDetail() {
   }
 
   const hasWorkflow = Boolean(ticket.workflow_key);
-
-  const refetchTicket = async () => {
-    if (!ticketId) return;
-    const { data } = await supabase.from("tickets").select("*").eq("id", ticketId).maybeSingle();
-    if (data) setTicket(data as Ticket);
-    setWorkflowRefresh((n) => n + 1);
-  };
+  const isTerminal = TERMINAL.includes(ticket.status);
+  const showCostBanner = ticket.cost_approval_status === "pending" && !isTerminal;
 
   return (
     <div className="space-y-8">
-      {/* Breadcrumb / back */}
+      {/* Breadcrumb */}
       <div className="flex items-center gap-2 mono text-[11px] uppercase tracking-wider text-muted-foreground">
         <Link to="/" className="hover:text-architect">Home</Link>
         <span>/</span>
@@ -214,68 +255,90 @@ export default function TicketDetail() {
         </div>
       </div>
 
-      {/* Disabled action buttons */}
-      <TooltipProvider>
-        <div className="flex flex-wrap items-center gap-2 pb-6 border-b hairline">
-          {[
-            { label: "Edit" },
-            { label: "Change status" },
-            { label: "Assign" },
-            { label: "Cancel ticket" },
-            { label: "Delete" },
-          ].map((a) => (
-            <Tooltip key={a.label}>
-              <TooltipTrigger asChild>
-                <span tabIndex={0}>
-                  <Button variant="outline" size="sm" disabled>
-                    {a.label}
-                  </Button>
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>Coming in next pass</TooltipContent>
-            </Tooltip>
-          ))}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="ml-auto px-2">
-                <MoreHorizontal className="h-4 w-4" />
+      {/* Action bar */}
+      <div className="flex flex-wrap items-center gap-2 pb-6 border-b hairline">
+        {canEdit && (
+          <>
+            <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+              <Pencil className="h-3.5 w-3.5" /> Edit
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setStatusOpen(true)} disabled={isTerminal}>
+              Change status
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setAssignOpen(true)} disabled={isTerminal}>
+              {ticket.assignee_id ? "Reassign" : "Assign"}
+            </Button>
+            {!isTerminal && (
+              <Button variant="outline" size="sm" onClick={() => setCancelOpen(true)}>
+                Cancel ticket
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {hasWorkflow ? (
-                <>
-                  <DropdownMenuItem onSelect={() => setChangeWfOpen(true)}>
-                    Change workflow
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onSelect={() => setRemoveWfOpen(true)}
-                    className="text-destructive focus:text-destructive"
-                  >
-                    Remove workflow
-                  </DropdownMenuItem>
-                </>
-              ) : (
-                <DropdownMenuItem onSelect={() => setAddWfOpen(true)}>
-                  Add workflow
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem disabled>Cancel ticket</DropdownMenuItem>
-              <DropdownMenuItem disabled>Reopen</DropdownMenuItem>
-              <DropdownMenuItem disabled className="text-destructive focus:text-destructive">
-                Delete
+            )}
+            {isTerminal && (
+              <Button variant="outline" size="sm" onClick={handleReopen}>
+                <RotateCcw className="h-3.5 w-3.5" /> Reopen
+              </Button>
+            )}
+          </>
+        )}
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="ml-auto px-2">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {canEdit && (
+              <>
+                {hasWorkflow ? (
+                  <>
+                    <DropdownMenuItem onSelect={() => setChangeWfOpen(true)}>Change workflow</DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={() => setRemoveWfOpen(true)}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      Remove workflow
+                    </DropdownMenuItem>
+                  </>
+                ) : (
+                  <DropdownMenuItem onSelect={() => setAddWfOpen(true)}>Add workflow</DropdownMenuItem>
+                )}
+                {isAdmin && <DropdownMenuSeparator />}
+              </>
+            )}
+            {isAdmin && (
+              <DropdownMenuItem
+                onSelect={() => setDeleteOpen(true)}
+                className="text-destructive focus:text-destructive"
+              >
+                Delete ticket
               </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Button variant="ghost" size="sm" onClick={() => navigate("/tickets")}>
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            Back
-          </Button>
-        </div>
-      </TooltipProvider>
+            )}
+            {!canEdit && !isAdmin && (
+              <DropdownMenuItem disabled>No actions available</DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <Button variant="ghost" size="sm" onClick={() => navigate("/tickets")}>
+          <ArrowLeft className="h-4 w-4 mr-1" />
+          Back
+        </Button>
+      </div>
+
+      {/* Cost approval banner */}
+      {showCostBanner && (
+        <CostApprovalBanner
+          ticketId={ticket.id}
+          estimatedCost={ticket.estimated_cost}
+          currency={ticket.currency}
+          selfPersonId={selfPersonId}
+          onDone={refetch}
+        />
+      )}
 
       {/* Summary cards */}
-      <div className={cn("grid grid-cols-2 gap-3", hasWorkflow ? "lg:grid-cols-4" : "lg:grid-cols-5") }>
+      <div className={cn("grid grid-cols-2 gap-3", hasWorkflow ? "lg:grid-cols-4" : "lg:grid-cols-5")}>
         <SummaryCard label="Status">
           <TicketStatusPill status={ticket.status} />
           {ticket.status === "awaiting" && ticket.waiting_on && (
@@ -297,24 +360,13 @@ export default function TicketDetail() {
         <SummaryCard label="Priority">
           <TicketPriorityPill priority={ticket.priority} />
         </SummaryCard>
-        {hasWorkflow ? null : (
-          <SummaryCard label="Assignee">
-            {ticket.assignee_id ? (
-              <div className="text-sm text-architect">{personName(ticket.assignee_id)}</div>
-            ) : (
-              <div className="text-sm text-muted-foreground italic">Unassigned</div>
-            )}
-          </SummaryCard>
-        )}
-        {hasWorkflow && (
-          <SummaryCard label="Assignee">
-            {ticket.assignee_id ? (
-              <div className="text-sm text-architect">{personName(ticket.assignee_id)}</div>
-            ) : (
-              <div className="text-sm text-muted-foreground italic">Unassigned</div>
-            )}
-          </SummaryCard>
-        )}
+        <SummaryCard label="Assignee">
+          {ticket.assignee_id ? (
+            <div className="text-sm text-architect">{personName(ticket.assignee_id)}</div>
+          ) : (
+            <div className="text-sm text-muted-foreground italic">Unassigned</div>
+          )}
+        </SummaryCard>
         <SummaryCard label="Due date">
           {ticket.due_date ? (
             <div className={cn("text-sm", overdue ? "text-destructive font-medium" : "text-architect")}>
@@ -368,7 +420,7 @@ export default function TicketDetail() {
           refreshKey={workflowRefresh}
           onChanged={() => {
             setWorkflowRefresh((n) => n + 1);
-            refetchTicket();
+            refetch();
           }}
           onStepStatusMap={setStepStatusMap}
           personName={personName}
@@ -444,27 +496,21 @@ export default function TicketDetail() {
 
         <TabsContent value="comments" className="pt-6">
           <NotesPanel
-            entityType={"ticket" as any}
+            entityType="ticket"
             entityId={ticket.id}
             onCountChange={setNotesCount}
           />
-          <p className="text-[11px] text-muted-foreground italic mt-2">
-            Comment composer activates in the next update.
-          </p>
         </TabsContent>
 
         <TabsContent value="attachments" className="pt-6 space-y-8">
           <div>
             <div className="label-eyebrow mb-3">Photos</div>
-            <PhotoGallery entityType="ticket" entityId={ticket.id} editable={false} onCountChange={setPhotosCount} />
+            <PhotoGallery entityType="ticket" entityId={ticket.id} editable={canEdit} onCountChange={setPhotosCount} />
           </div>
           <div>
             <div className="label-eyebrow mb-3">Documents</div>
-            <DocumentList entityType="ticket" entityId={ticket.id} editable={false} onCountChange={setDocsCount} />
+            <DocumentList entityType="ticket" entityId={ticket.id} editable={canEdit} onCountChange={setDocsCount} />
           </div>
-          <p className="text-[11px] text-muted-foreground italic">
-            Upload activates in the next update.
-          </p>
         </TabsContent>
 
         <TabsContent value="history" className="pt-6">
@@ -492,13 +538,55 @@ export default function TicketDetail() {
         </TabsContent>
       </Tabs>
 
+      {/* Action dialogs */}
+      {canEdit && (
+        <>
+          <EditTicketDialog
+            open={editOpen}
+            onOpenChange={setEditOpen}
+            ticket={ticket}
+            onDone={refetch}
+          />
+          <ChangeStatusDialog
+            open={statusOpen}
+            onOpenChange={setStatusOpen}
+            ticketId={ticket.id}
+            currentStatus={ticket.status}
+            currentWaitingOn={ticket.waiting_on}
+            onDone={refetch}
+          />
+          <AssignDialog
+            open={assignOpen}
+            onOpenChange={setAssignOpen}
+            ticketId={ticket.id}
+            currentAssigneeId={ticket.assignee_id}
+            onDone={refetch}
+          />
+          <CancelTicketDialog
+            open={cancelOpen}
+            onOpenChange={setCancelOpen}
+            ticketId={ticket.id}
+            onDone={refetch}
+          />
+        </>
+      )}
+      {isAdmin && (
+        <DeleteTicketDialog
+          open={deleteOpen}
+          onOpenChange={setDeleteOpen}
+          ticketId={ticket.id}
+          ticketNumber={ticket.ticket_number}
+          onDone={() => navigate("/tickets")}
+        />
+      )}
+
       {/* Workflow management dialogs */}
       {!hasWorkflow && (
         <AddWorkflowDialog
           open={addWfOpen}
           onOpenChange={setAddWfOpen}
           ticketId={ticket.id}
-          onDone={refetchTicket}
+          onDone={refetch}
         />
       )}
       {hasWorkflow && ticket.workflow_key && (
@@ -509,7 +597,7 @@ export default function TicketDetail() {
             ticketId={ticket.id}
             currentWorkflowKey={ticket.workflow_key as WorkflowKey}
             currentStepStatusMap={stepStatusMap}
-            onDone={refetchTicket}
+            onDone={refetch}
             onSwitchToRemove={() => setRemoveWfOpen(true)}
           />
           <RemoveWorkflowDialog
@@ -517,7 +605,7 @@ export default function TicketDetail() {
             onOpenChange={setRemoveWfOpen}
             ticketId={ticket.id}
             workflowKey={ticket.workflow_key as WorkflowKey}
-            onDone={refetchTicket}
+            onDone={refetch}
           />
         </>
       )}
@@ -586,6 +674,7 @@ function describeEvent(e: EventRow, personName: (id: string | null) => string | 
     case "cost_approval_approved": return `Cost approval approved`;
     case "cost_approval_rejected": return `Cost approval rejected`;
     case "reopened": return `Reopened`;
+    case "note": return e.description ?? "Note added";
     default: return e.description ?? e.event_type;
   }
 }
