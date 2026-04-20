@@ -257,6 +257,12 @@ export async function duplicateContract(contractId: string): Promise<string> {
     }
   }
 
+  // Lease child — copy structural fields, reset transactional state, no cheques.
+  if (src.contract_type === "lease") {
+    const { duplicateLeaseExtras } = await import("@/lib/leases");
+    await duplicateLeaseExtras({ sourceContractId: contractId, newContractId: newId });
+  }
+
   // Parties
   const { data: parties } = await supabase
     .from("contract_parties")
