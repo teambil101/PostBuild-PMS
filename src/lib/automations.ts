@@ -43,15 +43,29 @@ function renewalPriority(days: number): "urgent" | "high" | "medium" {
   return "medium";
 }
 
+interface AutoTicketBase {
+  subject: string;
+  description: string;
+  ticket_type: string;
+  priority: string;
+  status: string;
+  target_entity_type: string;
+  target_entity_id: string;
+  due_date?: string | null;
+  is_system_generated: boolean;
+  created_by: string | null;
+  system_dedup_key: string;
+}
+
 /** Insert a ticket with retry on ticket_number unique-violation (sequence drift). */
 async function insertTicketWithRetry(
-  base: Record<string, unknown>,
+  base: AutoTicketBase,
 ): Promise<{ id: string } | null> {
   for (let attempt = 0; attempt < 5; attempt++) {
     const ticket_number = await nextTicketNumber();
     const { data, error } = await supabase
       .from("tickets")
-      .insert({ ...base, ticket_number })
+      .insert({ ticket_number, ...base })
       .select("id")
       .maybeSingle();
     if (!error && data) return data as { id: string };
