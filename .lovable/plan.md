@@ -1,66 +1,67 @@
 
-## True Build — Property Management Platform (v1 Foundation)
 
-A studio-refined, AI-ready property management platform. We start with a rock-solid foundation: the app shell, design system, and the two backbone modules — **Properties** and **People** — built in parallel since they reference each other. Automation (n8n) and AI come in later passes once the core is bug-free.
+# Merge Leads into People
 
----
+Goal: collapse the **Leads** sidebar module into **People**. Every lead is anchored to a person with role `prospect`; the pipeline kanban becomes a tab on `/people`. Lead detail pages survive (the pipeline state is too rich to inline). The **Module count drops from 10 → 9** and the mental model becomes: *one directory of humans, with a pipeline view of those humans we're trying to win*.
 
-### Scope of this build
+## What changes for the user
 
-**1. Design system & app shell**
-- Implement DESIGN.md tokens as the foundation (we'll refine specifics together as we go):
-  - Colors: Architect Black `#2E2C29`, Chalk White `#F8F6F3`, Brushed Gold `#C3A575`, Warm Stone `#D6CFC4`, True Taupe `#A89E92`, Smoked Bronze `#645D52`
-  - Typography: Cormorant Garamond (display/headings), Inter (UI/body), IBM Plex Mono (reference codes & IDs)
-  - Buttons: 2px radius, uppercase tracking on labels; Primary (black), Gold (CTA), Ghost, Danger
-  - Cards: chalk white, 1px Warm Stone border, 4px Brushed Gold left border on hover/active — no shadows
-- Persistent left sidebar (Architect Black, never collapses on desktop) with the 8 modules listed; only Properties + People are active in v1, others are visible-but-disabled placeholders so the architecture is visible from day one
-- Top bar with breadcrumb, global search field (UI only for now), and user menu
-- 1200px max content width, 1.5rem gutter
-- Empty states, loading skeletons, and toast notifications styled to the system
+- `/people` gains two top-level tabs: **Directory** (current list) and **Pipeline** (current kanban + filter bar + KPIs).
+- Sidebar **Leads** entry is removed. **People** icon stays.
+- A person with role `prospect` shows a small "In pipeline" chip in the directory and a "View pipeline" button on their detail page.
+- Anywhere a lead is opened today (`/leads/:id`), the URL still works — that detail page stays untouched.
+- `/leads` and `/leads/:id` keep redirecting/working so existing bookmarks and emails don't break (`/leads` → `/people?tab=pipeline`).
+- The **Leads tab on a person's detail page** is renamed **Pipeline** for consistency, with a "+ New lead for this person" affordance.
 
-**2. Properties module (full v1 — all four scope items)**
-- **Buildings + Units hierarchy**: create/edit buildings; nest units under each building; basic specs (size, beds/baths, type, floor)
-- **Photos & documents**: per-property image gallery and document storage (floor plans, certificates, inspection reports)
-- **Status & availability tracking**: Vacant / Occupied / Under Maintenance / Off-Market with timestamped status history
-- **Map / location view**: geocoded addresses, portfolio-wide map browsing, click pin → property detail
-- Property reference codes (e.g. `MZK001`) rendered in IBM Plex Mono
-- List view, grid view, and detail view per property; filters by status, type, building
+## Structure after merge
 
-**3. People module (v1)**
-- Unified people directory: tenants, owners, prospects, staff, vendors-as-people
-- Profile per person: contact info, role tags, linked properties/units, notes, document attachments, activity timeline
-- Cross-link with Properties (e.g. "Occupant of Unit 3B")
-- Search and filter by role, property association, status
+```text
+Sidebar
+├─ Dashboard
+├─ Properties
+├─ People                       ← merged module
+│   ├─ tab: Directory           (existing /people content)
+│   └─ tab: Pipeline            (existing /leads content)
+├─ Contracts
+├─ Lease Lifecycle
+├─ Tickets & Workflows
+├─ Vendors
+├─ Services
+└─ Settings
+```
 
-**4. Data foundation (Lovable Cloud)**
-- Tables: `buildings`, `units`, `property_documents`, `property_status_history`, `people`, `people_property_links`, `people_documents`
-- Storage buckets for property photos and documents (with RLS)
-- Auth (email + password) with a `user_roles` table (admin / staff / viewer) using a security-definer `has_role()` function — roles never on the profile table
-- RLS on every table from day one
+## Implementation outline
 
-**5. Module shell for the rest** (placeholders, not built)
-- Contracts, CRM/Lease lifecycle, Tickets & Workflows, Dashboards, Vendors, Services appear in the sidebar with "Coming soon" pages so the platform shape is visible
+1. **`src/lib/modules.ts`** — remove the `leads` entry. People label stays; description updated to mention prospects.
+2. **`src/pages/People.tsx`** — wrap current body in a `Tabs` (Directory | Pipeline). URL state via `?tab=pipeline`. Pipeline tab renders the existing `LeadsKanban` + filter bar + KPIs lifted from `Leads.tsx`. Add a "+ New lead" action when on Pipeline tab; "+ New person" when on Directory.
+3. **Lift, don't rewrite** — extract the Leads page body into two reusable pieces:
+   - `src/components/people/PipelineView.tsx` — KPIs + filter bar + kanban/table toggle (the entire current `Leads.tsx` minus `PageHeader`).
+   - Keeps URL params (`q`, `status`, `assignee`, `source`, `closeFrom`, `closeTo`, `stuck`) — fully backward-compatible.
+4. **`src/pages/Leads.tsx`** — replaced with a one-liner `<Navigate to="/people?tab=pipeline" replace />` so old links still land somewhere sensible.
+5. **`src/App.tsx`** — keep the `/leads/:leadId` route pointing at `LeadDetail` (no change needed; URL stays as it is — refactoring it to `/people/pipeline/:leadId` is out of scope and would break existing tickets and dashboard drill-downs that link to `/leads/:id`).
+6. **`NewLeadDialog`** — when launched from a person's detail page, pre-fill `primary_contact_id` (already supported via the `defaultPersonId` prop pattern used elsewhere; verify and wire).
+7. **`src/pages/PersonDetail.tsx`** — rename the existing "Leads" tab to "Pipeline" and add a small "+ New lead" button in that tab's header.
+8. **`AppShell`** active-link logic** — `/people` and `/people?tab=pipeline` and any `/leads/*` route all highlight the People sidebar item.
+9. **Dashboard / cross-references** — the Overview tab's "Active leads" / "Weighted pipeline" KPIs and any drill-down links currently pointing at `/leads` get updated to `/people?tab=pipeline`. Lead detail links unchanged.
+10. **Docs** — update `LEADS.md` header note and `DASHBOARDS.md` to reflect the new home; no schema changes.
 
----
+## What does NOT change
 
-### Deliberately deferred (next passes)
+- Database schema. `leads`, `lead_events`, biconditional on `won_contract_id`, all triggers, RPCs, RLS — untouched.
+- Lead detail page (`/leads/:id`) — too much UI specific to pipeline state; embedding inside a person tab would be a regression.
+- The conversion ritual (Mark Contract Signed → management agreement wizard) — unchanged.
+- Aging-lead T3a sweep, kanban drag-drop, lost-reason dialog — all preserved.
 
-- n8n workflow integration (will wire via webhooks + edge functions when we move to the automation pass)
-- AI features (property descriptions, document Q&A, smart status suggestions)
-- Contracts module (#3)
-- CRM / Lease lifecycle (#4)
-- Tickets & Workflows automation engine (#5)
-- Dashboards / Homepages (#6)
-- Vendors module (#7)
-- Services module (#8)
+## Risks & mitigations
 
----
+- **People page becomes a 2-mode page.** Mitigation: tabs are URL-driven, so deep links keep working; default tab is Directory.
+- **People without `prospect` role appearing in the kanban.** Not possible — the kanban reads from the `leads` table, not from `people`. Role is a directory concern only.
+- **Dashboard drill-downs.** A grep pass on `/leads` string literals catches them; the redirect on `/leads` is a safety net.
+- **People page perf with kanban mounted.** Mitigation: lazy-render Pipeline tab content (only fetch leads when the tab is opened).
 
-### Working principles for this project
+## Files touched
 
-- **Bug-free first**: every feature ships with proper empty/loading/error states, validated forms, and tested flows before we move on
-- **One module at a time** after this foundation — we won't touch Contracts until Properties + People feel polished
-- **Design refinement is iterative**: DESIGN.md is the base; we'll tune spacing, density, and component behavior as real screens come together
-- **Architecture-ready for automation**: data model, edge functions, and event hooks designed now so n8n + AI slot in cleanly later
+- Edit: `src/lib/modules.ts`, `src/pages/People.tsx`, `src/pages/Leads.tsx` (becomes redirect), `src/pages/PersonDetail.tsx`, `src/components/AppShell.tsx`, `src/pages/Dashboard.tsx`, `LEADS.md`, `DASHBOARDS.md`
+- Create: `src/components/people/PipelineView.tsx` (extracted from `Leads.tsx`)
+- Untouched: all `src/components/leads/**`, `src/lib/leads.ts`, `LeadDetail.tsx`, all migrations
 
-After approval I'll set up Lovable Cloud (auth, database, storage), build the design system + shell, then Properties and People in parallel.
