@@ -174,13 +174,49 @@ export function LeaseOverviewBlocks({ lease, currency, tenant, unit, editable, o
       </div>
 
       <Section title="Ejari registration">
-        {lease.ejari_number ? (
+        {editingEjari ? (
           <div className="flex items-center gap-2">
-            <Building2 className="h-4 w-4 text-true-taupe" strokeWidth={1.5} />
-            <span className="text-sm text-architect mono">{lease.ejari_number}</span>
+            <Input
+              autoFocus
+              value={ejariDraft}
+              onChange={(e) => setEjariDraft(e.target.value.slice(0, 60))}
+              placeholder="Ejari contract number"
+              className="h-9 mono text-sm"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void saveEjari();
+                if (e.key === "Escape") cancelEditEjari();
+              }}
+            />
+            <Button size="icon" variant="ghost" onClick={saveEjari} disabled={savingEjari} title="Save">
+              {savingEjari ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+            </Button>
+            <Button size="icon" variant="ghost" onClick={cancelEditEjari} disabled={savingEjari} title="Cancel">
+              <X className="h-4 w-4" />
+            </Button>
           </div>
         ) : (
-          <div className="text-sm text-muted-foreground italic">Not registered yet.</div>
+          <div className="flex items-center gap-2 flex-wrap">
+            {lease.ejari_number ? (
+              <>
+                <Building2 className="h-4 w-4 text-true-taupe" strokeWidth={1.5} />
+                <span className="text-sm text-architect mono">{lease.ejari_number}</span>
+              </>
+            ) : (
+              <span className="text-sm text-muted-foreground italic">Not registered yet.</span>
+            )}
+            {editable && onSaveEjariNumber && (
+              <Button size="sm" variant="ghost" className="h-7 px-2 ml-auto" onClick={startEditEjari}>
+                <Pencil className="h-3.5 w-3.5" />
+                {lease.ejari_number ? "Edit" : "Add number"}
+              </Button>
+            )}
+            {editable && onUploadEjariDoc && (
+              <Button size="sm" variant="ghost" className="h-7 px-2" onClick={onUploadEjariDoc}>
+                <Upload className="h-3.5 w-3.5" />
+                Upload document
+              </Button>
+            )}
+          </div>
         )}
       </Section>
     </>
