@@ -16,67 +16,64 @@ export type Database = {
     Tables: {
       buildings: {
         Row: {
-          address_line1: string | null
-          address_line2: string | null
+          address_formatted: string | null
+          building_type: string
           city: string | null
+          community: string | null
           country: string | null
-          cover_image_url: string | null
           created_at: string
           created_by: string | null
-          description: string | null
           id: string
           latitude: number | null
           longitude: number | null
           name: string
           notes: string | null
+          place_id: string | null
           postal_code: string | null
           ref_code: string
-          state: string | null
-          total_floors: number | null
+          state_region: string | null
+          street: string | null
           updated_at: string
-          year_built: number | null
         }
         Insert: {
-          address_line1?: string | null
-          address_line2?: string | null
+          address_formatted?: string | null
+          building_type?: string
           city?: string | null
+          community?: string | null
           country?: string | null
-          cover_image_url?: string | null
           created_at?: string
           created_by?: string | null
-          description?: string | null
           id?: string
           latitude?: number | null
           longitude?: number | null
           name: string
           notes?: string | null
+          place_id?: string | null
           postal_code?: string | null
           ref_code: string
-          state?: string | null
-          total_floors?: number | null
+          state_region?: string | null
+          street?: string | null
           updated_at?: string
-          year_built?: number | null
         }
         Update: {
-          address_line1?: string | null
-          address_line2?: string | null
+          address_formatted?: string | null
+          building_type?: string
           city?: string | null
+          community?: string | null
           country?: string | null
-          cover_image_url?: string | null
           created_at?: string
           created_by?: string | null
-          description?: string | null
           id?: string
           latitude?: number | null
           longitude?: number | null
           name?: string
           notes?: string | null
+          place_id?: string | null
           postal_code?: string | null
           ref_code?: string
-          state?: string | null
-          total_floors?: number | null
+          state_region?: string | null
+          street?: string | null
           updated_at?: string
-          year_built?: number | null
         }
         Relationships: []
       }
