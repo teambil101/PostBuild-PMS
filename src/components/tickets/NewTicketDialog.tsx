@@ -267,7 +267,10 @@ export function NewTicketDialog({
       }
 
       onOpenChange(false);
-      navigate(`/tickets/${created.id}`);
+      onCreated?.(created.id);
+      if (navigateOnCreate) {
+        navigate(`/tickets/${created.id}`);
+      }
     } catch (e: any) {
       toast.error(e.message ?? "Could not create ticket.");
     } finally {
