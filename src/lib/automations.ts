@@ -538,7 +538,7 @@ export async function processScheduledServices(): Promise<AutomationResult> {
       }
 
       // Patch additional fields not handled by base insert.
-      const patch: Record<string, unknown> = {
+      const patch: { generated_by_schedule_id: string; vendor_id?: string } = {
         generated_by_schedule_id: s.id,
       };
       if (s.auto_assign_vendor) patch.vendor_id = s.vendor_id;
