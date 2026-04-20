@@ -16,63 +16,42 @@ export type Database = {
     Tables: {
       buildings: {
         Row: {
-          address_formatted: string | null
+          address: string
           building_type: string
-          city: string | null
+          city: string
           community: string | null
-          country: string | null
+          country: string
           created_at: string
           created_by: string | null
           id: string
-          latitude: number | null
-          longitude: number | null
           name: string
-          notes: string | null
-          place_id: string | null
-          postal_code: string | null
           ref_code: string
-          state_region: string | null
-          street: string | null
           updated_at: string
         }
         Insert: {
-          address_formatted?: string | null
+          address: string
           building_type?: string
-          city?: string | null
+          city: string
           community?: string | null
-          country?: string | null
+          country?: string
           created_at?: string
           created_by?: string | null
           id?: string
-          latitude?: number | null
-          longitude?: number | null
           name: string
-          notes?: string | null
-          place_id?: string | null
-          postal_code?: string | null
           ref_code: string
-          state_region?: string | null
-          street?: string | null
           updated_at?: string
         }
         Update: {
-          address_formatted?: string | null
+          address?: string
           building_type?: string
-          city?: string | null
+          city?: string
           community?: string | null
-          country?: string | null
+          country?: string
           created_at?: string
           created_by?: string | null
           id?: string
-          latitude?: number | null
-          longitude?: number | null
           name?: string
-          notes?: string | null
-          place_id?: string | null
-          postal_code?: string | null
           ref_code?: string
-          state_region?: string | null
-          street?: string | null
           updated_at?: string
         }
         Relationships: []

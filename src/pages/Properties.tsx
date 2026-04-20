@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Building2, Plus, Map as MapIcon, LayoutGrid, List as ListIcon, Search } from "lucide-react";
+import { Building2, Plus, LayoutGrid, List as ListIcon, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/EmptyState";
 import { useAuth } from "@/contexts/AuthContext";
 import { BuildingFormDialog } from "@/components/properties/BuildingFormDialog";
-import { PortfolioMap } from "@/components/properties/PortfolioMap";
+import { COUNTRY_BY_CODE } from "@/lib/countries";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -16,17 +16,15 @@ interface BuildingRow {
   id: string;
   ref_code: string;
   name: string;
-  city: string | null;
-  country: string | null;
-  address_line1: string | null;
-  latitude: number | null;
-  longitude: number | null;
-  cover_image_url: string | null;
-  total_floors: number | null;
+  city: string;
+  country: string;
+  address: string;
+  community: string | null;
+  building_type: string;
   unit_count?: number;
 }
 
-type View = "grid" | "list" | "map";
+type View = "grid" | "list";
 
 export default function Properties() {
   const { canEdit } = useAuth();
@@ -40,7 +38,7 @@ export default function Properties() {
     setLoading(true);
     const { data, error } = await supabase
       .from("buildings")
-      .select("id, ref_code, name, city, country, address_line1, latitude, longitude, cover_image_url, total_floors, units(id)")
+      .select("id, ref_code, name, city, country, address, community, building_type, units(id)")
       .order("created_at", { ascending: false });
     if (error) {
       toast.error(error.message);
@@ -67,7 +65,8 @@ export default function Properties() {
       (b) =>
         b.name.toLowerCase().includes(q) ||
         b.ref_code.toLowerCase().includes(q) ||
-        (b.city ?? "").toLowerCase().includes(q),
+        (b.city ?? "").toLowerCase().includes(q) ||
+        (b.community ?? "").toLowerCase().includes(q),
     );
   }, [buildings, search]);
 
@@ -91,7 +90,7 @@ export default function Properties() {
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
-            placeholder="Search by name, code, city…"
+            placeholder="Search by name, code, city, community…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="h-10 pl-9"
@@ -102,7 +101,6 @@ export default function Properties() {
           {[
             { v: "grid" as View, icon: LayoutGrid, label: "Grid" },
             { v: "list" as View, icon: ListIcon, label: "List" },
-            { v: "map" as View, icon: MapIcon, label: "Map" },
           ].map((opt) => (
             <button
               key={opt.v}
@@ -139,18 +137,6 @@ export default function Properties() {
             )
           }
         />
-      ) : view === "map" ? (
-        <PortfolioMap
-          markers={filtered
-            .filter((b) => b.latitude && b.longitude)
-            .map((b) => ({
-              id: b.id,
-              lat: Number(b.latitude),
-              lng: Number(b.longitude),
-              name: b.name,
-              ref_code: b.ref_code,
-            }))}
-        />
       ) : view === "grid" ? (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((b) => (
@@ -174,33 +160,26 @@ export default function Properties() {
 }
 
 function BuildingCard({ b }: { b: BuildingRow }) {
+  const location = [b.community, b.city, COUNTRY_BY_CODE[b.country] ?? b.country]
+    .filter(Boolean)
+    .join(" · ");
   return (
     <Link
       to={`/properties/${b.id}`}
       className="editorial-card overflow-hidden flex flex-col group"
     >
-      <div className="aspect-[16/10] bg-muted/60 overflow-hidden relative">
-        {b.cover_image_url ? (
-          <img
-            src={b.cover_image_url}
-            alt={b.name}
-            className="h-full w-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
-          />
-        ) : (
-          <div className="h-full w-full flex items-center justify-center text-true-taupe">
-            <Building2 className="h-10 w-10" strokeWidth={1.2} />
-          </div>
-        )}
+      <div className="aspect-[16/10] bg-muted/60 overflow-hidden relative flex items-center justify-center text-true-taupe">
+        <Building2 className="h-10 w-10" strokeWidth={1.2} />
       </div>
       <div className="p-5 flex-1 flex flex-col">
         <div className="ref-code mb-1.5">{b.ref_code}</div>
         <h3 className="font-display text-xl text-architect leading-tight">{b.name}</h3>
         <div className="text-xs text-muted-foreground mt-1.5">
-          {[b.address_line1, b.city, b.country].filter(Boolean).join(" · ") || "No address"}
+          {location || "No location"}
         </div>
         <div className="mt-auto pt-4 flex items-center justify-between text-[11px] uppercase tracking-wider text-muted-foreground">
           <span>{b.unit_count ?? 0} units</span>
-          <span>{b.total_floors ? `${b.total_floors} floors` : ""}</span>
+          <span>{b.building_type?.replace(/_/g, " ")}</span>
         </div>
       </div>
     </Link>
@@ -215,7 +194,8 @@ function BuildingTable({ rows }: { rows: BuildingRow[] }) {
           <tr className="text-left">
             <th className="px-4 py-3 label-eyebrow">Code</th>
             <th className="px-4 py-3 label-eyebrow">Building</th>
-            <th className="px-4 py-3 label-eyebrow">Location</th>
+            <th className="px-4 py-3 label-eyebrow">Community</th>
+            <th className="px-4 py-3 label-eyebrow">City</th>
             <th className="px-4 py-3 label-eyebrow text-right">Units</th>
           </tr>
         </thead>
@@ -228,8 +208,9 @@ function BuildingTable({ rows }: { rows: BuildingRow[] }) {
                   {b.name}
                 </Link>
               </td>
+              <td className="px-4 py-3 text-muted-foreground">{b.community ?? "—"}</td>
               <td className="px-4 py-3 text-muted-foreground">
-                {[b.city, b.country].filter(Boolean).join(", ") || "—"}
+                {[b.city, COUNTRY_BY_CODE[b.country] ?? b.country].filter(Boolean).join(", ")}
               </td>
               <td className="px-4 py-3 text-right mono text-xs">{b.unit_count ?? 0}</td>
             </tr>
