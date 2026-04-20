@@ -313,8 +313,6 @@ export default function TicketDetail() {
           </TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
         </TabsList>
-      </Tabs>
-      {/* placeholder removed below */}
 
         <TabsContent value="overview" className="space-y-6 pt-6">
           {ticket.description && (
