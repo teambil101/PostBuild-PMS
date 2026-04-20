@@ -122,6 +122,7 @@ export default function ContractDetail() {
   const [addPartyOpen, setAddPartyOpen] = useState(false);
   const [addSubjectOpen, setAddSubjectOpen] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>("overview");
 
   // Inline edit state
   const [editingNotes, setEditingNotes] = useState(false);
