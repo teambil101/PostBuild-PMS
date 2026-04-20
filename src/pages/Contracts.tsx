@@ -14,6 +14,7 @@ import { LeaseWizard } from "@/components/contracts/lease/LeaseWizard";
 import { ContractStatusPill } from "@/components/contracts/StatusPill";
 import { useAuth } from "@/contexts/AuthContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { processSystemAutomations } from "@/lib/automations";
 import {
   CONTRACT_STATUSES, CONTRACT_STATUS_LABELS, type ContractStatus,
   CONTRACT_TYPES, CONTRACT_TYPE_LABELS, type ContractType,
@@ -114,13 +115,8 @@ function ContractsListInner() {
 
   useEffect(() => {
     load();
-    // Lifecycle stopgap: throttle to once per 6h
-    const KEY = "lov_contract_lifecycle_last_run";
-    const last = parseInt(localStorage.getItem(KEY) ?? "0", 10);
-    if (Date.now() - last > 6 * 60 * 60 * 1000) {
-      localStorage.setItem(KEY, String(Date.now()));
-      supabase.rpc("process_contract_lifecycle").then(() => load());
-    }
+    // System automations: throttled 6h sweep (lifecycle + renewals + data gaps).
+    processSystemAutomations().then(() => load());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

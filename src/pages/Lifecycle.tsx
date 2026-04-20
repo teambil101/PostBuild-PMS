@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { processSystemAutomations } from "@/lib/automations";
 import {
   Search,
   RefreshCw,
@@ -97,6 +98,7 @@ export default function LifecyclePage() {
   };
 
   useEffect(() => {
+    void processSystemAutomations();
     load();
   }, []);
 

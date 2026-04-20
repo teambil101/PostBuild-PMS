@@ -306,7 +306,7 @@ export default function TicketDetail() {
                 {isAdmin && <DropdownMenuSeparator />}
               </>
             )}
-            {isAdmin && (
+            {isAdmin && !ticket.is_system_generated && (
               <DropdownMenuItem
                 onSelect={() => setDeleteOpen(true)}
                 className="text-destructive focus:text-destructive"

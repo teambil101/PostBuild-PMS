@@ -1112,6 +1112,7 @@ export type Database = {
           resolved_at: string | null
           status: string
           subject: string
+          system_dedup_key: string | null
           target_entity_id: string
           target_entity_type: string
           ticket_number: string
@@ -1145,6 +1146,7 @@ export type Database = {
           resolved_at?: string | null
           status?: string
           subject: string
+          system_dedup_key?: string | null
           target_entity_id: string
           target_entity_type: string
           ticket_number: string
@@ -1178,6 +1180,7 @@ export type Database = {
           resolved_at?: string | null
           status?: string
           subject?: string
+          system_dedup_key?: string | null
           target_entity_id?: string
           target_entity_type?: string
           ticket_number?: string
