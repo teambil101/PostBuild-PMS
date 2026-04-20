@@ -579,6 +579,58 @@ export function UnitFormDialog({
               {errors.description && <p className={errorClass}>{errors.description}</p>}
             </div>
 
+            {/* Attach files (only on create) */}
+            {!initial?.id && (
+              <Collapsible open={attachOpen} onOpenChange={setAttachOpen} className="border hairline rounded-sm">
+                <CollapsibleTrigger asChild>
+                  <button
+                    type="button"
+                    className="w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-muted/30"
+                  >
+                    <span className="flex items-center gap-2 text-sm text-architect">
+                      <Paperclip className="h-3.5 w-3.5 text-true-taupe" />
+                      Attach files (optional)
+                      {pendingFiles.length > 0 && (
+                        <span className="text-[11px] text-muted-foreground">
+                          · {pendingFiles.length} selected
+                        </span>
+                      )}
+                    </span>
+                    <ChevronDown className={cn("h-3.5 w-3.5 text-true-taupe transition-transform", attachOpen && "rotate-180")} />
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="px-3 pb-3 space-y-3">
+                  <FileDropZone
+                    accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/plain"
+                    onFiles={(files) => setPendingFiles((prev) => [...prev, ...files])}
+                    compact
+                    helperText="Photos and documents will be attached to this unit. You can add more later."
+                  />
+                  {pendingFiles.length > 0 && (
+                    <ul className="space-y-1.5">
+                      {pendingFiles.map((f, i) => (
+                        <li key={i} className="flex items-center gap-2 text-xs px-2 py-1.5 bg-muted/30 rounded-sm">
+                          {isPhotoMime(f.type)
+                            ? <ImageIcon className="h-3.5 w-3.5 text-true-taupe shrink-0" />
+                            : <FileText className="h-3.5 w-3.5 text-true-taupe shrink-0" />}
+                          <span className="truncate flex-1 text-architect">{f.name}</span>
+                          <span className="text-muted-foreground mono">{formatBytes(f.size)}</span>
+                          <button
+                            type="button"
+                            onClick={() => setPendingFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                            className="h-5 w-5 flex items-center justify-center text-true-taupe hover:text-destructive"
+                            aria-label={`Remove ${f.name}`}
+                          >
+                            <XIcon className="h-3 w-3" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </CollapsibleContent>
+              </Collapsible>
+            )}
+
             <div className="flex justify-end gap-2 pt-4 mt-2">
               <Button type="button" variant="ghost" onClick={() => handleOpenChange(false)}>
                 Cancel
