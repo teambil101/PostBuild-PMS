@@ -439,18 +439,29 @@ export default function ContractDetail() {
         <SummaryCard label="Type">
           <div className="text-sm text-architect">{CONTRACT_TYPE_LABELS[contract.contract_type]}</div>
         </SummaryCard>
-        <SummaryCard label="Fee / Value">
-          <div className="text-sm text-architect">
-            {ma ? formatContractValue(ma.fee_model as any, ma.fee_value, ma.fee_applies_to, contract.currency) : "—"}
-          </div>
-        </SummaryCard>
-        <SummaryCard label="Subjects">
-          <div className="text-sm text-architect">{subjects.length} {subjects.length === 1 ? "property" : "properties"}</div>
-        </SummaryCard>
-        <SummaryCard label="Period">
-          <div className="text-xs text-architect">{summarizePeriod(contract.start_date, contract.end_date)}</div>
-          {contract.auto_renew && <div className="text-[10px] mono uppercase text-gold-deep mt-1">Auto-renew</div>}
-        </SummaryCard>
+        {contract.contract_type === "lease" && lease ? (
+          <LeaseSummaryCards
+            leaseId={lease.id}
+            annualRent={Number(lease.annual_rent)}
+            currency={contract.currency}
+            tenant={leaseTenant}
+          />
+        ) : (
+          <>
+            <SummaryCard label="Fee / Value">
+              <div className="text-sm text-architect">
+                {ma ? formatContractValue(ma.fee_model as any, ma.fee_value, ma.fee_applies_to, contract.currency) : "—"}
+              </div>
+            </SummaryCard>
+            <SummaryCard label="Subjects">
+              <div className="text-sm text-architect">{subjects.length} {subjects.length === 1 ? "property" : "properties"}</div>
+            </SummaryCard>
+            <SummaryCard label="Period">
+              <div className="text-xs text-architect">{summarizePeriod(contract.start_date, contract.end_date)}</div>
+              {contract.auto_renew && <div className="text-[10px] mono uppercase text-gold-deep mt-1">Auto-renew</div>}
+            </SummaryCard>
+          </>
+        )}
       </div>
 
       {/* Tabs */}
