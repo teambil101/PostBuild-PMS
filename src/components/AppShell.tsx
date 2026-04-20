@@ -151,7 +151,15 @@ export function AppShell({ children }: AppShellProps) {
 
         {/* Content */}
         <main className="flex-1 overflow-x-hidden">
-          <div className="mx-auto max-w-[1200px] px-6 lg:px-10 py-8 lg:py-12 animate-fade-in">
+          <div
+            className={cn(
+              "mx-auto px-6 lg:px-10 py-8 lg:py-12 animate-fade-in",
+              // Lifecycle uses a 6-column kanban that needs more breathing room
+              location.pathname.startsWith("/lifecycle")
+                ? "max-w-[1800px]"
+                : "max-w-[1200px]",
+            )}
+          >
             {children}
           </div>
         </main>
