@@ -1118,6 +1118,7 @@ export type Database = {
           ticket_number: string
           ticket_type: string
           updated_at: string
+          vendor_id: string | null
           waiting_on: string | null
           workflow_key: string | null
         }
@@ -1152,6 +1153,7 @@ export type Database = {
           ticket_number: string
           ticket_type: string
           updated_at?: string
+          vendor_id?: string | null
           waiting_on?: string | null
           workflow_key?: string | null
         }
@@ -1186,6 +1188,7 @@ export type Database = {
           ticket_number?: string
           ticket_type?: string
           updated_at?: string
+          vendor_id?: string | null
           waiting_on?: string | null
           workflow_key?: string | null
         }
@@ -1216,6 +1219,13 @@ export type Database = {
             columns: ["reporter_id"]
             isOneToOne: false
             referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
         ]
