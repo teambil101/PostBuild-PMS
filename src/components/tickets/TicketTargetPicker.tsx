@@ -288,5 +288,42 @@ async function searchTargets(
         };
       });
     }
+    case "vendor": {
+      let qb = supabase
+        .from("vendors")
+        .select("id, legal_name, display_name, vendor_number")
+        .order("legal_name")
+        .limit(20);
+      if (term) {
+        qb = qb.or(
+          `legal_name.ilike.%${term}%,display_name.ilike.%${term}%,vendor_number.ilike.%${term}%`,
+        );
+      }
+      const { data } = await qb;
+      return (data ?? []).map((v: any) => ({
+        id: v.id,
+        label: `${v.display_name || v.legal_name} · ${v.vendor_number}`,
+      }));
+    }
+    case "lead": {
+      let qb = supabase
+        .from("leads")
+        .select(
+          "id, lead_number, status, primary_contact_id, people:primary_contact_id(first_name, last_name, company)",
+        )
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (term) qb = qb.ilike("lead_number", `%${term}%`);
+      const { data } = await qb;
+      return (data ?? []).map((l: any) => {
+        const p = l.people;
+        const name = p ? `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim() : "(no contact)";
+        return {
+          id: l.id,
+          label: `${name} · ${l.lead_number}`,
+          sublabel: p?.company ?? l.status,
+        };
+      });
+    }
   }
 }
