@@ -162,7 +162,8 @@ export function AppShell({ children }: AppShellProps) {
             className={cn(
               "mx-auto px-6 lg:px-10 py-8 lg:py-12 animate-fade-in",
               // Lifecycle uses a 6-column kanban that needs more breathing room
-              location.pathname.startsWith("/lifecycle")
+              location.pathname.startsWith("/lifecycle") ||
+                location.pathname.startsWith("/people")
                 ? "max-w-[1800px]"
                 : "max-w-[1200px]",
             )}
