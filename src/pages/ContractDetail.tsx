@@ -7,7 +7,6 @@ import { ContractStatusPill } from "@/components/contracts/StatusPill";
 import { DocumentList } from "@/components/attachments/DocumentList";
 import { NotesPanel } from "@/components/notes/NotesPanel";
 import { ManagementAgreementWizard } from "@/components/contracts/ManagementAgreementWizard";
-import { LeaseWizard } from "@/components/contracts/lease/LeaseWizard";
 import { LeaseSummaryCards } from "@/components/contracts/lease/LeaseSummaryCards";
 import { LeaseOverviewBlocks } from "@/components/contracts/lease/LeaseOverviewBlocks";
 import { ChequesTab } from "@/components/contracts/lease/ChequesTab";
