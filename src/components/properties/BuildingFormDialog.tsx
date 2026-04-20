@@ -72,7 +72,7 @@ export function BuildingFormDialog({ open, onOpenChange, onSaved, initial }: Pro
   const nameRef = useRef<HTMLInputElement>(null);
   const typeRef = useRef<HTMLButtonElement>(null);
   const communityRef = useRef<HTMLDivElement>(null);
-  const addressRef = useRef<HTMLTextAreaElement>(null);
+  const addressRef = useRef<HTMLDivElement>(null);
   const cityRef = useRef<HTMLDivElement>(null);
   const countryRef = useRef<HTMLButtonElement>(null);
 
