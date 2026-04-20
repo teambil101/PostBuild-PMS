@@ -100,8 +100,8 @@ export function BuildingFormDialog({ open, onOpenChange, onSaved, initial }: Pro
     if (form.community.trim().length > 80) {
       e.community = "Community must be 80 characters or fewer.";
     }
-    if (form.address.trim().length < 3) {
-      e.address = "Address is required (min 3 characters).";
+    if (form.location_url.trim().length > 0 && !/^https?:\/\//i.test(form.location_url.trim())) {
+      e.location_url = "Must start with http:// or https://";
     }
     if (form.city.trim().length === 0) {
       e.city = "City is required.";
@@ -117,11 +117,11 @@ export function BuildingFormDialog({ open, onOpenChange, onSaved, initial }: Pro
       name: nameRef.current,
       building_type: typeRef.current,
       community: communityRef.current,
-      address: addressRef.current,
+      location_url: addressRef.current,
       city: cityRef.current,
       country: countryRef.current,
     };
-    const order: (keyof FormState)[] = ["name", "building_type", "community", "address", "city", "country"];
+    const order: (keyof FormState)[] = ["name", "building_type", "community", "location_url", "city", "country"];
     const first = order.find((k) => e[k]);
     if (!first) return;
     const el = map[first];
@@ -144,11 +144,7 @@ export function BuildingFormDialog({ open, onOpenChange, onSaved, initial }: Pro
       name: form.name.trim(),
       building_type: form.building_type,
       community: form.community.trim() || null,
-      address: form.address.trim(),
-      address_formatted: form.address.trim(),
-      latitude: form.latitude,
-      longitude: form.longitude,
-      place_id: form.place_id,
+      location_url: form.location_url.trim() || null,
       city: form.city.trim(),
       country: form.country,
     };
