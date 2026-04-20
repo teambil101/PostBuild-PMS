@@ -308,6 +308,7 @@ export async function processSystemAutomations(force = false): Promise<void> {
       supabase.rpc("process_contract_lifecycle"),
       detectExpiringLeases(),
       detectDataGaps(),
+      detectVendorComplianceExpiry(),
     ]);
   } catch (e) {
     console.warn("[automations] sweep failed", e);
