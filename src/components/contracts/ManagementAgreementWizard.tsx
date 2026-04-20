@@ -23,6 +23,10 @@ import { cn } from "@/lib/utils";
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  /** When provided, the wizard runs in edit mode against this contract id. */
+  editContractId?: string;
+  /** Called after a successful create or save. Receives the contract id. */
+  onSaved?: (contractId: string) => void;
 }
 
 interface SelfPerson {
@@ -83,12 +87,22 @@ function addYears(iso: string, years: number) {
   return d.toISOString().slice(0, 10);
 }
 
-export function ManagementAgreementWizard({ open, onOpenChange }: Props) {
+export function ManagementAgreementWizard({ open, onOpenChange, editContractId, onSaved }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [self, setSelf] = useState<SelfPerson | null>(null);
   const [selfLoading, setSelfLoading] = useState(true);
+  const [confirmActiveEditOpen, setConfirmActiveEditOpen] = useState(false);
+  const [originalSnapshot, setOriginalSnapshot] = useState<{
+    status: string;
+    feeModel: string;
+    feeValue: number;
+    startDate: string | null;
+    endDate: string | null;
+  } | null>(null);
+
+  const isEdit = !!editContractId;
 
   const [form, setForm] = useState<FormState>(() => ({
     landlord: null,
