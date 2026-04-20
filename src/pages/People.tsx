@@ -25,6 +25,7 @@ interface Person {
   city: string | null;
   is_active: boolean;
   avatar_url: string | null;
+  owns_count?: number;
 }
 
 const ROLE_FILTERS = [
@@ -46,12 +47,23 @@ export default function People() {
 
   const load = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("people")
-      .select("id, ref_code, first_name, last_name, email, phone, roles, company, city, is_active, avatar_url")
-      .order("created_at", { ascending: false });
-    if (error) toast.error(error.message);
-    setPeople((data ?? []) as Person[]);
+    const [pp, oo] = await Promise.all([
+      supabase
+        .from("people")
+        .select("id, ref_code, first_name, last_name, email, phone, roles, company, city, is_active, avatar_url")
+        .order("created_at", { ascending: false }),
+      supabase.from("property_owners").select("person_id"),
+    ]);
+    if (pp.error) toast.error(pp.error.message);
+    const ownsMap = new Map<string, number>();
+    (oo.data ?? []).forEach((r: any) => {
+      ownsMap.set(r.person_id, (ownsMap.get(r.person_id) ?? 0) + 1);
+    });
+    const merged = ((pp.data ?? []) as Person[]).map((p) => ({
+      ...p,
+      owns_count: ownsMap.get(p.id) ?? 0,
+    }));
+    setPeople(merged);
     setLoading(false);
   };
 
@@ -155,6 +167,11 @@ export default function People() {
               </div>
               <div className="hidden md:flex items-center gap-1.5 flex-wrap shrink-0 max-w-[260px] justify-end">
                 {p.roles?.map((r) => <PersonRoleBadge key={r} role={r as any} />)}
+                {p.owns_count && p.owns_count > 0 ? (
+                  <span className="inline-block px-2 py-0.5 rounded-sm border border-gold/40 bg-gold/15 text-smoked-bronze text-[10px] uppercase tracking-wider font-medium">
+                    Owner ({p.owns_count})
+                  </span>
+                ) : null}
               </div>
             </Link>
           ))}
