@@ -466,3 +466,108 @@ Use this checklist when introducing a new value:
 
 *Last updated: T1 shipped — schema, triggers, helpers, and this
 document. Next: T2 — UI layer (list, detail, tabs on entity pages).*
+
+---
+
+## 11. Workflows (T2c)
+
+A ticket can optionally carry a **workflow** — a structured sequence
+of stages and steps that guides the work to completion. Workflows
+are pure scaffolding: they don't change ticket status semantics, they
+add a checklist on top.
+
+### 11.1 Concept
+
+- `tickets.workflow_key` (nullable) — the workflow attached to this
+  ticket, if any.
+- `tickets.current_stage_key` (nullable) — denormalised pointer to
+  the active stage. Cleared when the workflow finishes.
+- Both null → simple ticket, no workflow.
+- Both set → workflow active.
+- `workflow_key` set with `current_stage_key` null → workflow
+  finished; the ticket may still be open and accepting work, but
+  every stage is complete.
+
+### 11.2 Data model
+
+- `ticket_workflow_stages` — one row per (ticket, stage). Tracks
+  status (`pending` / `in_progress` / `complete` / `skipped`),
+  timestamps, completer.
+- `ticket_workflow_steps` — one row per (ticket, stage, step). Same
+  status triplet plus an optional note.
+- A partial unique index ensures **only one stage per ticket can be
+  `in_progress`** at a time.
+- `stage_label`, `step_label`, and `step_description` are
+  **snapshotted** at initialization. If we change the wording in
+  `src/lib/workflows.ts` later, in-flight tickets keep their
+  original copy. New tickets pick up the new copy. To migrate an
+  old ticket onto the new definition, call
+  `change_ticket_workflow`.
+
+### 11.3 Config location
+
+All workflow definitions live in `src/lib/workflows.ts`:
+
+- `WORKFLOWS` — the catalogue, keyed by `WorkflowKey`.
+- `DEFAULT_WORKFLOW_BY_TYPE` — suggests a workflow per ticket_type
+  (e.g. `request_renewal` → `lease_renewal`).
+- `getDefaultWorkflow(ticketType)` — returns the suggested workflow
+  or null.
+- `workflowToStagesPayload(w)` — flattens a workflow into the
+  jsonb shape the RPCs expect.
+- `preservedStepKeys(from, to)` — intersection of step keys, used
+  when switching workflows so progress on shared steps carries over.
+
+This is hardcoded in TS rather than stored in a `workflow_templates`
+table. That's a deliberate trade-off: workflows are part of product
+behaviour, not user data. They're versioned with the codebase and
+reviewed in PRs. A future `workflow_templates` table is possible but
+not warranted at this scale.
+
+### 11.4 Engine RPCs
+
+All multi-row mutations go through `SECURITY DEFINER` RPCs so the
+event log and transactional guarantees stay consistent. The app
+**never writes to `ticket_workflow_stages` or `ticket_workflow_steps`
+directly**.
+
+| RPC | Purpose |
+|-----|---------|
+| `initialize_ticket_workflow(ticket, key, stages)` | Set up stages + steps, mark first stage in_progress. |
+| `complete_ticket_step(ticket, stage, step, note?)` | Mark a step complete. Does not auto-advance the stage. |
+| `uncomplete_ticket_step(ticket, stage, step)` | Revert a complete step to pending. Allowed only inside the active stage. |
+| `skip_ticket_step(ticket, stage, step, reason)` | Skip an optional step. Required steps cannot be skipped. |
+| `advance_ticket_stage(ticket)` | Move to the next stage. Errors if any required step in the current stage is still pending. |
+| `change_ticket_workflow(ticket, new_key, new_stages, preserved_keys)` | Swap workflow. App computes `preserved_keys` via `preservedStepKeys()`. |
+| `remove_ticket_workflow(ticket)` | Strip the workflow entirely. |
+| `get_ticket_workflow_summary(ticket)` | Read-only summary for UI. |
+
+### 11.5 Why advance_stage doesn't auto-resolve the ticket
+
+Some workflows (e.g. `move_in`) finish but the ticket may still
+have follow-ups. Auto-resolving would force the user to re-open the
+ticket to handle the long tail. Resolution stays an explicit user
+action.
+
+### 11.6 Adding a new workflow — checklist
+
+1. Add the new value to `WorkflowKey` in `src/lib/workflows.ts`.
+2. Define the `Workflow` object and add it to `WORKFLOWS`.
+3. (Optional) Add a default in `DEFAULT_WORKFLOW_BY_TYPE`.
+4. **No schema changes required.**
+5. Existing tickets on other workflows are unaffected.
+
+### 11.7 Step-key convention
+
+Use descriptive, namespace-like keys (`outreach_initial`,
+`doc_sign_tenant`). To enable progress preservation across workflow
+switches, **reuse the same `step_key`** in different workflows for
+conceptually identical steps. For example, `prearrival_ejari`
+(move_in) and `activation_ejari` (lease_renewal) are different
+because the contexts differ; if you want progress to carry over,
+unify the keys.
+
+---
+
+_Last updated: T2c shipped — workflow infrastructure (schema, config,
+engine RPCs). Next: T2d — workflow UI on ticket detail page._
