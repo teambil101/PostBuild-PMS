@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Mail, Phone, Building2, Pencil, Trash2, FileText, Upload } from "lucide-react";
+import { ArrowLeft, Mail, Phone, Building2, Pencil, Trash2, FileText, Upload, Star, Home } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/PageHeader";
@@ -12,6 +12,7 @@ import { initials } from "@/lib/format";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { fetchOwnershipsByPerson, OwnedProperty } from "@/lib/ownership";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -24,15 +25,17 @@ export default function PersonDetail() {
 
   const [person, setPerson] = useState<any>(null);
   const [docs, setDocs] = useState<any[]>([]);
+  const [ownerships, setOwnerships] = useState<OwnedProperty[]>([]);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
     setLoading(true);
-    const [p, d] = await Promise.all([
+    const [p, d, ow] = await Promise.all([
       supabase.from("people").select("*").eq("id", id).maybeSingle(),
       supabase.from("people_documents").select("*").eq("person_id", id).order("created_at", { ascending: false }),
+      fetchOwnershipsByPerson(id),
     ]);
     if (p.error || !p.data) {
       toast.error("Person not found.");
@@ -41,6 +44,7 @@ export default function PersonDetail() {
     }
     setPerson(p.data);
     setDocs(d.data ?? []);
+    setOwnerships(ow);
     setLoading(false);
   }, [id, navigate]);
 
@@ -168,10 +172,81 @@ export default function PersonDetail() {
         </TabsList>
 
         <TabsContent value="ownership" className="pt-6">
-          <EmptyState
-            title="Ownership view rebuilding"
-            description="The new derived ownership view ships in the next pass. Properties owned by this person will appear here automatically."
-          />
+          {ownerships.length === 0 ? (
+            <EmptyState
+              icon={<Building2 className="h-8 w-8" strokeWidth={1.2} />}
+              title="No properties owned"
+              description="This person doesn't own any properties in the system. Ownership is added from the property side."
+            />
+          ) : (
+            <div className="space-y-6">
+              {ownerships.some((o) => o.entity_type === "building") && (
+                <div>
+                  <div className="label-eyebrow mb-3">Buildings owned</div>
+                  <div className="border hairline rounded-sm divide-y divide-warm-stone/60 bg-card">
+                    {ownerships.filter((o) => o.entity_type === "building").map((o) => (
+                      <Link
+                        key={o.id}
+                        to={`/properties/${o.entity_id}`}
+                        className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors"
+                      >
+                        <Building2 className="h-4 w-4 text-true-taupe shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-baseline gap-3">
+                            <span className="font-display text-base text-architect truncate">
+                              {o.building?.name ?? "Unnamed building"}
+                            </span>
+                            <span className="ref-code">{o.building?.ref_code}</span>
+                          </div>
+                        </div>
+                        {o.is_primary && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm bg-gold/15 text-gold-deep text-[10px] uppercase tracking-wider">
+                            <Star className="h-3 w-3 fill-current" /> Primary
+                          </span>
+                        )}
+                        <span className="font-display text-base text-architect tabular-nums shrink-0">
+                          {Number(o.ownership_percentage).toString().replace(/\.?0+$/, "")}%
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {ownerships.some((o) => o.entity_type === "unit") && (
+                <div>
+                  <div className="label-eyebrow mb-3">Units owned</div>
+                  <div className="border hairline rounded-sm divide-y divide-warm-stone/60 bg-card">
+                    {ownerships.filter((o) => o.entity_type === "unit").map((o) => (
+                      <Link
+                        key={o.id}
+                        to={o.unit ? `/properties/${o.unit.building_id}/units/${o.entity_id}` : "#"}
+                        className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors"
+                      >
+                        <Home className="h-4 w-4 text-true-taupe shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-baseline gap-3">
+                            <span className="font-display text-base text-architect truncate">
+                              Unit {o.unit?.unit_number}
+                            </span>
+                            <span className="ref-code">{o.unit?.ref_code}</span>
+                          </div>
+                        </div>
+                        {o.is_primary && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm bg-gold/15 text-gold-deep text-[10px] uppercase tracking-wider">
+                            <Star className="h-3 w-3 fill-current" /> Primary
+                          </span>
+                        )}
+                        <span className="font-display text-base text-architect tabular-nums shrink-0">
+                          {Number(o.ownership_percentage).toString().replace(/\.?0+$/, "")}%
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="tenancy" className="pt-6">
