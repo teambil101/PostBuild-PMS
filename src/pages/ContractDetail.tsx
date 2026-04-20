@@ -305,6 +305,24 @@ export default function ContractDetail() {
     reloadAll();
   };
 
+  const saveEjariNumber = async (value: string | null) => {
+    if (!lease) return;
+    const prev = lease.ejari_number;
+    const { error } = await supabase
+      .from("leases" as never)
+      .update({ ejari_number: value, updated_at: new Date().toISOString() } as never)
+      .eq("contract_id" as never, contract.id as never);
+    if (error) { toast.error(error.message); throw error; }
+    await logEvent(
+      "amended",
+      value ? `Ejari number set to ${value}` : "Ejari number cleared",
+      prev ?? undefined,
+      value ?? undefined,
+    );
+    toast.success("Ejari registration saved.");
+    reloadAll();
+  };
+
   const handleAutoRenewToggle = (next: boolean) => {
     if (isActive) {
       setPendingAutoRenew(next);
