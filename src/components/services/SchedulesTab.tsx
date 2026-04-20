@@ -54,7 +54,7 @@ export function SchedulesTab({ filter, canEdit, onCountChange }: Props) {
 
       {rows.length === 0 ? (
         <EmptyState
-          icon={CalendarClock}
+          icon={<CalendarClock className="h-10 w-10" strokeWidth={1.25} />}
           title="No service schedules"
           description="Recurring services trigger tickets automatically. Create one to get started."
           action={canEdit ? <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> New schedule</Button> : undefined}
