@@ -101,6 +101,28 @@ export function formatCompact(n: number | null | undefined): string {
   return new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(n);
 }
 
+/** Compact currency formatter ("AED 1.2M") — used in big KPI numbers where a full
+ *  currency string would overflow the card. */
+export function formatCurrencyCompact(
+  n: number | null | undefined,
+  currency = "USD",
+): string {
+  if (n === null || n === undefined) return "—";
+  if (Math.abs(n) < 1000) {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 0,
+    }).format(n);
+  }
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(n);
+}
+
 /** Days from today to a yyyy-mm-dd date string. Negative = overdue. */
 export function daysUntil(date: string | null | undefined): number | null {
   if (!date) return null;

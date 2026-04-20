@@ -15,6 +15,7 @@ import {
   attentionScoreTone,
   daysUntil,
   formatCompact,
+  formatCurrencyCompact,
   type ManagementDashboard,
   type OperationsDashboard,
 } from "@/lib/dashboard";
@@ -435,7 +436,7 @@ function OverviewTab() {
   return (
     <div className="space-y-10">
       {/* KPI strip — 8 cards */}
-      <section className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-8 gap-4">
+      <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         <KpiCard
           label="Units Managed"
           value={formatCompact(kpis.units_managed.total)}
@@ -451,14 +452,14 @@ function OverviewTab() {
         />
         <KpiCard
           label="Annual Rent Roll"
-          value={formatCurrency(kpis.annualized_rent_roll.amount, kpis.annualized_rent_roll.currency)}
+          value={formatCurrencyCompact(kpis.annualized_rent_roll.amount, kpis.annualized_rent_roll.currency)}
           delta={kpis.annualized_rent_roll.delta}
-          formatDelta={(n) => formatCurrency(n, kpis.annualized_rent_roll.currency)}
+          formatDelta={(n) => formatCurrencyCompact(n, kpis.annualized_rent_roll.currency)}
           subtitle={`${kpis.active_leases.total} active leases`}
         />
         <KpiCard
           label="Annual PM Fees"
-          value={formatCurrency(kpis.annualized_pm_fees.amount, kpis.annualized_pm_fees.currency)}
+          value={formatCurrencyCompact(kpis.annualized_pm_fees.amount, kpis.annualized_pm_fees.currency)}
           subtitle={`${kpis.annualized_pm_fees.active_agreements} agreements`}
         />
         <KpiCard
@@ -482,7 +483,7 @@ function OverviewTab() {
         />
         <KpiCard
           label="Weighted Pipeline"
-          value={formatCurrency(kpis.weighted_pipeline_value.amount, kpis.weighted_pipeline_value.currency)}
+          value={formatCurrencyCompact(kpis.weighted_pipeline_value.amount, kpis.weighted_pipeline_value.currency)}
           subtitle="Expected fee value"
           to="/leads"
         />
