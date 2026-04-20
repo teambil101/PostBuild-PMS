@@ -491,6 +491,30 @@ export function NewTicketDialog({
             </div>
           </div>
 
+          {/* Vendor */}
+          <div className="space-y-1.5">
+            <Label>Vendor (optional)</Label>
+            {presetVendor ? (
+              <div className="flex items-center gap-2 border hairline rounded-sm bg-muted/30 px-3 py-2 text-sm">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">vendor</span>
+                <span className="text-architect truncate">{presetVendor.vendor_label}</span>
+              </div>
+            ) : (
+              <VendorPicker
+                value={vendor?.id ?? null}
+                onChange={setVendor}
+                filterSpecialty={isMaintenance ? maintenanceTypeToSpecialty(type) : null}
+                allowClear
+              />
+            )}
+            {(presetVendor || vendor) && workflowKey === "__none" && (
+              <p className="text-[11px] text-muted-foreground flex items-start gap-1.5">
+                <Info className="h-3 w-3 mt-0.5 shrink-0" />
+                <span>Assigning a vendor will start the Vendor Dispatch workflow after creation.</span>
+              </p>
+            )}
+          </div>
+
           <div className="space-y-1.5">
             <Label>Due date</Label>
             <div className="flex flex-wrap items-center gap-2">
