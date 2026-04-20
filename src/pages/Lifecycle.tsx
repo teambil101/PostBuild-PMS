@@ -76,13 +76,6 @@ export default function LifecyclePage() {
   const stageRefs = useRef<Record<LifecycleStage, HTMLDivElement | null>>({
     vacant: null, not_ready: null, in_signing: null, active: null, ending_soon: null, recently_ended: null,
   });
-  const attentionRefs = useRef<{ expiring: HTMLDivElement | null; overdue: HTMLDivElement | null; gaps: HTMLDivElement | null }>({
-    expiring: null, overdue: null, gaps: null,
-  });
-
-  // Cheque action dialogs
-  const [depositCheque, setDepositCheque] = useState<LifecycleCheque | null>(null);
-  const [bounceCheque, setBounceCheque] = useState<LifecycleCheque | null>(null);
 
   const load = async () => {
     setLoading(true);
