@@ -1,6 +1,6 @@
 # Leads
 
-_Last updated: L2 shipped — kanban, conversion ritual, aging-lead automation._
+_Last updated: Leads merged into the People module — pipeline now lives at `/people?tab=pipeline`. Lead detail pages remain at `/leads/:id` for now (legacy URLs redirect to People → Pipeline)._
 
 ## 1. Purpose
 

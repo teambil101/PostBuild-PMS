@@ -129,12 +129,12 @@ function MyWorkTab() {
       <EmptyState
         icon={<Users className="h-10 w-10" strokeWidth={1.2} />}
         title="Link your account to a person record"
-        description="Your login isn't linked to a person record in the system. The My Work dashboard needs this link to surface your tickets, leads, and cheques. Ask an admin to link your account in Settings → Team Members."
+        description="Your login isn't linked to a person record in the system. The My Work dashboard needs this link to surface your tickets, leads, and cheques. Ask an admin to open your profile in People and link your account there."
         action={
           isAdmin ? (
-            <Button variant="gold" onClick={() => navigate("/settings")}>
+            <Button variant="gold" onClick={() => navigate("/people")}>
               <SettingsIcon className="h-4 w-4 mr-1.5" />
-              Open Team Members
+              Open People
             </Button>
           ) : undefined
         }
@@ -172,7 +172,7 @@ function MyWorkTab() {
               {kpis.my_leads.stuck} stage-stuck
             </span>
           }
-          to="/leads"
+          to="/people?tab=pipeline"
         />
         <KpiCard
           label="Awaiting My Response"
@@ -270,7 +270,7 @@ function MyWorkTab() {
         <QueueCard
           title="My Leads — Follow-up"
           count={queues.my_leads_follow_up.length}
-          viewAllTo="/leads"
+          viewAllTo="/people?tab=pipeline"
           emptyMessage="No leads needing follow-up."
         >
           <Table>
@@ -396,7 +396,7 @@ function MyWorkTab() {
           </Link>
         </Button>
         <Button asChild variant="outline" size="sm">
-          <Link to="/leads">
+          <Link to="/people?tab=pipeline">
             <Plus className="h-4 w-4" />
             New lead
           </Link>
@@ -485,7 +485,7 @@ function OverviewTab() {
           label="Weighted Pipeline"
           value={formatCurrencyCompact(kpis.weighted_pipeline_value.amount, kpis.weighted_pipeline_value.currency)}
           subtitle="Expected fee value"
-          to="/leads"
+          to="/people?tab=pipeline"
         />
         <KpiCard
           label="Attention Score"
@@ -540,7 +540,7 @@ function OverviewTab() {
                 : "Pipeline moving"
             }
             topItems={a.stuck_leads.top_5}
-            viewAllTo="/leads"
+            viewAllTo="/people?tab=pipeline"
             tone={a.stuck_leads.count > 0 ? "warn" : "ok"}
           />
           <AttentionCard
