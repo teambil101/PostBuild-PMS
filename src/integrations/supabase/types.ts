@@ -762,6 +762,7 @@ export type Database = {
       people: {
         Row: {
           address: string | null
+          auth_user_id: string | null
           authorized_signatory_name: string | null
           authorized_signatory_title: string | null
           avatar_url: string | null
@@ -789,6 +790,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          auth_user_id?: string | null
           authorized_signatory_name?: string | null
           authorized_signatory_title?: string | null
           avatar_url?: string | null
@@ -816,6 +818,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          auth_user_id?: string | null
           authorized_signatory_name?: string | null
           authorized_signatory_title?: string | null
           avatar_url?: string | null
@@ -1520,6 +1523,7 @@ export type Database = {
           reporter_id: string | null
           resolved_at: string | null
           status: string
+          status_changed_at: string | null
           subject: string
           system_dedup_key: string | null
           target_entity_id: string
@@ -1556,6 +1560,7 @@ export type Database = {
           reporter_id?: string | null
           resolved_at?: string | null
           status?: string
+          status_changed_at?: string | null
           subject: string
           system_dedup_key?: string | null
           target_entity_id: string
@@ -1592,6 +1597,7 @@ export type Database = {
           reporter_id?: string | null
           resolved_at?: string | null
           status?: string
+          status_changed_at?: string | null
           subject?: string
           system_dedup_key?: string | null
           target_entity_id?: string
@@ -2107,10 +2113,13 @@ export type Database = {
         }
         Returns: undefined
       }
+      current_user_person_id: { Args: never; Returns: string }
       get_applicable_repair_threshold: {
         Args: { p_entity_id: string; p_entity_type: string }
         Returns: number
       }
+      get_management_dashboard: { Args: never; Returns: Json }
+      get_operations_dashboard: { Args: never; Returns: Json }
       get_ticket_workflow_summary: {
         Args: { p_ticket_id: string }
         Returns: Json
