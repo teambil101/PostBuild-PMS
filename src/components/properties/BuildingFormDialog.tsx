@@ -7,7 +7,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ComboboxFree } from "@/components/ui/combobox-free";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,7 +14,6 @@ import { toast } from "sonner";
 import { newBuildingCode } from "@/lib/refcode";
 import { BUILDING_TYPES, COUNTRIES, UAE_CITIES, UAE_COMMUNITIES } from "@/lib/countries";
 import { cn } from "@/lib/utils";
-import { PlacesAutocomplete, type PlaceResult } from "@/components/properties/PlacesAutocomplete";
 
 interface Props {
   open: boolean;
@@ -28,36 +26,27 @@ interface FormState {
   name: string;
   building_type: string;
   community: string;
-  address: string;
+  location_url: string;
   city: string;
   country: string; // ISO-2
-  latitude: number | null;
-  longitude: number | null;
-  place_id: string | null;
 }
 
 const emptyForm = (): FormState => ({
   name: "",
   building_type: "residential_tower",
   community: "",
-  address: "",
+  location_url: "",
   city: "Dubai",
   country: "AE",
-  latitude: null,
-  longitude: null,
-  place_id: null,
 });
 
 const fromInitial = (i: any): FormState => ({
   name: i?.name ?? "",
   building_type: i?.building_type ?? "residential_tower",
   community: i?.community ?? "",
-  address: i?.address_formatted ?? i?.address ?? "",
+  location_url: i?.location_url ?? "",
   city: i?.city ?? "Dubai",
   country: i?.country ?? "AE",
-  latitude: i?.latitude ?? null,
-  longitude: i?.longitude ?? null,
-  place_id: i?.place_id ?? null,
 });
 
 type Errors = Partial<Record<keyof FormState, string>>;
@@ -111,8 +100,8 @@ export function BuildingFormDialog({ open, onOpenChange, onSaved, initial }: Pro
     if (form.community.trim().length > 80) {
       e.community = "Community must be 80 characters or fewer.";
     }
-    if (form.address.trim().length < 3) {
-      e.address = "Address is required (min 3 characters).";
+    if (form.location_url.trim().length > 0 && !/^https?:\/\//i.test(form.location_url.trim())) {
+      e.location_url = "Must start with http:// or https://";
     }
     if (form.city.trim().length === 0) {
       e.city = "City is required.";
@@ -128,11 +117,11 @@ export function BuildingFormDialog({ open, onOpenChange, onSaved, initial }: Pro
       name: nameRef.current,
       building_type: typeRef.current,
       community: communityRef.current,
-      address: addressRef.current,
+      location_url: addressRef.current,
       city: cityRef.current,
       country: countryRef.current,
     };
-    const order: (keyof FormState)[] = ["name", "building_type", "community", "address", "city", "country"];
+    const order: (keyof FormState)[] = ["name", "building_type", "community", "location_url", "city", "country"];
     const first = order.find((k) => e[k]);
     if (!first) return;
     const el = map[first];
@@ -155,11 +144,7 @@ export function BuildingFormDialog({ open, onOpenChange, onSaved, initial }: Pro
       name: form.name.trim(),
       building_type: form.building_type,
       community: form.community.trim() || null,
-      address: form.address.trim(),
-      address_formatted: form.address.trim(),
-      latitude: form.latitude,
-      longitude: form.longitude,
-      place_id: form.place_id,
+      location_url: form.location_url.trim() || null,
       city: form.city.trim(),
       country: form.country,
     };
@@ -265,40 +250,27 @@ export function BuildingFormDialog({ open, onOpenChange, onSaved, initial }: Pro
               {errors.community && <p className={errorClass}>{errors.community}</p>}
             </div>
 
-            {/* Address */}
+            {/* Location URL */}
             <div>
-              <Label htmlFor="b-address" className={labelClass}>
-                Location <span className="text-destructive">*</span>
+              <Label htmlFor="b-location-url" className={labelClass}>
+                Location URL
               </Label>
               <div ref={addressRef} className="mt-1.5">
-                <PlacesAutocomplete
-                  id="b-address"
-                  value={form.address}
-                  onChange={(v) => set("address", v)}
-                  countryBias={form.country ? [form.country.toLowerCase()] : ["ae"]}
-                  placeholder="Search a building, street, or landmark"
-                  invalid={!!errors.address}
-                  onPlaceSelected={(p) => {
-                    setForm((f) => ({
-                      ...f,
-                      address: p.address_formatted,
-                      latitude: p.latitude,
-                      longitude: p.longitude,
-                      place_id: p.place_id,
-                      city: p.city ?? f.city,
-                      country: p.country ?? f.country,
-                      community: p.community ?? f.community,
-                    }));
-                    setErrors((e) => ({ ...e, address: undefined, city: undefined, country: undefined }));
-                  }}
+                <Input
+                  id="b-location-url"
+                  type="url"
+                  inputMode="url"
+                  value={form.location_url}
+                  onChange={(e) => set("location_url", e.target.value)}
+                  placeholder="https://maps.google.com/..."
+                  className={cn(errors.location_url && "border-destructive")}
+                  aria-invalid={!!errors.location_url}
                 />
               </div>
-              {form.latitude != null && form.longitude != null && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  Pinned: {form.latitude.toFixed(5)}, {form.longitude.toFixed(5)}
-                </p>
-              )}
-              {errors.address && <p className={errorClass}>{errors.address}</p>}
+              <p className="text-xs text-muted-foreground mt-1">
+                Optional. Paste a Google Maps, Apple Maps, or what3words link.
+              </p>
+              {errors.location_url && <p className={errorClass}>{errors.location_url}</p>}
             </div>
 
             {/* City */}

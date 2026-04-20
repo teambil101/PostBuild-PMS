@@ -22,7 +22,7 @@ interface Building {
   id: string;
   ref_code: string;
   name: string;
-  address: string;
+  location_url: string | null;
   city: string;
   country: string;
   building_type: string;
@@ -161,7 +161,7 @@ export default function PropertyDetail() {
       <PageHeader
         eyebrow={`Building · ${building.ref_code}`}
         title={building.name}
-        description={building.address}
+        description={building.location_url ?? undefined}
         actions={
           canEdit && (
             <>
