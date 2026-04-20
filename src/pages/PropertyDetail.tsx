@@ -317,6 +317,15 @@ export default function PropertyDetail() {
           />
         </TabsContent>
 
+        {/* NOTES */}
+        <TabsContent value="notes" className="pt-6">
+          <NotesPanel
+            entityType="building"
+            entityId={building.id}
+            onCountChange={setNoteCount}
+          />
+        </TabsContent>
+
         {/* HISTORY */}
         <TabsContent value="history" className="pt-6">
           <div className="label-eyebrow mb-4">Status history</div>
