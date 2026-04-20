@@ -57,12 +57,16 @@ export function AssignVendorDialog({
   currentVendorLabel,
   currentWorkflowKey,
   costApprovalStatus,
+  targetEntityType,
+  targetEntityId,
   onDone,
 }: Props) {
   const { user } = useAuth();
   const [picked, setPicked] = useState<PickedVendor | null>(null);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+  const [hasAgreement, setHasAgreement] = useState<boolean | null>(null);
+  const [createSaOpen, setCreateSaOpen] = useState(false);
 
   const specialty = useMemo(() => maintenanceTypeToSpecialty(ticketType), [ticketType]);
   const isChange = Boolean(currentVendorId);
@@ -87,6 +91,30 @@ export function AssignVendorDialog({
 
   const willInitWorkflow =
     !currentWorkflowKey && (newVendorId !== null);
+
+  // Soft-precondition: when picking a vendor for a unit-targeted ticket,
+  // check whether an active service agreement covers vendor + property.
+  useEffect(() => {
+    setHasAgreement(null);
+    if (!open) return;
+    if (!newVendorId || removeRequested) return;
+    if (targetEntityType !== "unit" || !targetEntityId) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase.rpc(
+        "has_active_service_agreement_for_vendor_and_unit",
+        { p_unit_id: targetEntityId, p_vendor_id: newVendorId } as any,
+      );
+      if (!cancelled && !error) setHasAgreement(Boolean(data));
+    })();
+    return () => { cancelled = true; };
+  }, [open, newVendorId, removeRequested, targetEntityType, targetEntityId]);
+
+  const showAgreementWarning =
+    hasAgreement === false &&
+    newVendorId !== null &&
+    !removeRequested &&
+    targetEntityType === "unit";
 
   const handleSubmit = async () => {
     setBusy(true);
