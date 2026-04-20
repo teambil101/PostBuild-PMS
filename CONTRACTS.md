@@ -344,6 +344,100 @@ one doesn't change any other table.
 
 ---
 
+## 12b. Worked Example: `leases` (Second Reference Subtype)
+
+Adds two layers on top of the base CTI pattern: a child table
+(`leases`) for type-specific fields, and a **grandchild** table
+(`lease_cheques`) for the rent payment schedule.
+
+### Child & grandchild tables
+
+`leases` (1:1 with `contracts`):
+- `annual_rent`, `payment_frequency` (`1_cheque` / `2_cheques` / `4_cheques` / `6_cheques` / `12_cheques` / `custom`)
+- `first_cheque_date`
+- `security_deposit_amount`, `security_deposit_status`, `security_deposit_notes`
+- `commission_amount`, `commission_payer` (tenant/landlord/split), `commission_status` (pending/paid)
+- `ejari_number`
+
+`lease_cheques` (N per lease):
+- `sequence_number` (unique per lease, gaps allowed after regeneration)
+- `amount`, `due_date`
+- `cheque_number`, `bank_name` (filled when physical cheques are collected)
+- `status` (`pending` → `deposited` → `cleared`, with `bounced` / `returned` / `replaced` branches)
+- `deposited_on`, `cleared_on`, `bounced_on`, `bounce_reason`
+- `replacement_cheque_id` (self-FK — points the bounced cheque to its replacement)
+
+### Allowed roles
+
+`getAllowedPartyRoles('lease')` returns `landlord`, `tenant`, `broker`,
+`guarantor`, `other`. **The PM company is intentionally NOT a party** —
+the lease is between landlord and tenant. The PM's authority derives
+from the active management agreement covering the unit.
+
+### Number prefix
+
+`LSE` (e.g., `LSE-2026-0001`). Independent counter from `CTR` —
+separate row in `number_sequences`.
+
+### Wizard
+
+`LeaseWizard` (4 steps): (1) tenant + landlord + period, (2) rent +
+cheque schedule, (3) deposit + commission, (4) docs + review.
+Auto-fills landlord from `resolveUnitOwners()`. Cheque schedule
+auto-generated from `generateChequeSchedule()` (in `src/lib/leases.ts`)
+for fixed frequencies; `custom` requires manual rows.
+
+### Detail page
+
+Adds a **Cheques tab** between Documents and Notes with per-cheque
+status actions (mark deposited / cleared / bounced / returned, replace).
+Summary cards swap to lease-relevant metrics: rent (annual + monthly),
+next cheque due, tenant.
+
+### Triggers (lease-specific)
+
+1. **`sync_unit_status_on_lease_state_change`** — fires on
+   `contracts.status` change when `contract_type='lease'`. On `→ active`,
+   sets the unit's status to `occupied` and `status_locked_by_lease_id`
+   to the lease's contract id. On `active → expired/terminated/cancelled`,
+   reverts the unit to `vacant` and clears the lock (only if THIS lease
+   set it — defensive against races).
+
+2. **`check_no_overlapping_active_lease`** — DB-level integrity backstop.
+   Fires before activating a lease; raises `ERRCODE='P0001'` if another
+   active lease covers the same unit on overlapping dates. Wizard mirrors
+   this check at Step 1 advance for friendly UX; trigger ensures DB
+   consistency even if the wizard is bypassed.
+
+### Precondition: management agreement must cover the unit
+
+Soft-block (warning + override) when creating a lease on a unit not
+covered by an active management agreement. The RPC
+`has_active_mgmt_agreement_for_unit(unit_id)` returns true if any
+active management agreement subjects the unit directly OR its building.
+If the user proceeds without one, a `contract_events` note is logged on
+the new lease so the gap is auditable.
+
+### Duplicate flow
+
+The base contract duplicate clones the `contracts` row, parties, and
+subjects. `duplicateLeaseExtras()` then inserts a fresh `leases` row
+copying structural fields (annual_rent, payment_frequency,
+first_cheque_date, deposit/commission amounts) but resetting
+transactional state (statuses → pending, ejari_number → null).
+**Cheques are NOT cloned** — the wizard auto-generates a fresh
+schedule when the user sets dates and advances to Step 2.
+
+### Convention: subtype-specific preconditions
+
+The mgmt-agreement precondition for leases is the first example of a
+**dependency precondition**. Future subtypes that have similar gating
+(e.g., a brokerage agreement might require a valid trade license)
+should follow the same pattern: a SECURITY DEFINER RPC that returns
+a boolean, soft-block in the UI, audit log on override.
+
+---
+
 ## 13. Deferred Subtypes (Roadmap)
 
 ### `leases` — **shipped (Pass B)**. See §12b below for the worked example.
