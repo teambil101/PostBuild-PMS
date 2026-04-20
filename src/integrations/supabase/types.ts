@@ -1361,6 +1361,200 @@ export type Database = {
         }
         Relationships: []
       }
+      vendor_contacts: {
+        Row: {
+          created_at: string
+          id: string
+          is_primary: boolean
+          notes: string | null
+          person_id: string
+          role: string
+          vendor_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          notes?: string | null
+          person_id: string
+          role?: string
+          vendor_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          notes?: string | null
+          person_id?: string
+          role?: string
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_contacts_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_contacts_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendor_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          description: string | null
+          event_type: string
+          from_value: string | null
+          id: string
+          to_value: string | null
+          vendor_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          description?: string | null
+          event_type: string
+          from_value?: string | null
+          id?: string
+          to_value?: string | null
+          vendor_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          description?: string | null
+          event_type?: string
+          from_value?: string | null
+          id?: string
+          to_value?: string | null
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_events_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendors: {
+        Row: {
+          address: string | null
+          blacklist_reason: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          default_call_out_fee: number | null
+          default_hourly_rate: number | null
+          display_name: string | null
+          id: string
+          insurance_coverage_notes: string | null
+          insurance_expiry_date: string | null
+          insurance_policy_number: string | null
+          insurance_provider: string | null
+          is_preferred: boolean
+          legal_name: string
+          notes: string | null
+          onboarded_at: string | null
+          onboarded_by: string | null
+          primary_email: string | null
+          primary_phone: string | null
+          rate_notes: string | null
+          service_area_notes: string | null
+          specialties: Json
+          specialties_other: string | null
+          status: string
+          trade_license_authority: string | null
+          trade_license_expiry_date: string | null
+          trade_license_number: string | null
+          trn: string | null
+          updated_at: string
+          vendor_number: string
+          vendor_type: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          blacklist_reason?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          default_call_out_fee?: number | null
+          default_hourly_rate?: number | null
+          display_name?: string | null
+          id?: string
+          insurance_coverage_notes?: string | null
+          insurance_expiry_date?: string | null
+          insurance_policy_number?: string | null
+          insurance_provider?: string | null
+          is_preferred?: boolean
+          legal_name: string
+          notes?: string | null
+          onboarded_at?: string | null
+          onboarded_by?: string | null
+          primary_email?: string | null
+          primary_phone?: string | null
+          rate_notes?: string | null
+          service_area_notes?: string | null
+          specialties?: Json
+          specialties_other?: string | null
+          status?: string
+          trade_license_authority?: string | null
+          trade_license_expiry_date?: string | null
+          trade_license_number?: string | null
+          trn?: string | null
+          updated_at?: string
+          vendor_number: string
+          vendor_type: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          blacklist_reason?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          default_call_out_fee?: number | null
+          default_hourly_rate?: number | null
+          display_name?: string | null
+          id?: string
+          insurance_coverage_notes?: string | null
+          insurance_expiry_date?: string | null
+          insurance_policy_number?: string | null
+          insurance_provider?: string | null
+          is_preferred?: boolean
+          legal_name?: string
+          notes?: string | null
+          onboarded_at?: string | null
+          onboarded_by?: string | null
+          primary_email?: string | null
+          primary_phone?: string | null
+          rate_notes?: string | null
+          service_area_notes?: string | null
+          specialties?: Json
+          specialties_other?: string | null
+          status?: string
+          trade_license_authority?: string | null
+          trade_license_expiry_date?: string | null
+          trade_license_number?: string | null
+          trn?: string | null
+          updated_at?: string
+          vendor_number?: string
+          vendor_type?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       units_with_data_gaps: {
