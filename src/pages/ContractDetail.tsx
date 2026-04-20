@@ -7,6 +7,9 @@ import { ContractStatusPill } from "@/components/contracts/StatusPill";
 import { DocumentList } from "@/components/attachments/DocumentList";
 import { NotesPanel } from "@/components/notes/NotesPanel";
 import { ManagementAgreementWizard } from "@/components/contracts/ManagementAgreementWizard";
+import { LeaseSummaryCards } from "@/components/contracts/lease/LeaseSummaryCards";
+import { LeaseOverviewBlocks } from "@/components/contracts/lease/LeaseOverviewBlocks";
+import { ChequesTab } from "@/components/contracts/lease/ChequesTab";
 import { ActivateContractDialog } from "@/components/contracts/dialogs/ActivateContractDialog";
 import { MarkSignedDialog } from "@/components/contracts/dialogs/MarkSignedDialog";
 import { TerminateContractDialog } from "@/components/contracts/dialogs/TerminateContractDialog";
@@ -68,6 +71,21 @@ interface MA {
   scope_of_services_other: string | null;
 }
 
+interface LeaseRow {
+  id: string;
+  contract_id: string;
+  annual_rent: number;
+  payment_frequency: string;
+  first_cheque_date: string | null;
+  security_deposit_amount: number | null;
+  security_deposit_status: string | null;
+  security_deposit_notes: string | null;
+  commission_amount: number | null;
+  commission_payer: string | null;
+  commission_status: string | null;
+  ejari_number: string | null;
+}
+
 interface PartyRow {
   id: string; person_id: string; role: string; is_signatory: boolean; signed_at: string | null;
   person?: { first_name: string; last_name: string; company: string | null };
@@ -87,6 +105,7 @@ export default function ContractDetail() {
   const { contractId } = useParams<{ contractId: string }>();
   const [contract, setContract] = useState<Contract | null>(null);
   const [ma, setMa] = useState<MA | null>(null);
+  const [lease, setLease] = useState<LeaseRow | null>(null);
   const [parties, setParties] = useState<PartyRow[]>([]);
   const [subjects, setSubjects] = useState<SubjectRow[]>([]);
   const [events, setEvents] = useState<EventRow[]>([]);
@@ -121,9 +140,10 @@ export default function ContractDetail() {
   const reloadAll = async () => {
     if (!contractId) return;
     setLoading(true);
-    const [cRes, maRes, pRes, sRes, eRes, settingsRes] = await Promise.all([
+    const [cRes, maRes, lRes, pRes, sRes, eRes, settingsRes] = await Promise.all([
       supabase.from("contracts").select("*").eq("id", contractId).maybeSingle(),
       supabase.from("management_agreements").select("*").eq("contract_id", contractId).maybeSingle(),
+      supabase.from("leases" as never).select("*").eq("contract_id" as never, contractId as never).maybeSingle(),
       supabase
         .from("contract_parties")
         .select("id, person_id, role, is_signatory, signed_at, people(first_name, last_name, company)")
@@ -134,6 +154,7 @@ export default function ContractDetail() {
     ]);
     setContract(cRes.data as Contract | null);
     setMa(maRes.data as MA | null);
+    setLease((lRes.data ?? null) as unknown as LeaseRow | null);
     setParties(((pRes.data ?? []) as any[]).map((p) => ({ ...p, person: p.people })));
     setEvents((eRes.data ?? []) as EventRow[]);
     setSelfPersonId((settingsRes.data?.self_person_id as string) ?? null);
@@ -205,6 +226,18 @@ export default function ContractDetail() {
   const partiesPair = (() => {
     if (parties.length < 2) return parties.map(partyName).join(" ");
     return `${partyName(parties[0])} ↔ ${partyName(parties[1])}`;
+  })();
+
+  // Lease-specific derivations
+  const leaseTenant = (() => {
+    const t = parties.find((p) => p.role === "tenant");
+    return t ? { id: t.person_id, name: partyName(t) } : null;
+  })();
+  const leaseUnit = (() => {
+    const u = subjects.find((s) => s.entity_type === "unit");
+    return u
+      ? { id: u.entity_id, building_id: u.building_id ?? null, label: u.entity_label ?? "(deleted)" }
+      : null;
   })();
 
   const isImmutable = contract.status === "expired" || contract.status === "cancelled";
@@ -417,24 +450,38 @@ export default function ContractDetail() {
         <SummaryCard label="Type">
           <div className="text-sm text-architect">{CONTRACT_TYPE_LABELS[contract.contract_type]}</div>
         </SummaryCard>
-        <SummaryCard label="Fee / Value">
-          <div className="text-sm text-architect">
-            {ma ? formatContractValue(ma.fee_model as any, ma.fee_value, ma.fee_applies_to, contract.currency) : "—"}
-          </div>
-        </SummaryCard>
-        <SummaryCard label="Subjects">
-          <div className="text-sm text-architect">{subjects.length} {subjects.length === 1 ? "property" : "properties"}</div>
-        </SummaryCard>
-        <SummaryCard label="Period">
-          <div className="text-xs text-architect">{summarizePeriod(contract.start_date, contract.end_date)}</div>
-          {contract.auto_renew && <div className="text-[10px] mono uppercase text-gold-deep mt-1">Auto-renew</div>}
-        </SummaryCard>
+        {contract.contract_type === "lease" && lease ? (
+          <LeaseSummaryCards
+            leaseId={lease.id}
+            annualRent={Number(lease.annual_rent)}
+            currency={contract.currency}
+            tenant={leaseTenant}
+          />
+        ) : (
+          <>
+            <SummaryCard label="Fee / Value">
+              <div className="text-sm text-architect">
+                {ma ? formatContractValue(ma.fee_model as any, ma.fee_value, ma.fee_applies_to, contract.currency) : "—"}
+              </div>
+            </SummaryCard>
+            <SummaryCard label="Subjects">
+              <div className="text-sm text-architect">{subjects.length} {subjects.length === 1 ? "property" : "properties"}</div>
+            </SummaryCard>
+            <SummaryCard label="Period">
+              <div className="text-xs text-architect">{summarizePeriod(contract.start_date, contract.end_date)}</div>
+              {contract.auto_renew && <div className="text-[10px] mono uppercase text-gold-deep mt-1">Auto-renew</div>}
+            </SummaryCard>
+          </>
+        )}
       </div>
 
       {/* Tabs */}
       <Tabs defaultValue="overview">
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          {contract.contract_type === "lease" && lease && (
+            <TabsTrigger value="cheques">Cheques</TabsTrigger>
+          )}
           <TabsTrigger value="parties">Parties ({parties.length})</TabsTrigger>
           <TabsTrigger value="subjects">Subjects ({subjects.length})</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
@@ -443,7 +490,54 @@ export default function ContractDetail() {
         </TabsList>
 
         <TabsContent value="overview" className="mt-6 space-y-6">
-          {ma ? (
+          {contract.contract_type === "lease" && lease ? (
+            <>
+              <LeaseOverviewBlocks
+                lease={lease as any}
+                currency={contract.currency}
+                tenant={leaseTenant}
+                unit={leaseUnit}
+              />
+              <Section title="Terms">
+                <DL>
+                  <DLRow label="Start" value={contract.start_date ? format(new Date(contract.start_date), "PPP") : "—"} />
+                  <DLRow label="End" value={contract.end_date ? format(new Date(contract.end_date), "PPP") : "—"} />
+                  <DLRow
+                    label="Auto-renew"
+                    value={
+                      canEdit ? (
+                        <Switch checked={contract.auto_renew} onCheckedChange={handleAutoRenewToggle} disabled={isImmutable || isTerminated} />
+                      ) : (contract.auto_renew ? "Yes" : "No")
+                    }
+                  />
+                  <DLRow
+                    label="External reference"
+                    value={
+                      editingExtRef && canEdit ? (
+                        <div className="flex items-center gap-1.5">
+                          <Input value={extRefDraft} onChange={(e) => setExtRefDraft(e.target.value)} className="h-8 w-48" />
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={saveExtRef}><Check className="h-3.5 w-3.5 text-status-occupied" /></Button>
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingExtRef(false)}><X className="h-3.5 w-3.5" /></Button>
+                        </div>
+                      ) : (
+                        <button
+                          className={canEdit && !isImmutable ? "hover:text-gold-deep inline-flex items-center gap-1.5" : ""}
+                          onClick={() => {
+                            if (!canEdit || isImmutable) return;
+                            setExtRefDraft(contract.external_reference ?? "");
+                            setEditingExtRef(true);
+                          }}
+                        >
+                          {contract.external_reference || "—"}
+                          {canEdit && !isImmutable && <Pencil className="h-3 w-3 opacity-50" />}
+                        </button>
+                      )
+                    }
+                  />
+                </DL>
+              </Section>
+            </>
+          ) : ma ? (
             <>
               <Section title="Fee structure">
                 <DL>
@@ -597,6 +691,17 @@ export default function ContractDetail() {
             )}
           </Section>
         </TabsContent>
+
+        {contract.contract_type === "lease" && lease && (
+          <TabsContent value="cheques" className="mt-6">
+            <ChequesTab
+              leaseId={lease.id}
+              contractId={contract.id}
+              currency={contract.currency}
+              canEdit={canEdit && !isImmutable}
+            />
+          </TabsContent>
+        )}
 
         <TabsContent value="parties" className="mt-6 space-y-3">
           {isActive && canEdit && (
@@ -788,6 +893,8 @@ export default function ContractDetail() {
           onSaved={reloadAll}
         />
       )}
+
+      {/* Lease edit mode wizard will be wired in a follow-up pass. */}
 
       <ActivateContractDialog
         open={activateOpen}
