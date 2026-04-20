@@ -250,13 +250,13 @@ export default function TicketDetail() {
           </SummaryCard>
         )}
         {hasWorkflow && (
-        <SummaryCard label="Assignee">
-          {ticket.assignee_id ? (
-            <div className="text-sm text-architect">{personName(ticket.assignee_id)}</div>
-          ) : (
-            <div className="text-sm text-muted-foreground italic">Unassigned</div>
-          )}
-        </SummaryCard>
+          <SummaryCard label="Assignee">
+            {ticket.assignee_id ? (
+              <div className="text-sm text-architect">{personName(ticket.assignee_id)}</div>
+            ) : (
+              <div className="text-sm text-muted-foreground italic">Unassigned</div>
+            )}
+          </SummaryCard>
         )}
         <SummaryCard label="Due date">
           {ticket.due_date ? (
