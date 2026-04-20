@@ -360,6 +360,21 @@ export default function TicketDetail() {
         </SummaryCard>
       </div>
 
+      {hasWorkflow && ticket.workflow_key && (
+        <WorkflowSection
+          ticketId={ticket.id}
+          workflowKey={ticket.workflow_key as WorkflowKey}
+          currentStageKey={ticket.current_stage_key}
+          refreshKey={workflowRefresh}
+          onChanged={() => {
+            setWorkflowRefresh((n) => n + 1);
+            refetchTicket();
+          }}
+          onStepStatusMap={setStepStatusMap}
+          personName={personName}
+        />
+      )}
+
       {/* Tabs */}
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
