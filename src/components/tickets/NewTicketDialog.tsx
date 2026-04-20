@@ -493,7 +493,7 @@ export function NewTicketDialog({
             <Label>
               Target <span className="text-destructive">*</span>
             </Label>
-            {presetTarget ? (
+            {presetTarget && !presetUnlocked && !presetReconciled ? (
               <>
                 <div className="flex items-center gap-2 border hairline rounded-sm bg-muted/30 px-3 py-2 text-sm">
                   <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
@@ -509,11 +509,50 @@ export function NewTicketDialog({
                   </span>
                 </p>
               </>
+            ) : presetTarget && presetReconciled && !presetUnlocked ? (
+              <>
+                <div className="flex items-center gap-2 border hairline rounded-sm bg-muted/30 px-3 py-2 text-sm">
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                    {presetReconciled.used.type}
+                  </span>
+                  <span className="text-architect truncate">{presetReconciled.used.label}</span>
+                </div>
+                <div className="flex items-start gap-2 border border-amber-500/40 bg-amber-500/10 rounded-sm px-3 py-2 text-[11px] text-amber-900">
+                  <Info className="h-3 w-3 mt-0.5 shrink-0 text-amber-700" />
+                  <div className="flex-1">
+                    <span className="text-amber-900">
+                      <strong className="font-medium">{TICKET_TYPE_LABELS[type as TicketType]}</strong>{" "}
+                      tickets target {validTargetTypes.map((t) => TICKET_TARGET_TYPE_LABELS[t].toLowerCase()).join(" / ")}.
+                      Using <strong>{presetReconciled.used.label}</strong> instead of{" "}
+                      <em>{presetReconciled.original.label}</em>.
+                    </span>
+                    <button
+                      type="button"
+                      className="ml-2 underline decoration-amber-600/60 underline-offset-2 hover:decoration-amber-700"
+                      onClick={() => setPresetUnlocked(true)}
+                    >
+                      Change target
+                    </button>
+                  </div>
+                </div>
+              </>
             ) : (
-              <TicketTargetPicker
-                value={target}
-                onChange={(next) => setTarget({ type: next.type, id: next.id })}
-              />
+              <>
+                <TicketTargetPicker
+                  value={target}
+                  onChange={(next) => setTarget({ type: next.type, id: next.id })}
+                  allowedTypes={type ? validTargetTypes : undefined}
+                />
+                {presetMismatchedNoCanonical && type && (
+                  <p className="text-[11px] text-amber-700 flex items-start gap-1.5">
+                    <Info className="h-3 w-3 mt-0.5 shrink-0" />
+                    <span>
+                      {TICKET_TYPE_LABELS[type as TicketType]} requires a{" "}
+                      {validTargetTypes.map((t) => TICKET_TARGET_TYPE_LABELS[t].toLowerCase()).join(" / ")} target. Please pick one.
+                    </span>
+                  </p>
+                )}
+              </>
             )}
           </div>
 
