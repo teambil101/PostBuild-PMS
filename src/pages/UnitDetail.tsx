@@ -16,6 +16,10 @@ import { PhotoGallery } from "@/components/attachments/PhotoGallery";
 import { DocumentList } from "@/components/attachments/DocumentList";
 import { NotesPanel } from "@/components/notes/NotesPanel";
 import { OwnersCard } from "@/components/owners/OwnersCard";
+import { LeaseWizard } from "@/components/contracts/lease/LeaseWizard";
+import { MgmtAgreementPreconditionDialog } from "@/components/contracts/lease/MgmtAgreementPreconditionDialog";
+import { ManagementAgreementWizard } from "@/components/contracts/ManagementAgreementWizard";
+import { hasActiveMgmtAgreementForUnit } from "@/lib/leases";
 import { toast } from "sonner";
 import { format, formatDistanceToNow } from "date-fns";
 import { formatEnumLabel, sqmToSqft } from "@/lib/format";
@@ -72,6 +76,21 @@ export default function UnitDetail() {
   const [confirmText, setConfirmText] = useState("");
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [hasNoOwners, setHasNoOwners] = useState(false);
+  const [preconditionOpen, setPreconditionOpen] = useState(false);
+  const [leaseOpen, setLeaseOpen] = useState(false);
+  const [mgmtOpen, setMgmtOpen] = useState(false);
+  const [overrodePrecondition, setOverrodePrecondition] = useState(false);
+
+  const startLeaseFlow = async () => {
+    if (!unit) return;
+    const ok = await hasActiveMgmtAgreementForUnit(unit.id);
+    if (ok) {
+      setOverrodePrecondition(false);
+      setLeaseOpen(true);
+    } else {
+      setPreconditionOpen(true);
+    }
+  };
 
   const load = useCallback(async () => {
     if (!buildingId || !unitId) return;
@@ -219,7 +238,7 @@ export default function UnitDetail() {
               size="sm"
               variant="outline"
               className="border-amber-600/50 text-amber-900 hover:bg-amber-500/15"
-              onClick={() => toast("Lease creation coming soon")}
+              onClick={startLeaseFlow}
             >
               Add lease details
             </Button>
@@ -296,7 +315,7 @@ export default function UnitDetail() {
             { v: "documents", l: `Documents (${docCount})` },
             { v: "notes", l: `Notes (${noteCount})` },
             { v: "history", l: "Status history" },
-            { v: "lease", l: "Lease", soon: true },
+            { v: "lease", l: "Lease" },
           ].map((t) => (
             <TabsTrigger
               key={t.v}
@@ -304,11 +323,6 @@ export default function UnitDetail() {
               className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-gold rounded-none px-4 py-3 text-xs uppercase tracking-wider"
             >
               {t.l}
-              {t.soon && (
-                <span className="ml-2 text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded-sm normal-case tracking-normal">
-                  Soon
-                </span>
-              )}
             </TabsTrigger>
           ))}
         </TabsList>
@@ -400,8 +414,15 @@ export default function UnitDetail() {
         <TabsContent value="lease" className="pt-6">
           <EmptyState
             icon={<Receipt className="h-8 w-8" strokeWidth={1.2} />}
-            title="Lease details coming soon"
-            description="This is where the active lease, payment schedule, and cheque tracking will live."
+            title="No lease on file for this unit"
+            description="Create a lease to track rent, cheques, deposit, and tenant details."
+            action={
+              canEdit && (
+                <Button variant="gold" onClick={startLeaseFlow}>
+                  + Add lease
+                </Button>
+              )
+            }
           />
         </TabsContent>
       </Tabs>
@@ -417,6 +438,33 @@ export default function UnitDetail() {
           setEditOpen(false);
           load();
         }}
+      />
+
+      {/* Lease entry */}
+      <MgmtAgreementPreconditionDialog
+        open={preconditionOpen}
+        onOpenChange={setPreconditionOpen}
+        onCreateMgmtAgreement={() => {
+          setPreconditionOpen(false);
+          setMgmtOpen(true);
+        }}
+        onProceedAnyway={() => {
+          setPreconditionOpen(false);
+          setOverrodePrecondition(true);
+          setLeaseOpen(true);
+        }}
+      />
+      <LeaseWizard
+        open={leaseOpen}
+        onOpenChange={setLeaseOpen}
+        initialUnitId={unit.id}
+        loggedMissingMgmt={overrodePrecondition}
+        onSaved={() => { setLeaseOpen(false); load(); }}
+      />
+      <ManagementAgreementWizard
+        open={mgmtOpen}
+        onOpenChange={setMgmtOpen}
+        onSaved={() => { setMgmtOpen(false); load(); }}
       />
 
       {/* Type-to-confirm delete */}
