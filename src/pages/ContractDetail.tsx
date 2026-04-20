@@ -236,6 +236,19 @@ export default function ContractDetail() {
         building_id: s.entity_type === "unit" ? uMap.get(s.entity_id)?.building_id : undefined,
       })),
     );
+
+    // Fetch the originating lead, if any (only meaningful for management agreements).
+    if ((cRes.data as Contract | null)?.contract_type === "management_agreement") {
+      const { data: leadRow } = await supabase
+        .from("leads")
+        .select("id, lead_number, won_at")
+        .eq("won_contract_id", contractId)
+        .maybeSingle();
+      setWonFromLead(leadRow ?? null);
+    } else {
+      setWonFromLead(null);
+    }
+
     setLoading(false);
   };
 
