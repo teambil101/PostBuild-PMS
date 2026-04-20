@@ -49,6 +49,8 @@
     /* Semantic palette extensions */
     --gold: 36 36% 62%;               /* Brushed Gold #C3A575 */
     --gold-foreground: 30 8% 17%;
+    --gold-deep: 36 38% 40%;          /* Deep Gold #8B6D41 — AA-safe with white text */
+    --gold-deep-foreground: 0 0% 100%;
     --warm-stone: 36 15% 80%;         /* Warm Stone #D6CFC4 */
     --true-taupe: 30 9% 61%;          /* True Taupe #A89E92 */
     --smoked-bronze: 32 8% 36%;       /* Smoked Bronze #645D52 */

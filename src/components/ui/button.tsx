@@ -10,7 +10,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: "bg-architect text-chalk hover:bg-architect/90",
-        gold: "bg-gold text-architect hover:bg-gold/90",
+        gold: "bg-[hsl(var(--gold-deep))] text-white hover:bg-[hsl(var(--gold-deep))]/90",
         destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
         outline: "border border-architect/80 bg-transparent text-architect hover:bg-architect hover:text-chalk",
         secondary: "bg-warm-stone text-architect hover:bg-warm-stone/80",
