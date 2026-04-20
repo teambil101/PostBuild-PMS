@@ -104,50 +104,6 @@ export default function PropertyDetail() {
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, isImage: boolean) => {
-    if (!e.target.files || !building) return;
-    const files = Array.from(e.target.files);
-    const bucket = isImage ? "property-photos" : "property-docs";
-    for (const file of files) {
-      const path = `${building.id}/${Date.now()}-${file.name}`;
-      const { error: upErr } = await supabase.storage.from(bucket).upload(path, file);
-      if (upErr) {
-        toast.error(`${file.name}: ${upErr.message}`);
-        continue;
-      }
-      const { data: u } = await supabase.auth.getUser();
-      const { error: dbErr } = await supabase.from("property_documents").insert({
-        building_id: building.id,
-        name: file.name,
-        file_path: path,
-        file_size: file.size,
-        mime_type: file.type,
-        is_image: isImage,
-        uploaded_by: u.user?.id,
-      });
-      if (dbErr) toast.error(dbErr.message);
-    }
-    e.target.value = "";
-    toast.success("Upload complete.");
-    load();
-  };
-
-  const handleDeleteFile = async (doc: any) => {
-    const bucket = doc.is_image ? "property-photos" : "property-docs";
-    await supabase.storage.from(bucket).remove([doc.file_path]);
-    const { error } = await supabase.from("property_documents").delete().eq("id", doc.id);
-    if (error) toast.error(error.message);
-    else { toast.success("Deleted."); load(); }
-  };
-
-  const getPhotoUrl = (path: string) =>
-    supabase.storage.from("property-photos").getPublicUrl(path).data.publicUrl;
-
-  const getDocUrl = async (path: string) => {
-    const { data } = await supabase.storage.from("property-docs").createSignedUrl(path, 60);
-    return data?.signedUrl;
-  };
-
   if (loading) {
     return (
       <div className="space-y-4">
@@ -249,8 +205,8 @@ export default function PropertyDetail() {
         <TabsList className="bg-transparent border-b hairline rounded-none w-full justify-start gap-0 h-auto p-0">
           {[
             { v: "units", l: `Units (${units.length})` },
-            { v: "photos", l: `Photos (${photos.length})` },
-            { v: "documents", l: `Documents (${docs.length})` },
+            { v: "photos", l: `Photos (${photoCount})` },
+            { v: "documents", l: `Documents (${docCount})` },
             { v: "history", l: "Status history" },
           ].map((t) => (
             <TabsTrigger
