@@ -129,12 +129,12 @@ function MyWorkTab() {
       <EmptyState
         icon={<Users className="h-10 w-10" strokeWidth={1.2} />}
         title="Link your account to a person record"
-        description="Your login isn't linked to a person record in the system. The My Work dashboard needs this link to surface your tickets, leads, and cheques. Ask an admin to link your account in Settings → Team Members."
+        description="Your login isn't linked to a person record in the system. The My Work dashboard needs this link to surface your tickets, leads, and cheques. Ask an admin to open your profile in People and link your account there."
         action={
           isAdmin ? (
-            <Button variant="gold" onClick={() => navigate("/settings")}>
+            <Button variant="gold" onClick={() => navigate("/people")}>
               <SettingsIcon className="h-4 w-4 mr-1.5" />
-              Open Team Members
+              Open People
             </Button>
           ) : undefined
         }
