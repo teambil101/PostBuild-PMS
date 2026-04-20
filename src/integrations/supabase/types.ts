@@ -1014,6 +1014,149 @@ export type Database = {
           },
         ]
       }
+      service_schedule_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          description: string | null
+          event_type: string
+          from_value: string | null
+          id: string
+          schedule_id: string
+          to_value: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          description?: string | null
+          event_type: string
+          from_value?: string | null
+          id?: string
+          schedule_id: string
+          to_value?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          description?: string | null
+          event_type?: string
+          from_value?: string | null
+          id?: string
+          schedule_id?: string
+          to_value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_schedule_events_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "service_schedules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_schedules: {
+        Row: {
+          auto_assign_vendor: boolean
+          auto_init_workflow: boolean
+          created_at: string
+          created_by: string | null
+          default_priority: string
+          default_ticket_type: string
+          description: string | null
+          end_date: string | null
+          ended_at: string | null
+          frequency: string
+          id: string
+          last_triggered_at: string | null
+          last_triggered_ticket_id: string | null
+          lead_time_days: number
+          name: string
+          next_due_date: string
+          notes: string | null
+          paused_at: string | null
+          paused_reason: string | null
+          service_agreement_id: string | null
+          start_date: string
+          status: string
+          target_entity_id: string
+          target_entity_type: string
+          updated_at: string
+          vendor_id: string
+        }
+        Insert: {
+          auto_assign_vendor?: boolean
+          auto_init_workflow?: boolean
+          created_at?: string
+          created_by?: string | null
+          default_priority?: string
+          default_ticket_type: string
+          description?: string | null
+          end_date?: string | null
+          ended_at?: string | null
+          frequency: string
+          id?: string
+          last_triggered_at?: string | null
+          last_triggered_ticket_id?: string | null
+          lead_time_days?: number
+          name: string
+          next_due_date: string
+          notes?: string | null
+          paused_at?: string | null
+          paused_reason?: string | null
+          service_agreement_id?: string | null
+          start_date: string
+          status?: string
+          target_entity_id: string
+          target_entity_type: string
+          updated_at?: string
+          vendor_id: string
+        }
+        Update: {
+          auto_assign_vendor?: boolean
+          auto_init_workflow?: boolean
+          created_at?: string
+          created_by?: string | null
+          default_priority?: string
+          default_ticket_type?: string
+          description?: string | null
+          end_date?: string | null
+          ended_at?: string | null
+          frequency?: string
+          id?: string
+          last_triggered_at?: string | null
+          last_triggered_ticket_id?: string | null
+          lead_time_days?: number
+          name?: string
+          next_due_date?: string
+          notes?: string | null
+          paused_at?: string | null
+          paused_reason?: string | null
+          service_agreement_id?: string | null
+          start_date?: string
+          status?: string
+          target_entity_id?: string
+          target_entity_type?: string
+          updated_at?: string
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_schedules_service_agreement_id_fkey"
+            columns: ["service_agreement_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_schedules_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ticket_events: {
         Row: {
           actor_id: string | null
@@ -1191,6 +1334,7 @@ export type Database = {
           description: string | null
           due_date: string | null
           estimated_cost: number | null
+          generated_by_schedule_id: string | null
           id: string
           is_system_generated: boolean
           parent_ticket_id: string | null
@@ -1226,6 +1370,7 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           estimated_cost?: number | null
+          generated_by_schedule_id?: string | null
           id?: string
           is_system_generated?: boolean
           parent_ticket_id?: string | null
@@ -1261,6 +1406,7 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           estimated_cost?: number | null
+          generated_by_schedule_id?: string | null
           id?: string
           is_system_generated?: boolean
           parent_ticket_id?: string | null
@@ -1292,6 +1438,13 @@ export type Database = {
             columns: ["cost_approved_by_person_id"]
             isOneToOne: false
             referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_generated_by_schedule_id_fkey"
+            columns: ["generated_by_schedule_id"]
+            isOneToOne: false
+            referencedRelation: "service_schedules"
             referencedColumns: ["id"]
           },
           {

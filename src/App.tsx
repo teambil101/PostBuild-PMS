@@ -23,6 +23,8 @@ import Tickets from "./pages/Tickets";
 import TicketDetail from "./pages/TicketDetail";
 import Vendors from "./pages/Vendors";
 import VendorDetail from "./pages/VendorDetail";
+import Services from "./pages/Services";
+import ServiceDetail from "./pages/ServiceDetail";
 
 const queryClient = new QueryClient();
 
@@ -56,7 +58,8 @@ const App = () => (
             <Route path="/dashboards" element={<Shell><ComingSoon /></Shell>} />
             <Route path="/vendors" element={<Shell><Vendors /></Shell>} />
             <Route path="/vendors/:vendorId" element={<Shell><VendorDetail /></Shell>} />
-            <Route path="/services" element={<Shell><ComingSoon /></Shell>} />
+            <Route path="/services" element={<Shell><Services /></Shell>} />
+            <Route path="/services/:scheduleId" element={<Shell><ServiceDetail /></Shell>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
