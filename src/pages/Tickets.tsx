@@ -335,6 +335,28 @@ export default function TicketsPage() {
             </button>
           ))}
         </div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="label-eyebrow mr-1">Vendor</span>
+          {[
+            { key: "", label: "All" },
+            { key: "any", label: "Assigned" },
+            { key: "none", label: "Unassigned" },
+          ].map((v) => (
+            <button
+              key={v.key || "all"}
+              type="button"
+              onClick={() => updateParam("vendor", v.key || null)}
+              className={cn(
+                "px-2 py-0.5 rounded-sm border text-[10px] uppercase tracking-wider",
+                (vendorFilter || "") === v.key
+                  ? "bg-architect text-chalk border-architect"
+                  : "bg-card text-muted-foreground border-warm-stone hover:bg-muted/40",
+              )}
+            >
+              {v.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Table */}
@@ -375,6 +397,7 @@ export default function TicketsPage() {
                   <ColHeader label="Status" sortKey="status" current={sortKey} onSort={(k) => updateParam("sort", k)} />
                   <th className="px-4 py-3 label-eyebrow">Target</th>
                   <th className="px-4 py-3 label-eyebrow">Assignee</th>
+                  <th className="px-4 py-3 label-eyebrow">Vendor</th>
                   <ColHeader label="Due" sortKey="due" current={sortKey} onSort={(k) => updateParam("sort", k)} />
                   <ColHeader label="Age" sortKey="age" current={sortKey} onSort={(k) => updateParam("sort", k)} />
                 </tr>
@@ -435,6 +458,20 @@ export default function TicketsPage() {
                           <span className="text-architect">{assignee.first_name} {assignee.last_name}</span>
                         ) : (
                           <span className="text-muted-foreground italic">Unassigned</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-xs">
+                        {t.vendor_id && vendors[t.vendor_id] ? (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); navigate(`/vendors/${t.vendor_id}`); }}
+                            className="text-architect hover:underline truncate max-w-[160px] inline-block text-left"
+                            title={vendors[t.vendor_id].display_name || vendors[t.vendor_id].legal_name}
+                          >
+                            {vendors[t.vendor_id].display_name || vendors[t.vendor_id].legal_name}
+                          </button>
+                        ) : (
+                          <span className="text-muted-foreground italic">—</span>
                         )}
                       </td>
                       <td className={cn("px-4 py-3 text-xs whitespace-nowrap", overdue ? "text-destructive font-medium" : "text-muted-foreground")}>
