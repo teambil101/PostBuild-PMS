@@ -131,6 +131,17 @@ export function NewTicketDialog({ open, onOpenChange }: Props) {
 
   const isMaintenance = type.startsWith("maintenance_");
 
+  // When type changes, auto-pick default workflow unless user overrode.
+  useEffect(() => {
+    if (workflowOverridden) return;
+    if (!type) {
+      setWorkflowKey("__none");
+      return;
+    }
+    const def = getDefaultWorkflow(type);
+    setWorkflowKey(def ?? "__none");
+  }, [type, workflowOverridden]);
+
   // Threshold lookup when target + maintenance type set
   useEffect(() => {
     if (!isMaintenance || !target.id) {
