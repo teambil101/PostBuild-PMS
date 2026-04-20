@@ -569,5 +569,68 @@ unify the keys.
 
 ---
 
-_Last updated: T2c shipped — workflow infrastructure (schema, config,
-engine RPCs). Next: T2d — workflow UI on ticket detail page._
+## 12. Automation & Auto-Generated Tickets
+
+System-generated tickets (`is_system_generated = true`) come from
+three sources:
+
+| # | Source | Mechanism | Latency |
+|---|--------|-----------|---------|
+| 1 | Cheque marked bounced | DB trigger on `lease_cheques` | Immediate (in-txn) |
+| 2 | Lease expiry detection | `detectExpiringLeases()` sweep | 6h throttle |
+| 3 | Data gap sweep | `detectDataGaps()` sweep | 6h throttle |
+
+### 12.1 `system_dedup_key` convention
+
+Every automation tags its tickets with a stable `system_dedup_key`
+so dedup logic doesn't depend on subject wording. Pattern:
+`<source>:<discriminator>[:<entity_id>]`.
+
+| Source | Key |
+|--------|-----|
+| Bounced cheque | `cheque_bounce:<cheque_id>` |
+| Lease renewal | `lease_renewal:<contract_id>` |
+| Missing lease gap | `data_gap:missing_lease:<unit_id>` |
+| Missing ownership gap | `data_gap:missing_ownership:<unit_id>` |
+
+New automations should follow the same prefix pattern and rely on
+the partial index `idx_tickets_system_dedup`.
+
+### 12.2 Dedup strategies (intentional differences)
+
+- **Cheque bounce** — non-terminal only. If the prior ticket is
+  closed and the cheque is later un-bounced and re-bounced, a new
+  ticket is created.
+- **Lease renewal** — all statuses. Each lease gets exactly one
+  renewal ticket for its lifetime. Follow-ups created manually.
+- **Data gaps** — non-terminal only. The gap may legitimately
+  recur (e.g., owner removed again).
+
+### 12.3 Scheduling
+
+Renewal + data-gap sweeps run client-side from
+`processSystemAutomations()` in `src/lib/automations.ts`. Called
+fire-and-forget on mount of `/tickets`, `/contracts`, and
+`/lifecycle`, throttled to once per 6 hours via `localStorage`.
+
+Trigger manually from devtools:
+
+```js
+window.__runAutomations()
+```
+
+T3b will move scheduling to n8n cron — automation functions
+themselves don't change.
+
+### 12.4 Behaviour for `is_system_generated = true`
+
+- "Auto" badge in list rows and on the ticket detail header.
+- **Cannot be deleted.** Admins can still cancel them.
+- Appear in `/tickets` and entity Tickets tabs like any other ticket.
+- `created_by` is `NULL`; History renders the actor as "System".
+
+---
+
+_Last updated: T3a shipped — auto-ticket creation (cheque bounce
+trigger, lease renewal sweep, data gap sweep). Next: T3b — n8n
+integration._
