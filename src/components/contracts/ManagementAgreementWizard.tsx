@@ -331,7 +331,7 @@ export function ManagementAgreementWizard({ open, onOpenChange, editContractId, 
   const canProceed = step === 1 ? step1Valid : step === 2 ? step2Valid : step === 3 ? step3Valid : true;
 
   /* ===================== save ===================== */
-  const handleSave = async () => {
+  const performSave = async () => {
     if (!self) {
       toast.error("Set up your company profile first.");
       return;
@@ -342,6 +342,108 @@ export function ManagementAgreementWizard({ open, onOpenChange, editContractId, 
     }
     setSubmitting(true);
     const { data: u } = await supabase.auth.getUser();
+
+    // ============ EDIT MODE ============
+    if (isEdit && editContractId) {
+      // Update parent
+      const { error: cErr } = await supabase
+        .from("contracts")
+        .update({
+          external_reference: form.externalReference.trim() || null,
+          title: form.title.trim(),
+          start_date: form.startDate,
+          end_date: form.endDate,
+          auto_renew: form.autoRenew,
+          notes: form.notes.trim() || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", editContractId);
+      if (cErr) {
+        setSubmitting(false);
+        toast.error(cErr.message);
+        return;
+      }
+
+      // Update child management_agreements
+      const maPayload: any = {
+        fee_model: form.feeModel,
+        fee_value: Number(form.feeValue),
+        fee_applies_to: form.feeModel === "percentage_of_rent" ? form.feeAppliesTo : null,
+        lease_up_fee_model: form.hasLeaseUpFee ? form.leaseUpModel : "none",
+        lease_up_fee_value: form.hasLeaseUpFee && form.leaseUpValue ? Number(form.leaseUpValue) : null,
+        hybrid_base_flat: form.feeModel === "hybrid" ? Number(form.hybridBaseFlat) : null,
+        hybrid_threshold: form.feeModel === "hybrid" ? Number(form.hybridThreshold) : null,
+        hybrid_overage_percentage: form.feeModel === "hybrid" ? Number(form.hybridOveragePct) : null,
+        repair_approval_threshold: form.repairThreshold ? Number(form.repairThreshold) : null,
+        termination_notice_days: form.terminationNoticeDays,
+        scope_of_services: form.scope,
+        scope_of_services_other: form.scopeOther.trim() || null,
+        updated_at: new Date().toISOString(),
+      };
+      const { error: maErr } = await supabase
+        .from("management_agreements")
+        .update(maPayload)
+        .eq("contract_id", editContractId);
+      if (maErr) {
+        setSubmitting(false);
+        toast.error(maErr.message);
+        return;
+      }
+
+      // Replace parties (keep self + landlord + signatories) — simplest correct approach
+      await supabase.from("contract_parties").delete().eq("contract_id", editContractId);
+      const newParties = [
+        { contract_id: editContractId, person_id: self.id, role: "service_provider", is_signatory: true },
+        { contract_id: editContractId, person_id: form.landlord!.id, role: "client", is_signatory: true },
+        ...form.additionalSignatories
+          .filter((s) => !!s.person)
+          .map((s) => ({
+            contract_id: editContractId,
+            person_id: s.person!.id,
+            role: s.role,
+            is_signatory: true,
+          })),
+      ];
+      await supabase.from("contract_parties").insert(newParties);
+
+      // Replace subjects
+      await supabase.from("contract_subjects").delete().eq("contract_id", editContractId);
+      await supabase.from("contract_subjects").insert(
+        form.subjects.map((s) => ({
+          contract_id: editContractId,
+          entity_type: s.entity_type,
+          entity_id: s.entity_id,
+          role: "subject",
+        })),
+      );
+
+      // Build a description of what changed
+      const changes: string[] = [];
+      if (originalSnapshot) {
+        if (originalSnapshot.feeModel !== form.feeModel) changes.push("fee model");
+        if (originalSnapshot.feeValue !== Number(form.feeValue)) changes.push("fee value");
+        if (originalSnapshot.startDate !== form.startDate) changes.push("start date");
+        if (originalSnapshot.endDate !== form.endDate) changes.push("end date");
+      }
+      const desc = changes.length > 0
+        ? `Amended: ${changes.join(", ")}`
+        : "Amended contract details";
+
+      await supabase.from("contract_events").insert({
+        contract_id: editContractId,
+        event_type: "amended",
+        description: desc,
+        actor_id: u.user?.id,
+      });
+
+      setSubmitting(false);
+      toast.success("Contract updated.");
+      onOpenChange(false);
+      onSaved?.(editContractId);
+      return;
+    }
+
+    // ============ CREATE MODE ============
 
     // Generate contract number
     const year = new Date().getFullYear();
@@ -471,7 +573,24 @@ export function ManagementAgreementWizard({ open, onOpenChange, editContractId, 
     setSubmitting(false);
     toast.success(`Contract ${contractNumber} created.`);
     onOpenChange(false);
+    onSaved?.(contractId);
     navigate(`/contracts/${contractId}`);
+  };
+
+  const handleSave = () => {
+    // If editing an active contract and changing risky fields, confirm first.
+    if (isEdit && originalSnapshot?.status === "active") {
+      const risky =
+        originalSnapshot.feeModel !== form.feeModel ||
+        originalSnapshot.feeValue !== Number(form.feeValue) ||
+        originalSnapshot.startDate !== form.startDate ||
+        originalSnapshot.endDate !== form.endDate;
+      if (risky) {
+        setConfirmActiveEditOpen(true);
+        return;
+      }
+    }
+    performSave();
   };
 
   /* ===================== render ===================== */
