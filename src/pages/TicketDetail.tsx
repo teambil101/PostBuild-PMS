@@ -491,6 +491,36 @@ export default function TicketDetail() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Workflow management dialogs */}
+      {!hasWorkflow && (
+        <AddWorkflowDialog
+          open={addWfOpen}
+          onOpenChange={setAddWfOpen}
+          ticketId={ticket.id}
+          onDone={refetchTicket}
+        />
+      )}
+      {hasWorkflow && ticket.workflow_key && (
+        <>
+          <ChangeWorkflowDialog
+            open={changeWfOpen}
+            onOpenChange={setChangeWfOpen}
+            ticketId={ticket.id}
+            currentWorkflowKey={ticket.workflow_key as WorkflowKey}
+            currentStepStatusMap={stepStatusMap}
+            onDone={refetchTicket}
+            onSwitchToRemove={() => setRemoveWfOpen(true)}
+          />
+          <RemoveWorkflowDialog
+            open={removeWfOpen}
+            onOpenChange={setRemoveWfOpen}
+            ticketId={ticket.id}
+            workflowKey={ticket.workflow_key as WorkflowKey}
+            onDone={refetchTicket}
+          />
+        </>
+      )}
     </div>
   );
 }
