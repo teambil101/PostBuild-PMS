@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Plus, Search, AlertTriangle, Clock, CircleAlert, User as UserIcon, Coins, Ticket as TicketIcon, ArrowUpDown, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { processSystemAutomations } from "@/lib/automations";
 
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -85,6 +86,8 @@ export default function TicketsPage() {
   // Load
   useEffect(() => {
     let cancelled = false;
+    // Fire-and-forget background sweep (throttled to 6h).
+    void processSystemAutomations();
     (async () => {
       setLoading(true);
       const [{ data: tix }, { data: ppl }] = await Promise.all([
