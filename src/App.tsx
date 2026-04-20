@@ -58,7 +58,6 @@ const App = () => (
             <Route path="/lifecycle" element={<Shell><Lifecycle /></Shell>} />
             <Route path="/tickets" element={<Shell><Tickets /></Shell>} />
             <Route path="/tickets/:ticketId" element={<Shell><TicketDetail /></Shell>} />
-            <Route path="/dashboards" element={<Shell><ComingSoon /></Shell>} />
             <Route path="/vendors" element={<Shell><Vendors /></Shell>} />
             <Route path="/vendors/:vendorId" element={<Shell><VendorDetail /></Shell>} />
             <Route path="/services" element={<Shell><Services /></Shell>} />
