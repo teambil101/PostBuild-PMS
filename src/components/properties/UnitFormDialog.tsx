@@ -10,6 +10,13 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Paperclip, ChevronDown, X as XIcon, FileText, Image as ImageIcon } from "lucide-react";
+import { FileDropZone, validateFile } from "@/components/attachments/FileDropZone";
+import {
+  PHOTO_BUCKET, DOC_BUCKET, PHOTO_MIMES, PHOTO_MAX_BYTES, DOC_MAX_BYTES,
+  buildPhotoPath, buildDocPath, isPhotoMime, formatBytes,
+} from "@/lib/storage";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { newUnitCode } from "@/lib/refcode";
