@@ -16,8 +16,6 @@ export type Database = {
     Tables: {
       buildings: {
         Row: {
-          address: string | null
-          address_formatted: string | null
           building_type: string
           city: string
           community: string | null
@@ -25,16 +23,12 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
-          latitude: number | null
-          longitude: number | null
+          location_url: string | null
           name: string
-          place_id: string | null
           ref_code: string
           updated_at: string
         }
         Insert: {
-          address?: string | null
-          address_formatted?: string | null
           building_type?: string
           city: string
           community?: string | null
@@ -42,16 +36,12 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
-          latitude?: number | null
-          longitude?: number | null
+          location_url?: string | null
           name: string
-          place_id?: string | null
           ref_code: string
           updated_at?: string
         }
         Update: {
-          address?: string | null
-          address_formatted?: string | null
           building_type?: string
           city?: string
           community?: string | null
@@ -59,10 +49,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
-          latitude?: number | null
-          longitude?: number | null
+          location_url?: string | null
           name?: string
-          place_id?: string | null
           ref_code?: string
           updated_at?: string
         }
