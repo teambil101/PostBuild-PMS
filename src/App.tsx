@@ -25,6 +25,8 @@ import Vendors from "./pages/Vendors";
 import VendorDetail from "./pages/VendorDetail";
 import Services from "./pages/Services";
 import ServiceDetail from "./pages/ServiceDetail";
+import Leads from "./pages/Leads";
+import LeadDetail from "./pages/LeadDetail";
 
 const queryClient = new QueryClient();
 
@@ -60,6 +62,8 @@ const App = () => (
             <Route path="/vendors/:vendorId" element={<Shell><VendorDetail /></Shell>} />
             <Route path="/services" element={<Shell><Services /></Shell>} />
             <Route path="/services/:scheduleId" element={<Shell><ServiceDetail /></Shell>} />
+            <Route path="/leads" element={<Shell><Leads /></Shell>} />
+            <Route path="/leads/:leadId" element={<Shell><LeadDetail /></Shell>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
