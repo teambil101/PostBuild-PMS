@@ -257,6 +257,7 @@ export function UnitFormDialog({
 
     let resultId: string | undefined = initial?.id;
     let error: any;
+    const previousStatus: string | null = initial?.status ?? null;
     if (initial?.id) {
       ({ error } = await supabase.from("units").update(payload).eq("id", initial.id));
     } else {
@@ -273,6 +274,18 @@ export function UnitFormDialog({
       toast.error(error.message);
       return;
     }
+
+    // Log status change to richer history table
+    if (resultId && (!initial?.id || previousStatus !== form.status)) {
+      const { data: u } = await supabase.auth.getUser();
+      await supabase.from("unit_status_history").insert({
+        unit_id: resultId,
+        old_status: previousStatus as any,
+        new_status: form.status as any,
+        changed_by: u.user?.id,
+      });
+    }
+
     toast.success(initial?.id ? "Unit updated" : "Unit added");
     onSaved(resultId ? { id: resultId, status: form.status as UnitStatusValue } : undefined);
   };

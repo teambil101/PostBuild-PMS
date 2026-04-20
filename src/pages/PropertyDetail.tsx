@@ -238,7 +238,7 @@ export default function PropertyDetail() {
       {/* Meta strip */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-warm-stone/60 border hairline rounded-sm overflow-hidden mb-10">
         <Meta label="Location" value={[building.city, COUNTRY_BY_CODE[building.country] ?? building.country].filter(Boolean).join(", ") || "—"} icon={<MapPin className="h-3.5 w-3.5" />} />
-        <Meta label="Type" value={building.building_type?.replace(/_/g, " ") ?? "—"} icon={<Building2 className="h-3.5 w-3.5" />} />
+        <Meta label="Type" value={formatEnumLabel(building.building_type) || "—"} icon={<Building2 className="h-3.5 w-3.5" />} />
         <Meta label="Community" value={building.community ?? "—"} icon={<MapPin className="h-3.5 w-3.5" />} />
         <Meta label="Units" value={units.length.toString()} icon={<Building2 className="h-3.5 w-3.5" />} />
       </div>
@@ -295,7 +295,11 @@ export default function PropertyDetail() {
                 </thead>
                 <tbody>
                   {units.map((u) => (
-                    <tr key={u.id} className="border-b hairline last:border-0 hover:bg-muted/30">
+                    <tr
+                      key={u.id}
+                      onClick={() => navigate(`/properties/${building.id}/units/${u.id}`)}
+                      className="border-b hairline last:border-0 hover:bg-muted/30 cursor-pointer"
+                    >
                       <td className="px-4 py-3 ref-code">{u.ref_code}</td>
                       <td className="px-4 py-3 font-medium text-architect">{u.unit_number}</td>
                       <td className="px-4 py-3 text-muted-foreground">{formatEnumLabel(u.unit_type)}</td>
@@ -316,7 +320,7 @@ export default function PropertyDetail() {
                         {(u.bedrooms ?? "—") + " / " + (u.bathrooms ?? "—")}
                       </td>
                       {canEdit && (
-                        <td className="px-2 py-3">
+                        <td className="px-2 py-3" onClick={(e) => e.stopPropagation()}>
                           <Button variant="ghost" size="icon" onClick={() => { setEditingUnit(u); setUnitOpen(true); }}>
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
