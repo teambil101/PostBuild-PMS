@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { EntityTicketsTab, type TicketSection } from "@/components/tickets/EntityTicketsTab";
 import { ContractStatusPill } from "@/components/contracts/StatusPill";
 import { DocumentList } from "@/components/attachments/DocumentList";
 import { NotesPanel } from "@/components/notes/NotesPanel";
@@ -123,6 +124,7 @@ export default function ContractDetail() {
   const [addSubjectOpen, setAddSubjectOpen] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("overview");
+  const [ticketCount, setTicketCount] = useState<number>(0);
 
   // Inline edit state
   const [editingNotes, setEditingNotes] = useState(false);
@@ -501,9 +503,15 @@ export default function ContractDetail() {
           {contract.contract_type === "lease" && lease && (
             <TabsTrigger value="cheques">Cheques</TabsTrigger>
           )}
+          {contract.contract_type === "lease" && lease && (
+            <TabsTrigger value="tickets">Tickets ({ticketCount})</TabsTrigger>
+          )}
           <TabsTrigger value="parties">Parties ({parties.length})</TabsTrigger>
           <TabsTrigger value="subjects">Subjects ({subjects.length})</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
+          {contract.contract_type !== "lease" && (
+            <TabsTrigger value="tickets">Tickets ({ticketCount})</TabsTrigger>
+          )}
           <TabsTrigger value="notes">Notes</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
         </TabsList>
@@ -869,6 +877,24 @@ export default function ContractDetail() {
           <DocumentList entityType="contract" entityId={contract.id} editable={canEdit && !isImmutable} />
         </TabsContent>
 
+        <TabsContent value="tickets" className="mt-6">
+          {contract.contract_type === "lease" && lease ? (
+            <ContractLeaseTicketsSection
+              contractId={contract.id}
+              leaseId={lease.id}
+              contractNumber={contract.contract_number}
+              onActiveCountChange={setTicketCount}
+            />
+          ) : (
+            <EntityTicketsTab
+              entityType="contract"
+              entityId={contract.id}
+              entityLabel={`${CONTRACT_TYPE_LABELS[contract.contract_type]} ${contract.contract_number}`}
+              onActiveCountChange={setTicketCount}
+            />
+          )}
+        </TabsContent>
+
         <TabsContent value="notes" className="mt-6">
           <NotesPanel entityType="contract" entityId={contract.id} />
         </TabsContent>
@@ -1076,5 +1102,79 @@ function DLRow({ label, value }: { label: string; value: React.ReactNode }) {
       <dt className="text-muted-foreground shrink-0">{label}</dt>
       <dd className="text-architect text-right">{value}</dd>
     </div>
+  );
+}
+
+function ContractLeaseTicketsSection({
+  contractId,
+  leaseId,
+  contractNumber,
+  onActiveCountChange,
+}: {
+  contractId: string;
+  leaseId: string;
+  contractNumber: string;
+  onActiveCountChange: (n: number) => void;
+}) {
+  const sections: TicketSection[] = [
+    {
+      key: "direct",
+      label: "Direct tickets",
+      emptyText: "No tickets target this lease directly.",
+      fetch: async () => {
+        const { data } = await supabase
+          .from("tickets")
+          .select(
+            "id, ticket_number, subject, ticket_type, priority, status, assignee_id, due_date, created_at, target_entity_type, target_entity_id, is_system_generated",
+          )
+          .eq("target_entity_type", "contract")
+          .eq("target_entity_id", contractId)
+          .order("created_at", { ascending: false });
+        return (data ?? []) as any;
+      },
+    },
+    {
+      key: "cheques",
+      label: "Cheque-related tickets",
+      emptyText: "No tickets target any of this lease's cheques.",
+      fetch: async () => {
+        // Fetch this lease's cheque ids, then tickets that target them.
+        const { data: cheques } = await supabase
+          .from("lease_cheques")
+          .select("id, sequence_number")
+          .eq("lease_id", leaseId);
+        const chequeRows = (cheques ?? []) as { id: string; sequence_number: number }[];
+        if (chequeRows.length === 0) return [];
+        const ids = chequeRows.map((c) => c.id);
+        const { data: tix } = await supabase
+          .from("tickets")
+          .select(
+            "id, ticket_number, subject, ticket_type, priority, status, assignee_id, due_date, created_at, target_entity_type, target_entity_id, is_system_generated",
+          )
+          .eq("target_entity_type", "cheque")
+          .in("target_entity_id", ids)
+          .order("created_at", { ascending: false });
+        // Attach a synthetic seq map for the rowBadge.
+        const seqMap = new Map(chequeRows.map((c) => [c.id, c.sequence_number]));
+        // Stash the map on the section closure via a side-channel: tag rows with __seq.
+        return ((tix ?? []) as any[]).map((t) => ({
+          ...t,
+          __cheque_seq: seqMap.get(t.target_entity_id) ?? null,
+        }));
+      },
+      rowBadge: (row: any) =>
+        row.__cheque_seq != null ? `Cheque #${row.__cheque_seq}` : null,
+    },
+  ];
+
+  return (
+    <EntityTicketsTab
+      entityType="contract"
+      entityId={contractId}
+      entityLabel={`Lease ${contractNumber}`}
+      groupedView
+      sections={sections}
+      onActiveCountChange={onActiveCountChange}
+    />
   );
 }

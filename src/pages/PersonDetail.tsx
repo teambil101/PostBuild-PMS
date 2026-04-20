@@ -10,6 +10,8 @@ import { PersonFormDialog } from "@/components/people/PersonFormDialog";
 import { EmptyState } from "@/components/EmptyState";
 import { initials } from "@/lib/format";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useSearchParams } from "react-router-dom";
+import { EntityTicketsTab, type TicketSection } from "@/components/tickets/EntityTicketsTab";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { fetchOwnershipsByPerson, OwnedProperty } from "@/lib/ownership";
@@ -28,6 +30,15 @@ export default function PersonDetail() {
   const [ownerships, setOwnerships] = useState<OwnedProperty[]>([]);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
+  const [ticketCount, setTicketCount] = useState<number>(0);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") ?? "ownership";
+  const setActiveTab = (v: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (v === "ownership") next.delete("tab");
+    else next.set("tab", v);
+    setSearchParams(next, { replace: true });
+  };
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -153,12 +164,13 @@ export default function PersonDetail() {
         <Meta label="Location" icon={<Building2 className="h-3.5 w-3.5" />} value={[person.city, person.country].filter(Boolean).join(", ") || "—"} />
       </div>
 
-      <Tabs defaultValue="ownership" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="bg-transparent border-b hairline rounded-none w-full justify-start gap-0 h-auto p-0">
           {[
             { v: "ownership", l: "Ownership" },
             { v: "tenancy", l: "Tenancy" },
             { v: "documents", l: `Documents (${docs.length})` },
+            { v: "tickets", l: `Tickets (${ticketCount})` },
             { v: "notes", l: "Notes" },
           ].map((t) => (
             <TabsTrigger
@@ -294,6 +306,14 @@ export default function PersonDetail() {
           )}
         </TabsContent>
 
+        <TabsContent value="tickets" className="pt-6">
+          <PersonTicketsSection
+            personId={person.id}
+            personLabel={`${person.first_name} ${person.last_name}`.trim()}
+            onActiveCountChange={setTicketCount}
+          />
+        </TabsContent>
+
         <TabsContent value="notes" className="pt-6">
           <div className="border hairline rounded-sm bg-card p-6 text-sm whitespace-pre-wrap text-foreground/90 min-h-[120px]">
             {person.notes || <span className="text-muted-foreground italic">No notes yet.</span>}
@@ -317,5 +337,74 @@ function Meta({ label, value, icon }: { label: string; value: string; icon: Reac
       <div className="label-eyebrow flex items-center gap-1.5">{icon} {label}</div>
       <div className="text-base text-architect mt-1 truncate">{value}</div>
     </div>
+  );
+}
+
+function PersonTicketsSection({
+  personId,
+  personLabel,
+  onActiveCountChange,
+}: {
+  personId: string;
+  personLabel: string;
+  onActiveCountChange: (n: number) => void;
+}) {
+  const sections: TicketSection[] = [
+    {
+      key: "assigned",
+      label: "Assigned to them",
+      emptyText: "No tickets assigned to this person.",
+      fetch: async () => {
+        const { data } = await supabase
+          .from("tickets")
+          .select(
+            "id, ticket_number, subject, ticket_type, priority, status, assignee_id, due_date, created_at, target_entity_type, target_entity_id, is_system_generated",
+          )
+          .eq("assignee_id", personId)
+          .order("created_at", { ascending: false });
+        return (data ?? []) as any;
+      },
+    },
+    {
+      key: "reported",
+      label: "Reported by them",
+      emptyText: "No tickets reported by this person.",
+      fetch: async () => {
+        const { data } = await supabase
+          .from("tickets")
+          .select(
+            "id, ticket_number, subject, ticket_type, priority, status, assignee_id, due_date, created_at, target_entity_type, target_entity_id, is_system_generated",
+          )
+          .eq("reporter_id", personId)
+          .order("created_at", { ascending: false });
+        return (data ?? []) as any;
+      },
+    },
+    {
+      key: "about",
+      label: "About them",
+      emptyText: "No tickets target this person.",
+      fetch: async () => {
+        const { data } = await supabase
+          .from("tickets")
+          .select(
+            "id, ticket_number, subject, ticket_type, priority, status, assignee_id, due_date, created_at, target_entity_type, target_entity_id, is_system_generated",
+          )
+          .eq("target_entity_type", "person")
+          .eq("target_entity_id", personId)
+          .order("created_at", { ascending: false });
+        return (data ?? []) as any;
+      },
+    },
+  ];
+  return (
+    <EntityTicketsTab
+      entityType="person"
+      entityId={personId}
+      entityLabel={personLabel}
+      groupedView
+      sections={sections}
+      onActiveCountChange={onActiveCountChange}
+    />
   );
 }

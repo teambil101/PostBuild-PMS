@@ -59,15 +59,32 @@ import {
   isPhotoMime,
 } from "@/lib/storage";
 
+export interface PresetTarget {
+  entity_type: TicketTargetType;
+  entity_id: string;
+  entity_label: string;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  presetTarget?: PresetTarget;
+  /** Called after a ticket is successfully created. Receives the new ticket id. */
+  onCreated?: (ticketId: string) => void;
+  /** When false, do not navigate to the ticket detail after creation (default true). */
+  navigateOnCreate?: boolean;
 }
 
 const SUBJECT_MAX = 200;
 const DESCRIPTION_MAX = 4000;
 
-export function NewTicketDialog({ open, onOpenChange }: Props) {
+export function NewTicketDialog({
+  open,
+  onOpenChange,
+  presetTarget,
+  onCreated,
+  navigateOnCreate = true,
+}: Props) {
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -103,7 +120,11 @@ export function NewTicketDialog({ open, onOpenChange }: Props) {
     setDescription("");
     setType("");
     setPriority("medium");
-    setTarget({ type: "unit", id: null });
+    setTarget(
+      presetTarget
+        ? { type: presetTarget.entity_type, id: presetTarget.entity_id }
+        : { type: "unit", id: null },
+    );
     setAssigneeId(null);
     setReporterId(null);
     setDueDate(undefined);
@@ -113,7 +134,7 @@ export function NewTicketDialog({ open, onOpenChange }: Props) {
     setWorkflowKey("__none");
     setWorkflowOverridden(false);
     setTimeout(() => subjectRef.current?.focus(), 50);
-  }, [open]);
+  }, [open, presetTarget]);
 
   // Load people once
   useEffect(() => {
@@ -246,7 +267,10 @@ export function NewTicketDialog({ open, onOpenChange }: Props) {
       }
 
       onOpenChange(false);
-      navigate(`/tickets/${created.id}`);
+      onCreated?.(created.id);
+      if (navigateOnCreate) {
+        navigate(`/tickets/${created.id}`);
+      }
     } catch (e: any) {
       toast.error(e.message ?? "Could not create ticket.");
     } finally {
@@ -349,10 +373,28 @@ export function NewTicketDialog({ open, onOpenChange }: Props) {
             <Label>
               Target <span className="text-destructive">*</span>
             </Label>
-            <TicketTargetPicker
-              value={target}
-              onChange={(next) => setTarget({ type: next.type, id: next.id })}
-            />
+            {presetTarget ? (
+              <>
+                <div className="flex items-center gap-2 border hairline rounded-sm bg-muted/30 px-3 py-2 text-sm">
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                    {presetTarget.entity_type}
+                  </span>
+                  <span className="text-architect truncate">{presetTarget.entity_label}</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground flex items-start gap-1.5">
+                  <span aria-hidden>ⓘ</span>
+                  <span>
+                    Linked to {presetTarget.entity_label}. You can change the target from the
+                    ticket detail page after creating.
+                  </span>
+                </p>
+              </>
+            ) : (
+              <TicketTargetPicker
+                value={target}
+                onChange={(next) => setTarget({ type: next.type, id: next.id })}
+              />
+            )}
           </div>
 
           {type && (
