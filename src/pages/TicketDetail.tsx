@@ -734,6 +734,9 @@ function iconFor(type: string) {
     case "cost_approval_approved":
     case "cost_approval_rejected": return <Coins className={cls} />;
     case "reopened": return <RotateCcw className={cls} />;
+    case "vendor_assigned":
+    case "vendor_changed":
+    case "vendor_removed": return <Briefcase className={cls} />;
     default: return <DollarSign className={cls} />;
   }
 }
@@ -762,6 +765,9 @@ function describeEvent(e: EventRow, personName: (id: string | null) => string | 
     case "cost_approval_rejected": return `Cost approval rejected`;
     case "reopened": return `Reopened`;
     case "note": return e.description ?? "Note added";
+    case "vendor_assigned": return `Vendor assigned`;
+    case "vendor_changed": return `Vendor changed`;
+    case "vendor_removed": return `Vendor removed`;
     default: return e.description ?? e.event_type;
   }
 }
