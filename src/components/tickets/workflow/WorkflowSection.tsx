@@ -13,6 +13,7 @@ interface Props {
   refreshKey: number;
   onChanged: () => void;
   personName: PersonNameLookup;
+  onStepStatusMap?: (m: Record<string, "pending" | "complete" | "skipped">) => void;
 }
 
 export function WorkflowSection({
@@ -22,6 +23,7 @@ export function WorkflowSection({
   refreshKey,
   onChanged,
   personName,
+  onStepStatusMap,
 }: Props) {
   const [stages, setStages] = useState<StageRow[]>([]);
   const [steps, setSteps] = useState<StepRow[]>([]);
@@ -47,6 +49,11 @@ export function WorkflowSection({
       if (cancelled) return;
       setStages((sRes.data ?? []) as StageRow[]);
       setSteps((stRes.data ?? []) as StepRow[]);
+      if (onStepStatusMap) {
+        const m: Record<string, "pending" | "complete" | "skipped"> = {};
+        for (const st of (stRes.data ?? []) as StepRow[]) m[st.step_key] = st.status;
+        onStepStatusMap(m);
+      }
       setLoading(false);
     })();
     return () => {
