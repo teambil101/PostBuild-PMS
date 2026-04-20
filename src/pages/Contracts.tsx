@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Plus, Search, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
@@ -46,6 +46,7 @@ export default function Contracts() {
 
 function ContractsListInner() {
   const { canEdit } = useAuth();
+  const navigate = useNavigate();
   const [rows, setRows] = useState<ContractRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<"all" | ContractStatus>("all");
@@ -226,18 +227,16 @@ function ContractsListInner() {
             </thead>
             <tbody>
               {filtered.map((c) => (
-                <tr key={c.id} className="border-b hairline last:border-0 hover:bg-muted/30">
-                  <td className="px-4 py-3 mono text-xs">
-                    <Link to={`/contracts/${c.id}`} className="text-architect hover:text-gold-deep">
-                      {c.contract_number}
-                    </Link>
+                <tr
+                  key={c.id}
+                  onClick={() => navigate(`/contracts/${c.id}`)}
+                  className="border-b hairline last:border-0 hover:bg-muted/30 cursor-pointer"
+                >
+                  <td className="px-4 py-3 mono text-xs text-architect">
+                    {c.contract_number}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{CONTRACT_TYPE_LABELS[c.contract_type]}</td>
-                  <td className="px-4 py-3">
-                    <Link to={`/contracts/${c.id}`} className="text-architect hover:text-gold-deep">
-                      {c.title}
-                    </Link>
-                  </td>
+                  <td className="px-4 py-3 text-architect">{c.title}</td>
                   <td className="px-4 py-3 text-muted-foreground">{c.parties_preview || "—"}</td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {c.subjects_count ? `${c.subjects_count}` : "—"}
