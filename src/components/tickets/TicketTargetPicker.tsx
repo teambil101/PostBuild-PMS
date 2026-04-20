@@ -30,9 +30,12 @@ interface Props {
   disabled?: boolean;
   /** When true, the type cannot be changed (e.g. opened from an entity page). */
   lockType?: boolean;
+  /** Optional whitelist of valid target types (for ticket_type-based filtering). */
+  allowedTypes?: TicketTargetType[];
 }
 
-export function TicketTargetPicker({ value, onChange, disabled, lockType }: Props) {
+export function TicketTargetPicker({ value, onChange, disabled, lockType, allowedTypes }: Props) {
+  const types = allowedTypes && allowedTypes.length > 0 ? allowedTypes : TICKET_TARGET_TYPES;
   return (
     <div className="grid grid-cols-1 md:grid-cols-[160px_1fr] gap-2">
       <Select
@@ -46,7 +49,7 @@ export function TicketTargetPicker({ value, onChange, disabled, lockType }: Prop
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          {TICKET_TARGET_TYPES.map((t) => (
+          {types.map((t) => (
             <SelectItem key={t} value={t}>
               {TICKET_TARGET_TYPE_LABELS[t]}
             </SelectItem>
