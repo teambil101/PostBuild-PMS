@@ -15,6 +15,9 @@ import People from "./pages/People";
 import PersonDetail from "./pages/PersonDetail";
 import ComingSoon from "./pages/ComingSoon";
 import NotFound from "./pages/NotFound.tsx";
+import Contracts from "./pages/Contracts";
+import ContractDetail from "./pages/ContractDetail";
+import Settings from "./pages/Settings";
 
 const queryClient = new QueryClient();
 
@@ -39,7 +42,9 @@ const App = () => (
             <Route path="/properties/:buildingId/units/:unitId" element={<Shell><UnitDetail /></Shell>} />
             <Route path="/people" element={<Shell><People /></Shell>} />
             <Route path="/people/:id" element={<Shell><PersonDetail /></Shell>} />
-            <Route path="/contracts" element={<Shell><ComingSoon /></Shell>} />
+            <Route path="/contracts" element={<Shell><Contracts /></Shell>} />
+            <Route path="/contracts/:contractId" element={<Shell><ContractDetail /></Shell>} />
+            <Route path="/settings" element={<Shell><Settings /></Shell>} />
             <Route path="/lifecycle" element={<Shell><ComingSoon /></Shell>} />
             <Route path="/tickets" element={<Shell><ComingSoon /></Shell>} />
             <Route path="/dashboards" element={<Shell><ComingSoon /></Shell>} />
