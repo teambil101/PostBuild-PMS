@@ -225,8 +225,10 @@ export function ServiceScheduleDialog({
       let savedId: string;
       if (isEdit && schedule) {
         // Don't change next_due_date on frequency edit. Only update start_date if not locked.
-        const updatePayload: Record<string, unknown> = { ...payload, updated_at: new Date().toISOString() };
-        if (startDateLocked) delete updatePayload.start_date;
+        const { start_date, ...rest } = payload;
+        const updatePayload = startDateLocked
+          ? { ...rest, updated_at: new Date().toISOString() }
+          : { ...payload, updated_at: new Date().toISOString() };
         const { error } = await supabase
           .from("service_schedules")
           .update(updatePayload)
