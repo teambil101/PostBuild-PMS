@@ -72,6 +72,21 @@ interface MA {
   scope_of_services_other: string | null;
 }
 
+interface LeaseRow {
+  id: string;
+  contract_id: string;
+  annual_rent: number;
+  payment_frequency: string;
+  first_cheque_date: string | null;
+  security_deposit_amount: number | null;
+  security_deposit_status: string | null;
+  security_deposit_notes: string | null;
+  commission_amount: number | null;
+  commission_payer: string | null;
+  commission_status: string | null;
+  ejari_number: string | null;
+}
+
 interface PartyRow {
   id: string; person_id: string; role: string; is_signatory: boolean; signed_at: string | null;
   person?: { first_name: string; last_name: string; company: string | null };
@@ -91,6 +106,7 @@ export default function ContractDetail() {
   const { contractId } = useParams<{ contractId: string }>();
   const [contract, setContract] = useState<Contract | null>(null);
   const [ma, setMa] = useState<MA | null>(null);
+  const [lease, setLease] = useState<LeaseRow | null>(null);
   const [parties, setParties] = useState<PartyRow[]>([]);
   const [subjects, setSubjects] = useState<SubjectRow[]>([]);
   const [events, setEvents] = useState<EventRow[]>([]);
