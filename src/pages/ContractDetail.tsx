@@ -516,6 +516,9 @@ export default function ContractDetail() {
                 currency={contract.currency}
                 tenant={leaseTenant}
                 unit={leaseUnit}
+                editable={canEdit && !isImmutable}
+                onSaveEjariNumber={saveEjariNumber}
+                onUploadEjariDoc={() => setActiveTab("documents")}
               />
               <Section title="Terms">
                 <DL>
