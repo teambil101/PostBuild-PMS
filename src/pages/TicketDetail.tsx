@@ -653,6 +653,8 @@ export default function TicketDetail() {
             currentVendorLabel={vendorInfo ? vendorDisplayName(vendorInfo) : null}
             currentWorkflowKey={(ticket.workflow_key as WorkflowKey | null) ?? null}
             costApprovalStatus={ticket.cost_approval_status}
+            targetEntityType={ticket.target_entity_type}
+            targetEntityId={ticket.target_entity_id}
             onDone={refetch}
           />
         </>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, ShieldAlert, Info } from "lucide-react";
+import { Loader2, ShieldAlert, Info, FileWarning } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { VendorPicker, type PickedVendor } from "./VendorPicker";
 import { maintenanceTypeToSpecialty, complianceState, vendorDisplayName } from "@/lib/vendors";
+import { ServiceAgreementWizard } from "@/components/contracts/service/ServiceAgreementWizard";
 import {
   initializeTicketWorkflow,
   WORKFLOWS,
@@ -31,6 +32,9 @@ interface Props {
   currentVendorLabel?: string | null;
   currentWorkflowKey: WorkflowKey | null;
   costApprovalStatus: string | null;
+  /** Ticket target — used for service-agreement soft-precondition check. */
+  targetEntityType?: string | null;
+  targetEntityId?: string | null;
   onDone: () => void;
 }
 
@@ -53,12 +57,16 @@ export function AssignVendorDialog({
   currentVendorLabel,
   currentWorkflowKey,
   costApprovalStatus,
+  targetEntityType,
+  targetEntityId,
   onDone,
 }: Props) {
   const { user } = useAuth();
   const [picked, setPicked] = useState<PickedVendor | null>(null);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+  const [hasAgreement, setHasAgreement] = useState<boolean | null>(null);
+  const [createSaOpen, setCreateSaOpen] = useState(false);
 
   const specialty = useMemo(() => maintenanceTypeToSpecialty(ticketType), [ticketType]);
   const isChange = Boolean(currentVendorId);
@@ -83,6 +91,30 @@ export function AssignVendorDialog({
 
   const willInitWorkflow =
     !currentWorkflowKey && (newVendorId !== null);
+
+  // Soft-precondition: when picking a vendor for a unit-targeted ticket,
+  // check whether an active service agreement covers vendor + property.
+  useEffect(() => {
+    setHasAgreement(null);
+    if (!open) return;
+    if (!newVendorId || removeRequested) return;
+    if (targetEntityType !== "unit" || !targetEntityId) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase.rpc(
+        "has_active_service_agreement_for_vendor_and_unit",
+        { p_unit_id: targetEntityId, p_vendor_id: newVendorId } as any,
+      );
+      if (!cancelled && !error) setHasAgreement(Boolean(data));
+    })();
+    return () => { cancelled = true; };
+  }, [open, newVendorId, removeRequested, targetEntityType, targetEntityId]);
+
+  const showAgreementWarning =
+    hasAgreement === false &&
+    newVendorId !== null &&
+    !removeRequested &&
+    targetEntityType === "unit";
 
   const handleSubmit = async () => {
     setBusy(true);
@@ -170,6 +202,7 @@ export function AssignVendorDialog({
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
@@ -212,6 +245,27 @@ export function AssignVendorDialog({
                   .filter(Boolean)
                   .join(" and ")}
                 . You can still assign, but renew before scheduling new work.
+              </div>
+            </div>
+          )}
+
+          {showAgreementWarning && picked && (
+            <div className="flex items-start gap-2 border border-amber-500/30 bg-amber-500/10 text-amber-800 rounded-sm px-3 py-2 text-xs">
+              <FileWarning className="h-4 w-4 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                No active service agreement covers{" "}
+                <span className="font-medium">{vendorDisplayName(picked)}</span>{" "}
+                for this property. You can assign the vendor anyway, or set up an
+                agreement first.
+                <div className="mt-1.5">
+                  <button
+                    type="button"
+                    className="underline decoration-amber-700/40 underline-offset-2 hover:decoration-amber-700"
+                    onClick={() => setCreateSaOpen(true)}
+                  >
+                    Create service agreement →
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -269,5 +323,20 @@ export function AssignVendorDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    {/* Quick-launch SA wizard from the soft-precondition warning. */}
+    {picked && (
+      <ServiceAgreementWizard
+        open={createSaOpen}
+        onOpenChange={setCreateSaOpen}
+        presetVendorId={picked.id}
+        onSaved={() => {
+          setCreateSaOpen(false);
+          // Re-check coverage so the warning disappears.
+          setHasAgreement(true);
+        }}
+      />
+    )}
+    </>
   );
 }

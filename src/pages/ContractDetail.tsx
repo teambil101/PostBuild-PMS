@@ -8,6 +8,7 @@ import { ContractStatusPill } from "@/components/contracts/StatusPill";
 import { DocumentList } from "@/components/attachments/DocumentList";
 import { NotesPanel } from "@/components/notes/NotesPanel";
 import { ManagementAgreementWizard } from "@/components/contracts/ManagementAgreementWizard";
+import { ServiceAgreementWizard } from "@/components/contracts/service/ServiceAgreementWizard";
 import { LeaseSummaryCards } from "@/components/contracts/lease/LeaseSummaryCards";
 import { LeaseOverviewBlocks } from "@/components/contracts/lease/LeaseOverviewBlocks";
 import { ChequesTab } from "@/components/contracts/lease/ChequesTab";
@@ -32,6 +33,8 @@ import {
   formatContractValue, summarizePeriod, daysUntil, duplicateContract,
   SCOPE_LABELS, type ScopeService, FEE_MODEL_LABELS, PARTY_ROLES,
   getAllowedPartyRoles,
+  SERVICE_FEE_MODEL_LABELS, SERVICE_FREQUENCY_LABELS, SERVICE_SCOPE_LABELS,
+  formatServiceFee, type ServiceFeeModel, type ServiceFrequency, type ServiceScope,
 } from "@/lib/contracts";
 import { formatEnumLabel } from "@/lib/format";
 import {
@@ -72,6 +75,35 @@ interface MA {
   scope_of_services_other: string | null;
 }
 
+interface SA {
+  id: string;
+  contract_id: string;
+  vendor_id: string;
+  fee_model: ServiceFeeModel;
+  fee_value: number | null;
+  hybrid_base_monthly: number | null;
+  hybrid_per_call_or_unit: number | null;
+  hybrid_mode: string | null;
+  hourly_rate: number | null;
+  call_out_fee: number | null;
+  materials_markup_percent: number | null;
+  materials_included: boolean;
+  materials_notes: string | null;
+  service_frequency: ServiceFrequency;
+  scope_of_services: string[];
+  scope_of_services_other: string | null;
+  response_time_urgent_hours: number | null;
+  response_time_standard_hours: number | null;
+  sla_notes: string | null;
+  vendor?: {
+    id: string;
+    legal_name: string;
+    display_name: string | null;
+    vendor_number: string;
+    specialties: unknown;
+  } | null;
+}
+
 interface LeaseRow {
   id: string;
   contract_id: string;
@@ -106,6 +138,7 @@ export default function ContractDetail() {
   const { contractId } = useParams<{ contractId: string }>();
   const [contract, setContract] = useState<Contract | null>(null);
   const [ma, setMa] = useState<MA | null>(null);
+  const [sa, setSa] = useState<SA | null>(null);
   const [lease, setLease] = useState<LeaseRow | null>(null);
   const [parties, setParties] = useState<PartyRow[]>([]);
   const [subjects, setSubjects] = useState<SubjectRow[]>([]);
@@ -143,9 +176,14 @@ export default function ContractDetail() {
   const reloadAll = async () => {
     if (!contractId) return;
     setLoading(true);
-    const [cRes, maRes, lRes, pRes, sRes, eRes, settingsRes] = await Promise.all([
+    const [cRes, maRes, saRes, lRes, pRes, sRes, eRes, settingsRes] = await Promise.all([
       supabase.from("contracts").select("*").eq("id", contractId).maybeSingle(),
       supabase.from("management_agreements").select("*").eq("contract_id", contractId).maybeSingle(),
+      supabase
+        .from("service_agreements")
+        .select("*, vendor:vendor_id(id, legal_name, display_name, vendor_number, specialties)")
+        .eq("contract_id", contractId)
+        .maybeSingle(),
       supabase.from("leases" as never).select("*").eq("contract_id" as never, contractId as never).maybeSingle(),
       supabase
         .from("contract_parties")
@@ -157,6 +195,7 @@ export default function ContractDetail() {
     ]);
     setContract(cRes.data as Contract | null);
     setMa(maRes.data as MA | null);
+    setSa((saRes.data ?? null) as unknown as SA | null);
     setLease((lRes.data ?? null) as unknown as LeaseRow | null);
     setParties(((pRes.data ?? []) as any[]).map((p) => ({ ...p, person: p.people })));
     setEvents((eRes.data ?? []) as EventRow[]);
@@ -427,7 +466,7 @@ export default function ContractDetail() {
           </div>
           {canEdit && (
             <div className="flex flex-wrap items-center gap-2">
-              {!isImmutable && contract.contract_type === "management_agreement" && (
+              {!isImmutable && (contract.contract_type === "management_agreement" || contract.contract_type === "service_agreement") && (
                 <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
                   <Pencil className="h-4 w-4" /> Edit
                 </Button>
@@ -478,6 +517,51 @@ export default function ContractDetail() {
             currency={contract.currency}
             tenant={leaseTenant}
           />
+        ) : contract.contract_type === "service_agreement" && sa ? (
+          <>
+            <SummaryCard label="Fee">
+              <div className="text-sm text-architect mono">
+                {formatServiceFee(
+                  sa.fee_model,
+                  {
+                    fee_value: sa.fee_value,
+                    hybrid_base_monthly: sa.hybrid_base_monthly,
+                    hybrid_per_call_or_unit: sa.hybrid_per_call_or_unit,
+                    hybrid_mode: sa.hybrid_mode,
+                    hourly_rate: sa.hourly_rate,
+                    materials_markup_percent: sa.materials_markup_percent,
+                    subjects_count: subjects.length,
+                  },
+                  contract.currency,
+                )}
+              </div>
+              <div className="text-[11px] text-muted-foreground mt-1">
+                {SERVICE_FREQUENCY_LABELS[sa.service_frequency]}
+              </div>
+            </SummaryCard>
+            <SummaryCard label="Vendor">
+              {sa.vendor ? (
+                <Link
+                  to={`/vendors/${sa.vendor.id}`}
+                  className="text-sm text-architect hover:text-gold-deep inline-flex items-center gap-1"
+                >
+                  {sa.vendor.display_name || sa.vendor.legal_name}
+                  <ExternalLink className="h-3 w-3 opacity-60" />
+                </Link>
+              ) : (
+                <span className="text-sm text-muted-foreground">—</span>
+              )}
+              {sa.vendor && (
+                <div className="text-[11px] text-muted-foreground mono mt-0.5">
+                  {sa.vendor.vendor_number}
+                </div>
+              )}
+            </SummaryCard>
+            <SummaryCard label="Period">
+              <div className="text-xs text-architect">{summarizePeriod(contract.start_date, contract.end_date)}</div>
+              {contract.auto_renew && <div className="text-[10px] mono uppercase text-gold-deep mt-1">Auto-renew</div>}
+            </SummaryCard>
+          </>
         ) : (
           <>
             <SummaryCard label="Fee / Value">
@@ -517,7 +601,24 @@ export default function ContractDetail() {
         </TabsList>
 
         <TabsContent value="overview" className="mt-6 space-y-6">
-          {contract.contract_type === "lease" && lease ? (
+          {contract.contract_type === "service_agreement" && sa ? (
+            <ServiceAgreementOverview
+              sa={sa}
+              contract={contract}
+              subjects={subjects}
+              parties={parties}
+              partyName={partyName}
+              editable={canEdit && !isImmutable}
+              onAutoRenewToggle={handleAutoRenewToggle}
+              editingExtRef={editingExtRef}
+              extRefDraft={extRefDraft}
+              setExtRefDraft={setExtRefDraft}
+              setEditingExtRef={setEditingExtRef}
+              saveExtRef={saveExtRef}
+              isImmutable={isImmutable}
+              isTerminated={isTerminated}
+            />
+          ) : contract.contract_type === "lease" && lease ? (
             <>
               <LeaseOverviewBlocks
                 lease={lease as any}
@@ -892,6 +993,13 @@ export default function ContractDetail() {
               subjects={subjects}
               onActiveCountChange={setTicketCount}
             />
+          ) : contract.contract_type === "service_agreement" ? (
+            <ContractMgmtTicketsSection
+              contractId={contract.id}
+              contractLabel={`Service Agreement ${contract.contract_number}`}
+              subjects={subjects}
+              onActiveCountChange={setTicketCount}
+            />
           ) : (
             <EntityTicketsTab
               entityType="contract"
@@ -942,6 +1050,15 @@ export default function ContractDetail() {
       {/* ============== Dialogs ============== */}
       {contract.contract_type === "management_agreement" && (
         <ManagementAgreementWizard
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          editContractId={contract.id}
+          onSaved={reloadAll}
+        />
+      )}
+
+      {contract.contract_type === "service_agreement" && (
+        <ServiceAgreementWizard
           open={editOpen}
           onOpenChange={setEditOpen}
           editContractId={contract.id}
@@ -1217,6 +1334,228 @@ function ContractLeaseTicketsSection({
       sections={sections}
       onActiveCountChange={onActiveCountChange}
     />
+  );
+}
+
+/* =========================================================
+ * Service Agreement — Overview
+ * ========================================================= */
+function ServiceAgreementOverview({
+  sa, contract, subjects, parties, partyName, editable,
+  onAutoRenewToggle,
+  editingExtRef, extRefDraft, setExtRefDraft, setEditingExtRef, saveExtRef,
+  isImmutable, isTerminated,
+}: {
+  sa: SA;
+  contract: Contract;
+  subjects: SubjectRow[];
+  parties: PartyRow[];
+  partyName: (p: PartyRow) => string;
+  editable: boolean;
+  onAutoRenewToggle: (next: boolean) => void;
+  editingExtRef: boolean;
+  extRefDraft: string;
+  setExtRefDraft: (s: string) => void;
+  setEditingExtRef: (b: boolean) => void;
+  saveExtRef: () => Promise<void>;
+  isImmutable: boolean;
+  isTerminated: boolean;
+}) {
+  const signatory = parties.find((p) => p.role === "service_provider") ?? null;
+  const client = parties.find((p) => p.role === "client") ?? null;
+  return (
+    <>
+      <Section title="Service provider">
+        <DL>
+          <DLRow
+            label="Vendor"
+            value={
+              sa.vendor ? (
+                <Link
+                  to={`/vendors/${sa.vendor.id}`}
+                  className="text-architect hover:text-gold-deep inline-flex items-center gap-1"
+                >
+                  {sa.vendor.display_name || sa.vendor.legal_name}
+                  <ExternalLink className="h-3 w-3 opacity-60" />
+                </Link>
+              ) : (
+                "—"
+              )
+            }
+          />
+          <DLRow
+            label="Signatory"
+            value={signatory ? partyName(signatory) : <span className="text-muted-foreground italic">No signatory recorded</span>}
+          />
+          <DLRow label="Client" value={client ? partyName(client) : "—"} />
+        </DL>
+      </Section>
+
+      <Section title="Scope & frequency">
+        <DL>
+          <DLRow label="Frequency" value={SERVICE_FREQUENCY_LABELS[sa.service_frequency]} />
+        </DL>
+        <div className="mt-3">
+          <div className="label-eyebrow mb-2">Services</div>
+          {sa.scope_of_services.length === 0 && !sa.scope_of_services_other ? (
+            <div className="text-sm text-muted-foreground italic">No services listed.</div>
+          ) : (
+            <div className="flex flex-wrap gap-1.5">
+              {sa.scope_of_services.map((s) => (
+                <span key={s} className="text-xs bg-warm-stone/40 text-architect px-2 py-1 rounded-sm border hairline">
+                  {SERVICE_SCOPE_LABELS[s as ServiceScope] ?? s}
+                </span>
+              ))}
+              {sa.scope_of_services_other && (
+                <span className="text-xs bg-warm-stone/30 text-muted-foreground px-2 py-1 rounded-sm border hairline italic">
+                  + {sa.scope_of_services_other}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      </Section>
+
+      <Section title="Fee structure">
+        <DL>
+          <DLRow label="Model" value={SERVICE_FEE_MODEL_LABELS[sa.fee_model]} />
+          <DLRow
+            label="Summary"
+            value={
+              <span className="mono">
+                {formatServiceFee(
+                  sa.fee_model,
+                  {
+                    fee_value: sa.fee_value,
+                    hybrid_base_monthly: sa.hybrid_base_monthly,
+                    hybrid_per_call_or_unit: sa.hybrid_per_call_or_unit,
+                    hybrid_mode: sa.hybrid_mode,
+                    hourly_rate: sa.hourly_rate,
+                    materials_markup_percent: sa.materials_markup_percent,
+                    subjects_count: subjects.length,
+                  },
+                  contract.currency,
+                )}
+              </span>
+            }
+          />
+          {sa.fee_model === "time_and_materials" && (
+            <>
+              <DLRow
+                label="Hourly rate"
+                value={sa.hourly_rate != null ? <span className="mono">{contract.currency} {Number(sa.hourly_rate).toLocaleString()}</span> : "—"}
+              />
+              <DLRow
+                label="Call-out fee"
+                value={sa.call_out_fee != null ? <span className="mono">{contract.currency} {Number(sa.call_out_fee).toLocaleString()}</span> : "—"}
+              />
+              <DLRow
+                label="Materials markup"
+                value={sa.materials_markup_percent != null ? `${sa.materials_markup_percent}%` : "—"}
+              />
+            </>
+          )}
+        </DL>
+        <div className="mt-3 pt-3 border-t hairline">
+          <DL>
+            <DLRow label="Materials included in fee" value={sa.materials_included ? "Yes" : "No"} />
+          </DL>
+          {sa.materials_notes && (
+            <p className="text-sm text-architect whitespace-pre-wrap mt-2">{sa.materials_notes}</p>
+          )}
+        </div>
+      </Section>
+
+      <Section title="SLA">
+        {sa.response_time_urgent_hours == null && sa.response_time_standard_hours == null && !sa.sla_notes ? (
+          <div className="text-sm text-muted-foreground italic">No SLA defined.</div>
+        ) : (
+          <>
+            <DL>
+              <DLRow
+                label="Urgent response"
+                value={sa.response_time_urgent_hours != null ? `${sa.response_time_urgent_hours} hours` : "—"}
+              />
+              <DLRow
+                label="Standard response"
+                value={sa.response_time_standard_hours != null ? `${sa.response_time_standard_hours} hours` : "—"}
+              />
+            </DL>
+            {sa.sla_notes && (
+              <p className="text-sm text-architect whitespace-pre-wrap mt-2">{sa.sla_notes}</p>
+            )}
+          </>
+        )}
+      </Section>
+
+      <Section title="Coverage">
+        {subjects.length === 0 ? (
+          <div className="text-sm text-muted-foreground italic">No properties covered.</div>
+        ) : (
+          <ul className="space-y-1.5">
+            {subjects.map((s) => {
+              const Icon = s.entity_type === "building" ? Building2 : Home;
+              const href =
+                s.entity_type === "building"
+                  ? `/properties/${s.entity_id}`
+                  : s.building_id
+                    ? `/properties/${s.building_id}/units/${s.entity_id}`
+                    : "/properties";
+              return (
+                <li key={s.id} className="flex items-center gap-2 text-sm">
+                  <Icon className="h-3.5 w-3.5 text-true-taupe" strokeWidth={1.5} />
+                  <Link to={href} className="text-architect hover:text-gold-deep">
+                    {s.entity_label}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </Section>
+
+      <Section title="Terms">
+        <DL>
+          <DLRow label="Start" value={contract.start_date ? format(new Date(contract.start_date), "PPP") : "—"} />
+          <DLRow label="End" value={contract.end_date ? format(new Date(contract.end_date), "PPP") : "—"} />
+          <DLRow
+            label="Auto-renew"
+            value={
+              editable ? (
+                <Switch checked={contract.auto_renew} onCheckedChange={onAutoRenewToggle} disabled={isImmutable || isTerminated} />
+              ) : (contract.auto_renew ? "Yes" : "No")
+            }
+          />
+          <DLRow
+            label="External reference"
+            value={
+              editingExtRef && editable ? (
+                <div className="flex items-center gap-1.5">
+                  <Input value={extRefDraft} onChange={(e) => setExtRefDraft(e.target.value)} className="h-8 w-48" />
+                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={saveExtRef}><Check className="h-3.5 w-3.5 text-status-occupied" /></Button>
+                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingExtRef(false)}><X className="h-3.5 w-3.5" /></Button>
+                </div>
+              ) : (
+                <button
+                  className={editable ? "hover:text-gold-deep inline-flex items-center gap-1.5" : ""}
+                  onClick={() => {
+                    if (!editable) return;
+                    setExtRefDraft(contract.external_reference ?? "");
+                    setEditingExtRef(true);
+                  }}
+                >
+                  {contract.external_reference || "—"}
+                  {editable && <Pencil className="h-3 w-3 opacity-50" />}
+                </button>
+              )
+            }
+          />
+        </DL>
+        <p className="text-[11px] text-muted-foreground mt-3">
+          Fee model, scope, and vendor are managed via the Edit wizard.
+        </p>
+      </Section>
+    </>
   );
 }
 
