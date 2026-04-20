@@ -22,6 +22,8 @@ interface Props {
   excludeIds?: string[];         // persons already picked in other rows
   /** Restrict results to people whose `roles` array contains any of these. */
   roleFilter?: ("tenant" | "owner" | "prospect" | "staff" | "vendor")[];
+  /** Exclude people whose `roles` array contains any of these. */
+  excludeRoles?: ("tenant" | "owner" | "prospect" | "staff" | "vendor")[];
   /** Hide the inline "Add new person" action (e.g. for assignee pickers). */
   hideAddNew?: boolean;
 }
@@ -38,6 +40,7 @@ export function PersonCombobox({
   invalid,
   excludeIds = [],
   roleFilter,
+  excludeRoles,
   hideAddNew = false,
 }: Props) {
   const [open, setOpen] = useState(false);
