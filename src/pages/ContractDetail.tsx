@@ -993,6 +993,13 @@ export default function ContractDetail() {
               subjects={subjects}
               onActiveCountChange={setTicketCount}
             />
+          ) : contract.contract_type === "service_agreement" ? (
+            <ContractMgmtTicketsSection
+              contractId={contract.id}
+              contractLabel={`Service Agreement ${contract.contract_number}`}
+              subjects={subjects}
+              onActiveCountChange={setTicketCount}
+            />
           ) : (
             <EntityTicketsTab
               entityType="contract"
