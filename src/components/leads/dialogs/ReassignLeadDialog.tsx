@@ -114,6 +114,8 @@ export function ReassignLeadDialog({ open, onOpenChange, lead, onSaved }: Props)
               valueLabel={assignee ? `${assignee.first_name} ${assignee.last_name}`.trim() : ""}
               onChange={setAssignee}
               placeholder="Unassigned"
+              roleFilter={["staff"]}
+              hideAddNew
             />
           </div>
           <div className="space-y-1.5">
