@@ -10,6 +10,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { BuildingFormDialog } from "@/components/properties/BuildingFormDialog";
 import { UnitFormDialog } from "@/components/properties/UnitFormDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useSearchParams } from "react-router-dom";
+import { EntityTicketsTab } from "@/components/tickets/EntityTicketsTab";
 import { PhotoGallery } from "@/components/attachments/PhotoGallery";
 import { DocumentList } from "@/components/attachments/DocumentList";
 import { NotesPanel } from "@/components/notes/NotesPanel";
@@ -67,6 +69,15 @@ export default function PropertyDetail() {
   const [editingUnit, setEditingUnit] = useState<Unit | null>(null);
   const [leasePrompt, setLeasePrompt] = useState<{ unitId: string } | null>(null);
   const [unitsWithoutOwnersCount, setUnitsWithoutOwnersCount] = useState(0);
+  const [ticketCount, setTicketCount] = useState<number>(0);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") ?? "units";
+  const setActiveTab = (v: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (v === "units") next.delete("tab");
+    else next.set("tab", v);
+    setSearchParams(next, { replace: true });
+  };
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -216,12 +227,13 @@ export default function PropertyDetail() {
         onChanged={load}
       />
 
-      <Tabs defaultValue="units" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="bg-transparent border-b hairline rounded-none w-full justify-start gap-0 h-auto p-0">
           {[
             { v: "units", l: `Units (${units.length})` },
             { v: "photos", l: `Photos (${photoCount})` },
             { v: "documents", l: `Documents (${docCount})` },
+            { v: "tickets", l: `Tickets (${ticketCount})` },
             { v: "notes", l: `Notes (${noteCount})` },
             { v: "history", l: "Status history" },
           ].map((t) => (
@@ -339,6 +351,16 @@ export default function PropertyDetail() {
             entityId={building.id}
             editable={canEdit}
             onCountChange={setDocCount}
+          />
+        </TabsContent>
+
+        {/* TICKETS */}
+        <TabsContent value="tickets" className="pt-6">
+          <EntityTicketsTab
+            entityType="building"
+            entityId={building.id}
+            entityLabel={building.name}
+            onActiveCountChange={setTicketCount}
           />
         </TabsContent>
 

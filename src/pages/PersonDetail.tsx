@@ -10,6 +10,8 @@ import { PersonFormDialog } from "@/components/people/PersonFormDialog";
 import { EmptyState } from "@/components/EmptyState";
 import { initials } from "@/lib/format";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useSearchParams } from "react-router-dom";
+import { EntityTicketsTab, type TicketSection } from "@/components/tickets/EntityTicketsTab";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { fetchOwnershipsByPerson, OwnedProperty } from "@/lib/ownership";
@@ -28,6 +30,15 @@ export default function PersonDetail() {
   const [ownerships, setOwnerships] = useState<OwnedProperty[]>([]);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
+  const [ticketCount, setTicketCount] = useState<number>(0);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") ?? "ownership";
+  const setActiveTab = (v: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (v === "ownership") next.delete("tab");
+    else next.set("tab", v);
+    setSearchParams(next, { replace: true });
+  };
 
   const load = useCallback(async () => {
     if (!id) return;

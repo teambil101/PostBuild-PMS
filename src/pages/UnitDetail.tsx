@@ -12,6 +12,8 @@ import { EmptyState } from "@/components/EmptyState";
 import { useAuth } from "@/contexts/AuthContext";
 import { UnitFormDialog } from "@/components/properties/UnitFormDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useSearchParams } from "react-router-dom";
+import { EntityTicketsTab } from "@/components/tickets/EntityTicketsTab";
 import { PhotoGallery } from "@/components/attachments/PhotoGallery";
 import { DocumentList } from "@/components/attachments/DocumentList";
 import { NotesPanel } from "@/components/notes/NotesPanel";
@@ -80,6 +82,15 @@ export default function UnitDetail() {
   const [leaseOpen, setLeaseOpen] = useState(false);
   const [mgmtOpen, setMgmtOpen] = useState(false);
   const [overrodePrecondition, setOverrodePrecondition] = useState(false);
+  const [ticketCount, setTicketCount] = useState<number>(0);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") ?? "overview";
+  const setActiveTab = (v: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (v === "overview") next.delete("tab");
+    else next.set("tab", v);
+    setSearchParams(next, { replace: true });
+  };
 
   const startLeaseFlow = async () => {
     if (!unit) return;
@@ -307,12 +318,13 @@ export default function UnitDetail() {
       />
 
       {/* Tabs */}
-      <Tabs defaultValue="overview" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="bg-transparent border-b hairline rounded-none w-full justify-start gap-0 h-auto p-0 flex-wrap">
           {[
             { v: "overview", l: "Overview" },
             { v: "photos", l: `Photos (${photoCount})` },
             { v: "documents", l: `Documents (${docCount})` },
+            { v: "tickets", l: `Tickets (${ticketCount})` },
             { v: "notes", l: `Notes (${noteCount})` },
             { v: "history", l: "Status history" },
             { v: "lease", l: "Lease" },
@@ -371,6 +383,16 @@ export default function UnitDetail() {
             entityId={unit.id}
             editable={canEdit}
             onCountChange={setDocCount}
+          />
+        </TabsContent>
+
+        {/* TICKETS */}
+        <TabsContent value="tickets" className="pt-6">
+          <EntityTicketsTab
+            entityType="unit"
+            entityId={unit.id}
+            entityLabel={`Unit ${unit.unit_number} · ${building.name}`}
+            onActiveCountChange={setTicketCount}
           />
         </TabsContent>
 
