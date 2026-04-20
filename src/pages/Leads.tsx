@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
 import {
   Plus, Search, X, Target, AlertTriangle, TrendingUp, Trophy, PauseCircle, Activity,
+  LayoutGrid, Rows3,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
@@ -13,6 +14,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/format";
 import { NewLeadDialog } from "@/components/leads/NewLeadDialog";
+import { LeadsKanban } from "@/components/leads/kanban/LeadsKanban";
 import {
   LEAD_STATUSES, LEAD_STATUS_LABELS, LEAD_STATUS_STYLES,
   LEAD_SOURCES, LEAD_SOURCE_LABELS,
@@ -23,14 +25,32 @@ import {
 } from "@/lib/leads";
 
 type PersonLite = { id: string; first_name: string; last_name: string; company: string | null };
+type ViewMode = "kanban" | "table";
+
+const VIEW_KEY = "leadsViewMode";
+
+function getInitialView(): ViewMode {
+  if (typeof window === "undefined") return "kanban";
+  const stored = window.localStorage.getItem(VIEW_KEY) as ViewMode | null;
+  if (stored === "kanban" || stored === "table") return stored;
+  return window.innerWidth < 1024 ? "table" : "kanban";
+}
 
 export default function LeadsPage() {
   const { canEdit } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [leads, setLeads] = useState<LeadRow[]>([]);
   const [people, setPeople] = useState<Record<string, PersonLite>>({});
+  const [contractsByLead, setContractsByLead] = useState<Record<string, { id: string; contract_number: string }>>({});
+  const [view, setView] = useState<ViewMode>(getInitialView);
+  const [showOnHold, setShowOnHold] = useState(false);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+
+  // Persist view choice
+  useEffect(() => {
+    try { window.localStorage.setItem(VIEW_KEY, view); } catch { /* ignore */ }
+  }, [view]);
 
   // Filters via URL
   const search = searchParams.get("q") ?? "";
@@ -87,6 +107,28 @@ export default function LeadsPage() {
     } else {
       setPeople({});
     }
+
+    // Resolve won contracts (for the Contract Signed column)
+    const contractIds = list
+      .map((l) => l.won_contract_id)
+      .filter((x): x is string => !!x);
+    if (contractIds.length > 0) {
+      const { data: cs } = await supabase
+        .from("contracts")
+        .select("id, contract_number")
+        .in("id", contractIds);
+      const cmap: Record<string, { id: string; contract_number: string }> = {};
+      const byContract = new Map((cs ?? []).map((c) => [c.id, c]));
+      for (const l of list) {
+        if (l.won_contract_id) {
+          const c = byContract.get(l.won_contract_id);
+          if (c) cmap[l.id] = c;
+        }
+      }
+      setContractsByLead(cmap);
+    } else {
+      setContractsByLead({});
+    }
     setLoading(false);
   };
 
@@ -131,6 +173,39 @@ export default function LeadsPage() {
       // Stuck only
       if (stuckOnly && !isStageStuck(l, 14)) return false;
       // Search
+      if (q) {
+        const contact = people[l.primary_contact_id];
+        const company = l.company_id ? people[l.company_id] : null;
+        const blob = [
+          l.lead_number,
+          contact ? `${contact.first_name} ${contact.last_name}` : "",
+          contact?.company ?? "",
+          company?.company ?? "",
+          l.portfolio_description ?? "",
+          l.notes ?? "",
+        ].join(" ").toLowerCase();
+        if (!blob.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [leads, people, search, statusFilters, assigneeParam, sourceFilters, closeFrom, closeTo, stuckOnly]);
+
+  // Kanban applies all filters EXCEPT the implicit "exclude terminal" default.
+  // Terminal columns (Contract Signed / Lost) are first-class in the board.
+  const kanbanFiltered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return leads.filter((l) => {
+      if (statusFilters.length > 0 && !statusFilters.includes(l.status) && l.status !== "on_hold") {
+        return false;
+      }
+      if (assigneeParam !== "all") {
+        if (assigneeParam === "unassigned") { if (l.assignee_id) return false; }
+        else if (l.assignee_id !== assigneeParam) return false;
+      }
+      if (sourceFilters.length > 0 && !sourceFilters.includes(l.source)) return false;
+      if (closeFrom && (!l.target_close_date || l.target_close_date < closeFrom)) return false;
+      if (closeTo && (!l.target_close_date || l.target_close_date > closeTo)) return false;
+      if (stuckOnly && !isStageStuck(l, 14)) return false;
       if (q) {
         const contact = people[l.primary_contact_id];
         const company = l.company_id ? people[l.company_id] : null;
@@ -236,12 +311,47 @@ export default function LeadsPage() {
             />
             Stage-stuck only
           </label>
+          {view === "kanban" && (
+            <label className="flex items-center gap-2 text-xs text-architect cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showOnHold}
+                onChange={(e) => setShowOnHold(e.target.checked)}
+              />
+              Show on-hold leads
+            </label>
+          )}
           {!filtersUntouched && (
             <Button variant="ghost" size="sm" onClick={clearAll} className="text-xs">
               <X className="h-3 w-3 mr-1" />
               Clear all
             </Button>
           )}
+          {/* View toggle */}
+          <div className="ml-auto inline-flex border hairline rounded-sm overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setView("kanban")}
+              className={cn(
+                "px-2.5 py-1 text-[11px] uppercase tracking-wider flex items-center gap-1.5",
+                view === "kanban" ? "bg-architect text-chalk" : "bg-card text-muted-foreground hover:bg-muted/40",
+              )}
+              title="Kanban view"
+            >
+              <LayoutGrid className="h-3 w-3" /> Kanban
+            </button>
+            <button
+              type="button"
+              onClick={() => setView("table")}
+              className={cn(
+                "px-2.5 py-1 text-[11px] uppercase tracking-wider flex items-center gap-1.5",
+                view === "table" ? "bg-architect text-chalk" : "bg-card text-muted-foreground hover:bg-muted/40",
+              )}
+              title="Table view"
+            >
+              <Rows3 className="h-3 w-3" /> Table
+            </button>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-1.5">
@@ -339,6 +449,14 @@ export default function LeadsPage() {
               </Button>
             )
           }
+        />
+      ) : view === "kanban" ? (
+        <LeadsKanban
+          leads={kanbanFiltered}
+          people={people}
+          contractsByLead={contractsByLead}
+          showOnHold={showOnHold}
+          onChanged={load}
         />
       ) : filtered.length === 0 ? (
         <EmptyState
