@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 export const PHOTO_BUCKET = "property-photos";
 export const DOC_BUCKET = "property-docs";
 
-export type EntityType = "building" | "unit" | "contract";
+export type EntityType = "building" | "unit" | "contract" | "ticket" | "person";
 
 /** Validation specs */
 export const PHOTO_ACCEPT = "image/jpeg,image/png,image/webp,image/heic";
