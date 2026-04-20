@@ -278,6 +278,7 @@ export function ManagementAgreementWizard({ open, onOpenChange, editContractId, 
 
   // Auto-update title when landlord changes
   useEffect(() => {
+    if (isEdit) return; // don't override user-provided title in edit mode
     if (!form.landlord) return;
     const name = form.landlord.company || `${form.landlord.first_name} ${form.landlord.last_name}`.trim();
     if (!form.title || form.title.startsWith("Management Agreement —")) {
