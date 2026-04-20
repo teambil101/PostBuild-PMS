@@ -137,7 +137,7 @@ export function NewLeadDialog({ open, onOpenChange, editLead, onSaved }: Props) 
     setBusy(true);
     const { data: u } = await supabase.auth.getUser();
 
-    const payloadBase: Record<string, any> = {
+    const payloadBase = {
       primary_contact_id: primaryContact!.id,
       company_id: company?.id ?? null,
       source,
@@ -158,7 +158,7 @@ export function NewLeadDialog({ open, onOpenChange, editLead, onSaved }: Props) 
     };
 
     if (isEdit && editLead) {
-      const { error } = await supabase.from("leads").update(payloadBase).eq("id", editLead.id);
+      const { error } = await supabase.from("leads").update(payloadBase as never).eq("id", editLead.id);
       setBusy(false);
       if (error) {
         toast.error(error.message);
@@ -197,7 +197,7 @@ export function NewLeadDialog({ open, onOpenChange, editLead, onSaved }: Props) 
         currency,
         status: "new",
         created_by: u.user?.id,
-      })
+      } as never)
       .select("id, lead_number")
       .maybeSingle();
 
