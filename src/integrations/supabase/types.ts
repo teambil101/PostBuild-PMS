@@ -334,6 +334,137 @@ export type Database = {
         }
         Relationships: []
       }
+      lease_cheques: {
+        Row: {
+          amount: number
+          bank_name: string | null
+          bounce_reason: string | null
+          bounced_on: string | null
+          cheque_number: string | null
+          cleared_on: string | null
+          created_at: string
+          deposited_on: string | null
+          due_date: string
+          id: string
+          lease_id: string
+          notes: string | null
+          replacement_cheque_id: string | null
+          sequence_number: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          bank_name?: string | null
+          bounce_reason?: string | null
+          bounced_on?: string | null
+          cheque_number?: string | null
+          cleared_on?: string | null
+          created_at?: string
+          deposited_on?: string | null
+          due_date: string
+          id?: string
+          lease_id: string
+          notes?: string | null
+          replacement_cheque_id?: string | null
+          sequence_number: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          bank_name?: string | null
+          bounce_reason?: string | null
+          bounced_on?: string | null
+          cheque_number?: string | null
+          cleared_on?: string | null
+          created_at?: string
+          deposited_on?: string | null
+          due_date?: string
+          id?: string
+          lease_id?: string
+          notes?: string | null
+          replacement_cheque_id?: string | null
+          sequence_number?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lease_cheques_lease_id_fkey"
+            columns: ["lease_id"]
+            isOneToOne: false
+            referencedRelation: "leases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lease_cheques_replacement_cheque_id_fkey"
+            columns: ["replacement_cheque_id"]
+            isOneToOne: false
+            referencedRelation: "lease_cheques"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leases: {
+        Row: {
+          annual_rent: number
+          commission_amount: number | null
+          commission_payer: string | null
+          commission_status: string | null
+          contract_id: string
+          created_at: string
+          ejari_number: string | null
+          first_cheque_date: string | null
+          id: string
+          payment_frequency: string
+          security_deposit_amount: number | null
+          security_deposit_notes: string | null
+          security_deposit_status: string | null
+          updated_at: string
+        }
+        Insert: {
+          annual_rent: number
+          commission_amount?: number | null
+          commission_payer?: string | null
+          commission_status?: string | null
+          contract_id: string
+          created_at?: string
+          ejari_number?: string | null
+          first_cheque_date?: string | null
+          id?: string
+          payment_frequency: string
+          security_deposit_amount?: number | null
+          security_deposit_notes?: string | null
+          security_deposit_status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          annual_rent?: number
+          commission_amount?: number | null
+          commission_payer?: string | null
+          commission_status?: string | null
+          contract_id?: string
+          created_at?: string
+          ejari_number?: string | null
+          first_cheque_date?: string | null
+          id?: string
+          payment_frequency?: string
+          security_deposit_amount?: number | null
+          security_deposit_notes?: string | null
+          security_deposit_status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leases_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: true
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       management_agreements: {
         Row: {
           contract_id: string
@@ -1039,6 +1170,10 @@ export type Database = {
       }
     }
     Functions: {
+      has_active_mgmt_agreement_for_unit: {
+        Args: { p_unit_id: string }
+        Returns: boolean
+      }
       has_any_role: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {

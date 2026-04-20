@@ -209,12 +209,18 @@ export async function duplicateContract(contractId: string): Promise<string> {
     .maybeSingle();
   if (srcErr || !src) throw new Error(srcErr?.message ?? "Original contract not found.");
 
-  // Get prefix
-  const { data: settings } = await supabase
-    .from("app_settings")
-    .select("contract_number_prefix")
-    .maybeSingle();
-  const prefix = settings?.contract_number_prefix ?? "CTR";
+  // Lease subtype uses its own counter (LSE-YYYY-NNNN). All others fall back
+  // to the configured global prefix (default CTR), preserving prior behavior.
+  let prefix: string;
+  if (src.contract_type === "lease") {
+    prefix = "LSE";
+  } else {
+    const { data: settings } = await supabase
+      .from("app_settings")
+      .select("contract_number_prefix")
+      .maybeSingle();
+    prefix = settings?.contract_number_prefix ?? "CTR";
+  }
   const year = new Date().getFullYear();
   const { data: numRes, error: numErr } = await supabase.rpc("next_number", {
     p_prefix: prefix,
@@ -255,6 +261,12 @@ export async function duplicateContract(contractId: string): Promise<string> {
       const { id: _ignore, contract_id: _ignore2, created_at: _ignore3, updated_at: _ignore4, ...rest } = ma as any;
       await supabase.from("management_agreements").insert({ ...rest, contract_id: newId });
     }
+  }
+
+  // Lease child — copy structural fields, reset transactional state, no cheques.
+  if (src.contract_type === "lease") {
+    const { duplicateLeaseExtras } = await import("@/lib/leases");
+    await duplicateLeaseExtras({ sourceContractId: contractId, newContractId: newId });
   }
 
   // Parties
