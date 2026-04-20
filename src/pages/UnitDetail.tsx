@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft, Pencil, Trash2, AlertTriangle,
-  StickyNote, History, Lock, Receipt,
+  History, Lock, Receipt,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { UnitFormDialog } from "@/components/properties/UnitFormDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PhotoGallery } from "@/components/attachments/PhotoGallery";
 import { DocumentList } from "@/components/attachments/DocumentList";
+import { NotesPanel } from "@/components/notes/NotesPanel";
 import { toast } from "sonner";
 import { format, formatDistanceToNow } from "date-fns";
 import { formatEnumLabel, sqmToSqft } from "@/lib/format";
