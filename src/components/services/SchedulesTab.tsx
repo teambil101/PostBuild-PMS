@@ -99,8 +99,8 @@ export function SchedulesTab({ filter, canEdit, onCountChange }: Props) {
       <ServiceScheduleDialog
         open={open}
         onOpenChange={setOpen}
-        presetVendorId={filter.vendorId}
-        presetServiceAgreementId={filter.serviceAgreementId}
+        prefillVendorId={filter.vendorId}
+        prefillAgreementContractId={filter.serviceAgreementId}
         onSaved={() => { setOpen(false); load(); }}
       />
     </div>
