@@ -43,6 +43,12 @@ import {
 import { TicketTargetPicker } from "./TicketTargetPicker";
 import { FileDropZone, validateFile } from "@/components/attachments/FileDropZone";
 import {
+  WORKFLOWS,
+  getDefaultWorkflow,
+  initializeTicketWorkflow,
+  type WorkflowKey,
+} from "@/lib/workflows";
+import {
   PHOTO_BUCKET,
   PHOTO_MIMES,
   PHOTO_MAX_BYTES,
@@ -78,6 +84,8 @@ export function NewTicketDialog({ open, onOpenChange }: Props) {
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
   const [estimatedCost, setEstimatedCost] = useState<string>("");
   const [files, setFiles] = useState<File[]>([]);
+  const [workflowKey, setWorkflowKey] = useState<WorkflowKey | "__none">("__none");
+  const [workflowOverridden, setWorkflowOverridden] = useState(false);
 
   const [people, setPeople] = useState<
     { id: string; first_name: string; last_name: string; company: string | null }[]
@@ -102,6 +110,8 @@ export function NewTicketDialog({ open, onOpenChange }: Props) {
     setEstimatedCost("");
     setFiles([]);
     setThreshold(null);
+    setWorkflowKey("__none");
+    setWorkflowOverridden(false);
     setTimeout(() => subjectRef.current?.focus(), 50);
   }, [open]);
 
@@ -120,6 +130,17 @@ export function NewTicketDialog({ open, onOpenChange }: Props) {
   }, [open]);
 
   const isMaintenance = type.startsWith("maintenance_");
+
+  // When type changes, auto-pick default workflow unless user overrode.
+  useEffect(() => {
+    if (workflowOverridden) return;
+    if (!type) {
+      setWorkflowKey("__none");
+      return;
+    }
+    const def = getDefaultWorkflow(type);
+    setWorkflowKey(def ?? "__none");
+  }, [type, workflowOverridden]);
 
   // Threshold lookup when target + maintenance type set
   useEffect(() => {
@@ -200,6 +221,18 @@ export function NewTicketDialog({ open, onOpenChange }: Props) {
       }
 
       toast.success(`Ticket ${created.ticket_number} created.`);
+
+      // Initialize workflow if one was selected.
+      if (workflowKey !== "__none") {
+        try {
+          await initializeTicketWorkflow(created.id, workflowKey as WorkflowKey);
+        } catch (wfErr: any) {
+          toast.error(
+            `Ticket created but workflow could not be initialized: ${wfErr.message ?? "unknown"}. Add it from the ticket page.`,
+          );
+        }
+      }
+
       onOpenChange(false);
       navigate(`/tickets/${created.id}`);
     } catch (e: any) {
@@ -308,6 +341,34 @@ export function NewTicketDialog({ open, onOpenChange }: Props) {
               value={target}
               onChange={(next) => setTarget({ type: next.type, id: next.id })}
             />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Workflow</Label>
+            <Select
+              value={workflowKey}
+              onValueChange={(v) => {
+                setWorkflowKey(v as WorkflowKey | "__none");
+                setWorkflowOverridden(true);
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Pick a workflow…" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none">None (freeform ticket)</SelectItem>
+                {Object.values(WORKFLOWS).map((w) => (
+                  <SelectItem key={w.key} value={w.key}>
+                    {w.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-[11px] text-muted-foreground">
+              {type && getDefaultWorkflow(type) && !workflowOverridden
+                ? `Default for this type: ${WORKFLOWS[getDefaultWorkflow(type) as WorkflowKey].label}.`
+                : "Workflows structure a ticket into stages and steps. You can change or remove the workflow later."}
+            </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

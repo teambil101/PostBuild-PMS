@@ -25,7 +25,19 @@ import { PhotoGallery } from "@/components/attachments/PhotoGallery";
 import { DocumentList } from "@/components/attachments/DocumentList";
 import { NotesPanel } from "@/components/notes/NotesPanel";
 import { WorkflowSection } from "@/components/tickets/workflow/WorkflowSection";
+import { WorkflowSummaryCard } from "@/components/tickets/workflow/WorkflowSummaryCard";
+import { AddWorkflowDialog } from "@/components/tickets/workflow/AddWorkflowDialog";
+import { ChangeWorkflowDialog } from "@/components/tickets/workflow/ChangeWorkflowDialog";
+import { RemoveWorkflowDialog } from "@/components/tickets/workflow/RemoveWorkflowDialog";
 import type { WorkflowKey } from "@/lib/workflows";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { MoreHorizontal } from "lucide-react";
 
 interface Ticket {
   id: string;
@@ -83,6 +95,10 @@ export default function TicketDetail() {
   const [photosCount, setPhotosCount] = useState(0);
   const [docsCount, setDocsCount] = useState(0);
   const [workflowRefresh, setWorkflowRefresh] = useState(0);
+  const [addWfOpen, setAddWfOpen] = useState(false);
+  const [changeWfOpen, setChangeWfOpen] = useState(false);
+  const [removeWfOpen, setRemoveWfOpen] = useState(false);
+  const [stepStatusMap, setStepStatusMap] = useState<Record<string, "pending" | "complete" | "skipped">>({});
 
   useEffect(() => {
     if (!ticketId) return;
@@ -151,6 +167,13 @@ export default function TicketDetail() {
 
   const hasWorkflow = Boolean(ticket.workflow_key);
 
+  const refetchTicket = async () => {
+    if (!ticketId) return;
+    const { data } = await supabase.from("tickets").select("*").eq("id", ticketId).maybeSingle();
+    if (data) setTicket(data as Ticket);
+    setWorkflowRefresh((n) => n + 1);
+  };
+
   return (
     <div className="space-y-8">
       {/* Breadcrumb / back */}
@@ -212,7 +235,39 @@ export default function TicketDetail() {
               <TooltipContent>Coming in next pass</TooltipContent>
             </Tooltip>
           ))}
-          <Button variant="ghost" size="sm" onClick={() => navigate("/tickets")} className="ml-auto">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="ml-auto px-2">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {hasWorkflow ? (
+                <>
+                  <DropdownMenuItem onSelect={() => setChangeWfOpen(true)}>
+                    Change workflow
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => setRemoveWfOpen(true)}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    Remove workflow
+                  </DropdownMenuItem>
+                </>
+              ) : (
+                <DropdownMenuItem onSelect={() => setAddWfOpen(true)}>
+                  Add workflow
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem disabled>Cancel ticket</DropdownMenuItem>
+              <DropdownMenuItem disabled>Reopen</DropdownMenuItem>
+              <DropdownMenuItem disabled className="text-destructive focus:text-destructive">
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button variant="ghost" size="sm" onClick={() => navigate("/tickets")}>
             <ArrowLeft className="h-4 w-4 mr-1" />
             Back
           </Button>
@@ -235,7 +290,9 @@ export default function TicketDetail() {
           )}
         </SummaryCard>
         {hasWorkflow ? (
-          <WorkflowStageCard ticketId={ticket.id} refreshKey={workflowRefresh} />
+          <SummaryCard label="Stage">
+            <WorkflowSummaryCard ticketId={ticket.id} refreshKey={workflowRefresh} />
+          </SummaryCard>
         ) : null}
         <SummaryCard label="Priority">
           <TicketPriorityPill priority={ticket.priority} />
@@ -302,6 +359,21 @@ export default function TicketDetail() {
           )}
         </SummaryCard>
       </div>
+
+      {hasWorkflow && ticket.workflow_key && (
+        <WorkflowSection
+          ticketId={ticket.id}
+          workflowKey={ticket.workflow_key as WorkflowKey}
+          currentStageKey={ticket.current_stage_key}
+          refreshKey={workflowRefresh}
+          onChanged={() => {
+            setWorkflowRefresh((n) => n + 1);
+            refetchTicket();
+          }}
+          onStepStatusMap={setStepStatusMap}
+          personName={personName}
+        />
+      )}
 
       {/* Tabs */}
       <Tabs value={tab} onValueChange={setTab}>
@@ -419,6 +491,36 @@ export default function TicketDetail() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Workflow management dialogs */}
+      {!hasWorkflow && (
+        <AddWorkflowDialog
+          open={addWfOpen}
+          onOpenChange={setAddWfOpen}
+          ticketId={ticket.id}
+          onDone={refetchTicket}
+        />
+      )}
+      {hasWorkflow && ticket.workflow_key && (
+        <>
+          <ChangeWorkflowDialog
+            open={changeWfOpen}
+            onOpenChange={setChangeWfOpen}
+            ticketId={ticket.id}
+            currentWorkflowKey={ticket.workflow_key as WorkflowKey}
+            currentStepStatusMap={stepStatusMap}
+            onDone={refetchTicket}
+            onSwitchToRemove={() => setRemoveWfOpen(true)}
+          />
+          <RemoveWorkflowDialog
+            open={removeWfOpen}
+            onOpenChange={setRemoveWfOpen}
+            ticketId={ticket.id}
+            workflowKey={ticket.workflow_key as WorkflowKey}
+            onDone={refetchTicket}
+          />
+        </>
+      )}
     </div>
   );
 }
