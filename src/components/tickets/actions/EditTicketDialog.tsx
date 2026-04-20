@@ -19,6 +19,10 @@ import { cn } from "@/lib/utils";
 import {
   TICKET_PRIORITIES, TICKET_PRIORITY_LABELS,
   type TicketPriority,
+  TICKET_TYPE_LABELS,
+  TICKET_TARGET_TYPE_LABELS,
+  isValidTargetForType,
+  type TicketTargetType,
 } from "@/lib/tickets";
 import { VendorPicker, type PickedVendor } from "@/components/vendors/VendorPicker";
 import { maintenanceTypeToSpecialty } from "@/lib/vendors";
@@ -40,6 +44,7 @@ interface Props {
     ticket_type: string;
     vendor_id: string | null;
     workflow_key: string | null;
+    target_entity_type: string;
   };
   onDone: () => void;
 }
@@ -97,6 +102,17 @@ export function EditTicketDialog({ open, onOpenChange, ticket, onDone }: Props) 
   const handleSubmit = async () => {
     if (!subject.trim() || subject.trim().length < 2) {
       toast.error("Subject is required (min 2 chars).");
+      return;
+    }
+    // Ticket-type ↔ existing target sanity check. The Edit dialog doesn't
+    // expose target editing, so the only way to violate is by changing
+    // ticket_type elsewhere. Guard anyway.
+    if (
+      !isValidTargetForType(ticket.ticket_type, ticket.target_entity_type as TicketTargetType)
+    ) {
+      toast.error(
+        `${TICKET_TARGET_TYPE_LABELS[ticket.target_entity_type as TicketTargetType] ?? ticket.target_entity_type} is not a valid target for ${TICKET_TYPE_LABELS[ticket.ticket_type as keyof typeof TICKET_TYPE_LABELS] ?? ticket.ticket_type}. Change the target on the ticket page first.`,
+      );
       return;
     }
     if (estimatedCost) {
