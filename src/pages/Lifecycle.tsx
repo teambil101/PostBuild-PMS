@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Search, RefreshCw, ChevronDown, Building2, Workflow, X, Plus,
-  LayoutGrid, TableIcon, Tag, ListChecks, ExternalLink,
+  LayoutGrid, TableIcon, Tag, ListChecks, ExternalLink, Columns3,
 } from "lucide-react";
 import { processSystemAutomations } from "@/lib/automations";
 
@@ -26,6 +26,7 @@ import {
 } from "@/lib/lifecycle";
 import { FunnelStrip } from "@/components/lifecycle/FunnelStrip";
 import { StageSection } from "@/components/lifecycle/StageSection";
+import { LifecycleKanban } from "@/components/lifecycle/LifecycleKanban";
 import { MarkListedDialog } from "@/components/lifecycle/MarkListedDialog";
 import { UnlistDialog } from "@/components/lifecycle/UnlistDialog";
 
