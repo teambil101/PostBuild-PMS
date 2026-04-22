@@ -1708,6 +1708,8 @@ export type Database = {
       }
       units: {
         Row: {
+          asking_rent: number | null
+          asking_rent_currency: string | null
           bathrooms: number | null
           bedrooms: number | null
           building_id: string
@@ -1716,6 +1718,8 @@ export type Database = {
           description: string | null
           floor: number | null
           id: string
+          listed_at: string | null
+          listing_notes: string | null
           notes: string | null
           ref_code: string
           size_sqm: number | null
@@ -1727,6 +1731,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          asking_rent?: number | null
+          asking_rent_currency?: string | null
           bathrooms?: number | null
           bedrooms?: number | null
           building_id: string
@@ -1735,6 +1741,8 @@ export type Database = {
           description?: string | null
           floor?: number | null
           id?: string
+          listed_at?: string | null
+          listing_notes?: string | null
           notes?: string | null
           ref_code: string
           size_sqm?: number | null
@@ -1746,6 +1754,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          asking_rent?: number | null
+          asking_rent_currency?: string | null
           bathrooms?: number | null
           bedrooms?: number | null
           building_id?: string
@@ -1754,6 +1764,8 @@ export type Database = {
           description?: string | null
           floor?: number | null
           id?: string
+          listed_at?: string | null
+          listing_notes?: string | null
           notes?: string | null
           ref_code?: string
           size_sqm?: number | null

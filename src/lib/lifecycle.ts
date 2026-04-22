@@ -1,52 +1,62 @@
 import { supabase } from "@/integrations/supabase/client";
 
 /* =========================================================
- * Types
+ * Leasing Lifecycle — placement funnel
+ * From "unit becomes available" to "tenant moves in".
  * ========================================================= */
 
 export type LifecycleStage =
-  | "vacant"
   | "not_ready"
+  | "ready_unlisted"
+  | "listed"
+  | "offer_pending"
   | "in_signing"
-  | "active"
-  | "ending_soon"
-  | "recently_ended";
+  | "leased";
+
+export const LIFECYCLE_STAGE_ORDER: LifecycleStage[] = [
+  "not_ready",
+  "ready_unlisted",
+  "listed",
+  "offer_pending",
+  "in_signing",
+  "leased",
+];
 
 export const LIFECYCLE_STAGE_LABELS: Record<LifecycleStage, string> = {
-  vacant: "Vacant",
-  not_ready: "Not ready",
+  not_ready: "Not ready for listing",
+  ready_unlisted: "Ready but unlisted",
+  listed: "Listed",
+  offer_pending: "Offer pending landlord confirmation",
   in_signing: "In signing",
-  active: "Active",
-  ending_soon: "Ending soon",
-  recently_ended: "Recently ended",
+  leased: "Leased",
+};
+
+export const LIFECYCLE_STAGE_SHORT: Record<LifecycleStage, string> = {
+  not_ready: "Not ready",
+  ready_unlisted: "Ready",
+  listed: "Listed",
+  offer_pending: "Offer",
+  in_signing: "Signing",
+  leased: "Leased",
 };
 
 export const LIFECYCLE_STAGE_SUBLABELS: Record<LifecycleStage, string> = {
-  vacant: "Ready to list or place",
-  not_ready: "Maintenance, reserved, off-market",
-  in_signing: "Draft + pending signature",
-  active: "Live tenancies",
-  ending_soon: "Within 90 days — renew or turn over",
-  recently_ended: "Last 30 days — follow up or re-list",
+  not_ready: "Maintenance or off-market — needs work before marketing",
+  ready_unlisted: "Rentable, no listing published yet",
+  listed: "Actively marketed, no offer yet",
+  offer_pending: "Draft lease prepared — awaiting landlord OK",
+  in_signing: "Sent for signature — awaiting all parties",
+  leased: "Tenant moved in — terminal stage",
 };
 
 export const LIFECYCLE_STAGE_STYLES: Record<LifecycleStage, string> = {
-  vacant: "bg-status-vacant/10 text-status-vacant border-status-vacant/30",
   not_ready: "bg-status-maintenance/10 text-status-maintenance border-status-maintenance/30",
-  in_signing: "bg-amber-500/10 text-amber-700 border-amber-500/30",
-  active: "bg-status-occupied/10 text-status-occupied border-status-occupied/30",
-  ending_soon: "bg-amber-500/15 text-amber-700 border-amber-500/40",
-  recently_ended: "bg-warm-stone/40 text-true-taupe border-warm-stone",
+  ready_unlisted: "bg-warm-stone/40 text-true-taupe border-warm-stone",
+  listed: "bg-status-vacant/10 text-status-vacant border-status-vacant/30",
+  offer_pending: "bg-amber-500/10 text-amber-700 border-amber-500/30",
+  in_signing: "bg-amber-500/15 text-amber-700 border-amber-500/40",
+  leased: "bg-status-occupied/10 text-status-occupied border-status-occupied/30",
 };
-
-export const LIFECYCLE_STAGE_ORDER: LifecycleStage[] = [
-  "vacant",
-  "not_ready",
-  "in_signing",
-  "active",
-  "ending_soon",
-  "recently_ended",
-];
 
 export interface LifecycleUnit {
   id: string;
@@ -59,18 +69,20 @@ export interface LifecycleUnit {
   building_id: string;
   building_name: string;
   building_ref: string;
-  vacant_since: string | null; // ISO date
+  vacant_since: string | null;
+  listed_at: string | null;
+  asking_rent: number | null;
+  asking_rent_currency: string | null;
+  listing_notes: string | null;
   has_mgmt_agreement: boolean;
 }
 
 export interface LifecycleLease {
   contract_id: string;
   contract_number: string;
-  contract_status: string; // draft|pending_signature|active|expired|terminated|cancelled
+  contract_status: string;
   start_date: string | null;
   end_date: string | null;
-  terminated_at: string | null;
-  terminated_reason: string | null;
   created_at: string;
   updated_at: string;
   annual_rent: number | null;
@@ -78,37 +90,8 @@ export interface LifecycleLease {
   unit_id: string | null;
   tenant_name: string | null;
   tenant_id: string | null;
-  // Cheque-derived
-  next_pending_cheque?: { amount: number; due_date: string; days_until: number } | null;
-  has_overdue_cheque?: boolean;
-}
-
-export interface LifecycleCheque {
-  id: string;
-  lease_id: string;
-  contract_id: string;
-  contract_number: string;
-  sequence_number: number;
-  amount: number;
-  due_date: string;
-  status: string;
-  tenant_name: string | null;
-  unit_number: string | null;
-  building_name: string | null;
-  days_overdue: number;
-}
-
-export interface LifecycleData {
-  units: LifecycleUnit[];
-  leases: LifecycleLease[];
-  cheques: LifecycleCheque[]; // overdue pending cheques only
-  buildings: { id: string; name: string }[];
-  // Derived map: unit_id -> stage + payload
-  byStage: Record<LifecycleStage, LifecycleCard[]>;
-  // Attention lists
-  expiringSoon: LifecycleLease[]; // ≤ 90 days
-  overdueCheques: LifecycleCheque[];
-  dataGaps: LifecycleUnit[]; // occupied without active lease
+  signed_count: number;
+  party_count: number;
 }
 
 export interface LifecycleCard {
@@ -118,10 +101,18 @@ export interface LifecycleCard {
   lease?: LifecycleLease;
 }
 
+export interface LifecycleData {
+  units: LifecycleUnit[];
+  leases: LifecycleLease[];
+  buildings: { id: string; name: string }[];
+  byStage: Record<LifecycleStage, LifecycleCard[]>;
+  /** Last 30 days entries per stage — for the funnel sparkline */
+  stageDeltas: Record<LifecycleStage, number>;
+}
+
 /* =========================================================
  * Date helpers
  * ========================================================= */
-
 const MS_PER_DAY = 86400000;
 
 export function daysBetween(from: Date | string, to: Date | string): number {
@@ -141,34 +132,23 @@ export function addDaysISO(days: number): string {
 /* =========================================================
  * Fetching
  * ========================================================= */
-
 export async function fetchLifecycleData(): Promise<LifecycleData> {
-  const today = todayISO();
-  const ninetyOut = addDaysISO(90);
   const thirtyAgo = addDaysISO(-30);
-  const sixtyAgo = addDaysISO(-60);
-  const oneEightyOut = addDaysISO(180);
 
-  // Parallel root queries
-  const [
-    buildingsRes,
-    unitsRes,
-    contractsRes,
-    chequesRes,
-  ] = await Promise.all([
+  const [buildingsRes, unitsRes, contractsRes] = await Promise.all([
     supabase.from("buildings").select("id, name, ref_code").order("name"),
     supabase
       .from("units")
-      .select("id, ref_code, unit_number, unit_type, floor, status, status_locked_by_lease_id, building_id, created_at"),
+      .select(
+        "id, ref_code, unit_number, unit_type, floor, status, status_locked_by_lease_id, building_id, created_at, listed_at, asking_rent, asking_rent_currency, listing_notes",
+      ),
     supabase
       .from("contracts")
-      .select("id, contract_number, contract_type, status, start_date, end_date, terminated_at, terminated_reason, currency, created_at, updated_at")
-      .eq("contract_type", "lease"),
-    supabase
-      .from("lease_cheques")
-      .select("id, lease_id, sequence_number, amount, due_date, status")
-      .gte("due_date", sixtyAgo)
-      .lte("due_date", oneEightyOut),
+      .select(
+        "id, contract_number, contract_type, status, start_date, end_date, currency, created_at, updated_at",
+      )
+      .eq("contract_type", "lease")
+      .in("status", ["draft", "pending_signature", "active"]),
   ]);
 
   const buildings = (buildingsRes.data ?? []) as Array<{ id: string; name: string; ref_code: string }>;
@@ -176,24 +156,14 @@ export async function fetchLifecycleData(): Promise<LifecycleData> {
 
   const rawUnits = (unitsRes.data ?? []) as any[];
   const allContracts = (contractsRes.data ?? []) as any[];
-  const allCheques = (chequesRes.data ?? []) as any[];
+  const contractIds = allContracts.map((c) => c.id);
 
-  // Filter to relevant lease contracts (active, drafts, pending_signature, OR ended within 30 days)
-  const relevantContracts = allContracts.filter((c) => {
-    if (c.status === "active" || c.status === "draft" || c.status === "pending_signature") return true;
-    if (c.status === "expired" && c.end_date && c.end_date >= thirtyAgo) return true;
-    if ((c.status === "terminated" || c.status === "cancelled") && c.terminated_at && c.terminated_at.slice(0, 10) >= thirtyAgo) return true;
-    return false;
-  });
-
-  const contractIds = relevantContracts.map((c) => c.id);
-
-  // Fetch parties + subjects + leases in parallel
-  const [partiesRes, subjectsRes, leasesRes, mgmtRes] = await Promise.all([
+  // Fetch parties + subjects + active mgmt coverage in parallel
+  const [partiesRes, subjectsRes, mgmtRes] = await Promise.all([
     contractIds.length
       ? supabase
           .from("contract_parties")
-          .select("contract_id, person_id, role, people(id, first_name, last_name, company)")
+          .select("contract_id, person_id, role, signed_at, people(id, first_name, last_name, company)")
           .in("contract_id", contractIds)
       : Promise.resolve({ data: [] as any[], error: null }),
     contractIds.length
@@ -203,10 +173,6 @@ export async function fetchLifecycleData(): Promise<LifecycleData> {
           .in("contract_id", contractIds)
           .eq("entity_type", "unit")
       : Promise.resolve({ data: [] as any[], error: null }),
-    contractIds.length
-      ? supabase.from("leases").select("id, contract_id, annual_rent").in("contract_id", contractIds)
-      : Promise.resolve({ data: [] as any[], error: null }),
-    // Active management agreements via active mgmt contracts touching units
     supabase
       .from("contracts")
       .select("id, status, contract_type, contract_subjects(entity_type, entity_id)")
@@ -216,10 +182,9 @@ export async function fetchLifecycleData(): Promise<LifecycleData> {
 
   const parties = (partiesRes.data ?? []) as any[];
   const subjects = (subjectsRes.data ?? []) as any[];
-  const leases = (leasesRes.data ?? []) as any[];
   const mgmts = (mgmtRes.data ?? []) as any[];
 
-  // Build mgmt-coverage set: unit ids covered by active MA
+  // Mgmt-coverage set
   const mgmtCoveredUnits = new Set<string>();
   mgmts.forEach((m) => {
     (m.contract_subjects ?? []).forEach((s: any) => {
@@ -233,11 +198,16 @@ export async function fetchLifecycleData(): Promise<LifecycleData> {
     if (!contractToUnit.has(s.contract_id)) contractToUnit.set(s.contract_id, s.entity_id);
   });
 
-  // Map contract → tenant
+  // Tenant + signature stats
   const contractToTenant = new Map<string, { id: string; name: string }>();
+  const sigCounts = new Map<string, { signed: number; total: number }>();
   parties.forEach((p) => {
-    if (p.role !== "tenant") return;
-    if (contractToTenant.has(p.contract_id)) return;
+    const cur = sigCounts.get(p.contract_id) ?? { signed: 0, total: 0 };
+    cur.total += 1;
+    if (p.signed_at) cur.signed += 1;
+    sigCounts.set(p.contract_id, cur);
+
+    if (p.role !== "tenant" || contractToTenant.has(p.contract_id)) return;
     const person = p.people;
     if (!person) return;
     const name =
@@ -247,59 +217,38 @@ export async function fetchLifecycleData(): Promise<LifecycleData> {
     contractToTenant.set(p.contract_id, { id: person.id, name });
   });
 
-  // Lease child by contract id
-  const leaseByContract = new Map<string, any>();
-  leases.forEach((l) => leaseByContract.set(l.contract_id, l));
-  const leaseIdToContract = new Map<string, { id: string; number: string }>();
-  leases.forEach((l) => {
-    const c = relevantContracts.find((x) => x.id === l.contract_id);
-    if (c) leaseIdToContract.set(l.id, { id: c.id, number: c.contract_number });
+  // Lease child for annual_rent
+  const leaseChildRes = contractIds.length
+    ? await supabase.from("leases").select("contract_id, annual_rent").in("contract_id", contractIds)
+    : { data: [] as any[] };
+  const annualRentByContract = new Map<string, number>();
+  ((leaseChildRes.data ?? []) as any[]).forEach((l) => {
+    annualRentByContract.set(l.contract_id, l.annual_rent);
   });
 
-  // Build LifecycleLease[] and attach next-cheque data
-  const chequesByLease = new Map<string, any[]>();
-  allCheques.forEach((ch) => {
-    if (!chequesByLease.has(ch.lease_id)) chequesByLease.set(ch.lease_id, []);
-    chequesByLease.get(ch.lease_id)!.push(ch);
-  });
-
-  const lifecycleLeases: LifecycleLease[] = relevantContracts.map((c) => {
-    const lease = leaseByContract.get(c.id);
+  // Build LifecycleLease[]
+  const lifecycleLeases: LifecycleLease[] = allContracts.map((c) => {
     const tenant = contractToTenant.get(c.id) ?? null;
-    const unitId = contractToUnit.get(c.id) ?? null;
-    const myCheques = (lease ? chequesByLease.get(lease.id) ?? [] : []).slice();
-    myCheques.sort((a, b) => a.due_date.localeCompare(b.due_date));
-    const pending = myCheques.filter((q) => q.status === "pending");
-    const nextPending = pending[0];
-    const hasOverdue = pending.some((q) => q.due_date < today);
-
+    const sc = sigCounts.get(c.id) ?? { signed: 0, total: 0 };
     return {
       contract_id: c.id,
       contract_number: c.contract_number,
       contract_status: c.status,
       start_date: c.start_date,
       end_date: c.end_date,
-      terminated_at: c.terminated_at,
-      terminated_reason: c.terminated_reason,
       created_at: c.created_at,
       updated_at: c.updated_at,
-      annual_rent: lease?.annual_rent ?? null,
+      annual_rent: annualRentByContract.get(c.id) ?? null,
       currency: c.currency ?? "AED",
-      unit_id: unitId,
+      unit_id: contractToUnit.get(c.id) ?? null,
       tenant_id: tenant?.id ?? null,
       tenant_name: tenant?.name ?? null,
-      next_pending_cheque: nextPending
-        ? {
-            amount: nextPending.amount,
-            due_date: nextPending.due_date,
-            days_until: daysBetween(new Date(), nextPending.due_date),
-          }
-        : null,
-      has_overdue_cheque: hasOverdue,
+      signed_count: sc.signed,
+      party_count: sc.total,
     };
   });
 
-  // Status history → vacant_since for vacant units (best-effort, single query)
+  // vacant_since via unit_status_history (best-effort)
   const vacantUnitIds = rawUnits.filter((u) => u.status === "vacant").map((u) => u.id);
   const vacantSinceMap = new Map<string, string>();
   if (vacantUnitIds.length > 0) {
@@ -329,6 +278,10 @@ export async function fetchLifecycleData(): Promise<LifecycleData> {
       building_name: b?.name ?? "—",
       building_ref: b?.ref_code ?? "",
       vacant_since: vacantSinceMap.get(u.id) ?? u.created_at,
+      listed_at: u.listed_at ?? null,
+      asking_rent: u.asking_rent ?? null,
+      asking_rent_currency: u.asking_rent_currency ?? "AED",
+      listing_notes: u.listing_notes ?? null,
       has_mgmt_agreement: mgmtCoveredUnits.has(u.id),
     };
   });
@@ -337,17 +290,15 @@ export async function fetchLifecycleData(): Promise<LifecycleData> {
    * State resolution per unit
    * ========================== */
   const byStage: Record<LifecycleStage, LifecycleCard[]> = {
-    vacant: [],
     not_ready: [],
+    ready_unlisted: [],
+    listed: [],
+    offer_pending: [],
     in_signing: [],
-    active: [],
-    ending_soon: [],
-    recently_ended: [],
+    leased: [],
   };
 
-  const ninetyOutTs = new Date(ninetyOut).getTime();
-
-  // Group leases by unit for quick lookup
+  // Group leases by unit
   const leasesByUnit = new Map<string, LifecycleLease[]>();
   lifecycleLeases.forEach((l) => {
     if (!l.unit_id) return;
@@ -358,105 +309,81 @@ export async function fetchLifecycleData(): Promise<LifecycleData> {
   lifecycleUnits.forEach((u) => {
     const myLeases = leasesByUnit.get(u.id) ?? [];
 
-    // 1. Active lease wins
-    const activeLease = myLeases.find((l) => l.contract_status === "active");
-    if (activeLease) {
-      const endTs = activeLease.end_date ? new Date(activeLease.end_date).getTime() : Infinity;
-      const stage: LifecycleStage = endTs <= ninetyOutTs ? "ending_soon" : "active";
-      byStage[stage].push({ key: activeLease.contract_id, stage, unit: u, lease: activeLease });
-      return;
-    }
-    // 2. Draft / pending_signature
-    const signing = myLeases
-      .filter((l) => l.contract_status === "draft" || l.contract_status === "pending_signature")
-      .sort((a, b) => b.updated_at.localeCompare(a.updated_at))[0];
+    // 1. In signing — pending_signature wins
+    const signing = myLeases.find((l) => l.contract_status === "pending_signature");
     if (signing) {
       byStage.in_signing.push({ key: signing.contract_id, stage: "in_signing", unit: u, lease: signing });
       return;
     }
-    // 3. Recently ended (within 30 days)
-    const ended = myLeases
-      .filter((l) => l.contract_status === "expired" || l.contract_status === "terminated" || l.contract_status === "cancelled")
-      .sort((a, b) => {
-        const aT = a.terminated_at ?? a.end_date ?? "";
-        const bT = b.terminated_at ?? b.end_date ?? "";
-        return bT.localeCompare(aT);
-      })[0];
-    if (ended) {
-      byStage.recently_ended.push({ key: ended.contract_id, stage: "recently_ended", unit: u, lease: ended });
+
+    // 2. Offer pending — draft lease for this unit
+    const draft = myLeases
+      .filter((l) => l.contract_status === "draft")
+      .sort((a, b) => b.updated_at.localeCompare(a.updated_at))[0];
+    if (draft) {
+      byStage.offer_pending.push({ key: draft.contract_id, stage: "offer_pending", unit: u, lease: draft });
       return;
     }
-    // 4. Not ready
-    if (u.status === "under_maintenance" || u.status === "reserved" || u.status === "off_market") {
+
+    // 3. Leased — occupied with active lease (cap: only show last 30 days of activations)
+    if (u.status === "occupied") {
+      const active = myLeases.find((l) => l.contract_status === "active");
+      if (active) {
+        const activatedRecently = (active.start_date ?? active.updated_at) >= thirtyAgo;
+        if (activatedRecently) {
+          byStage.leased.push({ key: active.contract_id, stage: "leased", unit: u, lease: active });
+        }
+        return; // occupied units exit the placement funnel either way
+      }
+      // Occupied without active lease — data gap, exclude from funnel display
+      return;
+    }
+
+    // 4. Vacant: listed vs ready_unlisted
+    if (u.status === "vacant") {
+      if (u.listed_at) {
+        byStage.listed.push({ key: u.id, stage: "listed", unit: u });
+      } else {
+        byStage.ready_unlisted.push({ key: u.id, stage: "ready_unlisted", unit: u });
+      }
+      return;
+    }
+
+    // 5. Not ready — under_maintenance, off_market, reserved
+    if (u.status === "under_maintenance" || u.status === "off_market" || u.status === "reserved") {
       byStage.not_ready.push({ key: u.id, stage: "not_ready", unit: u });
       return;
     }
-    // 5. Vacant fallback
-    byStage.vacant.push({ key: u.id, stage: "vacant", unit: u });
   });
 
   /* ==========================
-   * Attention lists
+   * 30-day stage entry deltas
    * ========================== */
-  const expiringSoon = lifecycleLeases
-    .filter(
-      (l) =>
-        l.contract_status === "active" &&
-        l.end_date &&
-        new Date(l.end_date).getTime() <= ninetyOutTs,
-    )
-    .sort((a, b) => (a.end_date ?? "").localeCompare(b.end_date ?? ""));
-
-  // Overdue cheques: pending, due_date < today, lease's contract is active
-  const activeLeaseIds = new Set(
-    lifecycleLeases
-      .filter((l) => l.contract_status === "active")
-      .map((l) => {
-        const lease = leases.find((ll) => ll.contract_id === l.contract_id);
-        return lease?.id;
-      })
-      .filter(Boolean),
-  );
-  const unitByContract = contractToUnit;
-  const tenantByContract = contractToTenant;
-
-  const overdueCheques: LifecycleCheque[] = allCheques
-    .filter((ch) => ch.status === "pending" && ch.due_date < today && activeLeaseIds.has(ch.lease_id))
-    .map((ch) => {
-      const ctr = leaseIdToContract.get(ch.lease_id);
-      const contractId = ctr?.id ?? "";
-      const unitId = unitByContract.get(contractId);
-      const unit = unitId ? lifecycleUnits.find((u) => u.id === unitId) : undefined;
-      const tenant = tenantByContract.get(contractId);
-      return {
-        id: ch.id,
-        lease_id: ch.lease_id,
-        contract_id: contractId,
-        contract_number: ctr?.number ?? "",
-        sequence_number: ch.sequence_number,
-        amount: ch.amount,
-        due_date: ch.due_date,
-        status: ch.status,
-        tenant_name: tenant?.name ?? null,
-        unit_number: unit?.unit_number ?? null,
-        building_name: unit?.building_name ?? null,
-        days_overdue: Math.max(0, daysBetween(ch.due_date, new Date())),
-      };
-    })
-    .sort((a, b) => b.days_overdue - a.days_overdue);
-
-  const dataGaps = lifecycleUnits
-    .filter((u) => u.status === "occupied" && !u.status_locked_by_lease_id)
-    .sort((a, b) => (b.vacant_since ?? "").localeCompare(a.vacant_since ?? ""));
+  const stageDeltas: Record<LifecycleStage, number> = {
+    not_ready: 0,
+    ready_unlisted: 0,
+    listed: 0,
+    offer_pending: 0,
+    in_signing: 0,
+    leased: 0,
+  };
+  // listed: count units with listed_at within last 30d
+  lifecycleUnits.forEach((u) => {
+    if (u.listed_at && u.listed_at >= thirtyAgo) stageDeltas.listed += 1;
+  });
+  // offer_pending / in_signing / leased: count contracts created within last 30d in that status
+  allContracts.forEach((c) => {
+    if (c.created_at < thirtyAgo) return;
+    if (c.status === "draft") stageDeltas.offer_pending += 1;
+    else if (c.status === "pending_signature") stageDeltas.in_signing += 1;
+    else if (c.status === "active") stageDeltas.leased += 1;
+  });
 
   return {
     units: lifecycleUnits,
     leases: lifecycleLeases,
-    cheques: overdueCheques,
     buildings: buildings.map((b) => ({ id: b.id, name: b.name })),
     byStage,
-    expiringSoon,
-    overdueCheques,
-    dataGaps,
+    stageDeltas,
   };
 }

@@ -1,27 +1,15 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
-import { processSystemAutomations } from "@/lib/automations";
 import {
-  Search,
-  RefreshCw,
-  ChevronDown,
-  ChevronRight,
-  LayoutGrid,
-  TableIcon,
-  Building2,
-  Workflow,
-  CheckCircle2,
-  X,
-  Plus,
+  Search, RefreshCw, ChevronDown, Building2, Workflow, X, Plus,
+  LayoutGrid, TableIcon, Tag, ListChecks, ExternalLink,
 } from "lucide-react";
+import { processSystemAutomations } from "@/lib/automations";
 
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/EmptyState";
-import { StatusBadge } from "@/components/StatusBadge";
-import { ContractStatusPill } from "@/components/contracts/StatusPill";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
@@ -31,22 +19,19 @@ import {
   type LifecycleData,
   type LifecycleStage,
   type LifecycleCard,
-  type LifecycleLease,
-  type LifecycleCheque,
-  type LifecycleUnit,
   LIFECYCLE_STAGE_LABELS,
-  LIFECYCLE_STAGE_SUBLABELS,
-  LIFECYCLE_STAGE_STYLES,
   LIFECYCLE_STAGE_ORDER,
+  LIFECYCLE_STAGE_STYLES,
   daysBetween,
 } from "@/lib/lifecycle";
-import { DepositChequeDialog } from "@/components/contracts/lease/dialogs/DepositChequeDialog";
-import { BounceChequeDialog } from "@/components/contracts/lease/dialogs/BounceChequeDialog";
+import { FunnelStrip } from "@/components/lifecycle/FunnelStrip";
+import { StageSection } from "@/components/lifecycle/StageSection";
+import { MarkListedDialog } from "@/components/lifecycle/MarkListedDialog";
+import { UnlistDialog } from "@/components/lifecycle/UnlistDialog";
 
 /* =========================================================
  * Helpers
  * ========================================================= */
-
 function fmtMoney(amount: number | null | undefined, currency = "AED"): string {
   if (amount == null) return "—";
   return `${currency} ${Number(amount).toLocaleString()}`;
@@ -57,10 +42,14 @@ function fmtDate(d: string | null | undefined): string {
   return new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
 
+function daysSince(d: string | null | undefined): number | null {
+  if (!d) return null;
+  return daysBetween(d, new Date());
+}
+
 /* =========================================================
  * Page
  * ========================================================= */
-
 export default function LifecyclePage() {
   const navigate = useNavigate();
   const [data, setData] = useState<LifecycleData | null>(null);
@@ -70,16 +59,15 @@ export default function LifecyclePage() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [buildingFilter, setBuildingFilter] = useState<Set<string>>(new Set());
-  const [view, setView] = useState<"pipeline" | "table">("pipeline");
-
+  const [view, setView] = useState<"funnel" | "table">("funnel");
   const [highlightStage, setHighlightStage] = useState<LifecycleStage | null>(null);
-  const stageRefs = useRef<Record<LifecycleStage, HTMLDivElement | null>>({
-    vacant: null, not_ready: null, in_signing: null, active: null, ending_soon: null, recently_ended: null,
+  const sectionRefs = useRef<Record<LifecycleStage, HTMLDivElement | null>>({
+    not_ready: null, ready_unlisted: null, listed: null,
+    offer_pending: null, in_signing: null, leased: null,
   });
 
-  // Cheque action dialogs (still used by table view actions if surfaced elsewhere)
-  const [depositCheque, setDepositCheque] = useState<LifecycleCheque | null>(null);
-  const [bounceCheque, setBounceCheque] = useState<LifecycleCheque | null>(null);
+  const [listDialog, setListDialog] = useState<LifecycleCard | null>(null);
+  const [unlistDialog, setUnlistDialog] = useState<LifecycleCard | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -99,21 +87,18 @@ export default function LifecyclePage() {
     load();
   }, []);
 
-  // Debounce search
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search.trim().toLowerCase()), 200);
     return () => clearTimeout(t);
   }, [search]);
 
-  /* ============= Filtering ============= */
   const filtered = useMemo(() => {
     if (!data) return null;
     const buildingActive = buildingFilter.size > 0;
     const q = debouncedSearch;
 
-    const matchesBuilding = (buildingId: string) => !buildingActive || buildingFilter.has(buildingId);
-
-    const cardMatchesSearch = (c: LifecycleCard) => {
+    const cardMatches = (c: LifecycleCard) => {
+      if (buildingActive && !buildingFilter.has(c.unit.building_id)) return false;
       if (!q) return true;
       const hay = [
         c.unit.unit_number,
@@ -125,40 +110,28 @@ export default function LifecyclePage() {
     };
 
     const byStage = LIFECYCLE_STAGE_ORDER.reduce((acc, s) => {
-      acc[s] = data.byStage[s].filter((c) => matchesBuilding(c.unit.building_id) && cardMatchesSearch(c));
+      acc[s] = data.byStage[s].filter(cardMatches);
       return acc;
     }, {} as Record<LifecycleStage, LifecycleCard[]>);
 
-    const expiringSoon = data.expiringSoon.filter((l) => {
-      const u = data.units.find((x) => x.id === l.unit_id);
-      if (!u || !matchesBuilding(u.building_id)) return false;
-      if (!q) return true;
-      return [l.tenant_name ?? "", u.unit_number, u.building_name, l.contract_number].join(" ").toLowerCase().includes(q);
-    });
-
-    const overdueCheques = data.overdueCheques.filter((c) => {
-      const u = data.units.find((x) => x.unit_number === c.unit_number);
-      if (buildingActive && (!u || !buildingFilter.has(u.building_id))) return false;
-      if (!q) return true;
-      return [c.tenant_name ?? "", c.unit_number ?? "", c.building_name ?? "", c.contract_number].join(" ").toLowerCase().includes(q);
-    });
-
-    const dataGaps = data.dataGaps.filter((u) => {
-      if (!matchesBuilding(u.building_id)) return false;
-      if (!q) return true;
-      return [u.unit_number, u.building_name].join(" ").toLowerCase().includes(q);
-    });
-
-    return { byStage, expiringSoon, overdueCheques, dataGaps };
+    return { byStage };
   }, [data, debouncedSearch, buildingFilter]);
 
-  /* ============= KPIs ============= */
-  /* ============= Scroll-to handlers ============= */
+  const counts = useMemo(() => {
+    const c: Record<LifecycleStage, number> = {
+      not_ready: 0, ready_unlisted: 0, listed: 0,
+      offer_pending: 0, in_signing: 0, leased: 0,
+    };
+    if (!filtered) return c;
+    LIFECYCLE_STAGE_ORDER.forEach((s) => { c[s] = filtered.byStage[s].length; });
+    return c;
+  }, [filtered]);
+
   const focusStage = (s: LifecycleStage) => {
-    if (view === "table") setView("pipeline");
+    if (view === "table") setView("funnel");
     setHighlightStage(s);
     setTimeout(() => {
-      stageRefs.current[s]?.scrollIntoView({ behavior: "smooth", block: "start", inline: "start" });
+      sectionRefs.current[s]?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 50);
     setTimeout(() => setHighlightStage(null), 2000);
   };
@@ -167,15 +140,11 @@ export default function LifecyclePage() {
   if (loading) {
     return (
       <>
-        <PageHeader eyebrow="Module" title="Lease Lifecycle" description="Where every unit is in its placement and tenancy journey." />
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+        <PageHeader eyebrow="Module" title="Leasing Lifecycle" description="From available unit to signed lease." />
+        <div className="h-32 bg-muted/40 animate-pulse rounded-sm mb-6" />
+        <div className="space-y-3">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-24 bg-muted/40 animate-pulse rounded-sm" />
-          ))}
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-96 bg-muted/30 animate-pulse rounded-sm" />
+            <div key={i} className="h-24 bg-muted/30 animate-pulse rounded-sm" />
           ))}
         </div>
       </>
@@ -185,7 +154,7 @@ export default function LifecyclePage() {
   if (err) {
     return (
       <>
-        <PageHeader eyebrow="Module" title="Lease Lifecycle" />
+        <PageHeader eyebrow="Module" title="Leasing Lifecycle" />
         <div className="border hairline rounded-sm bg-card p-8 text-center text-destructive text-sm">
           {err}
           <div className="mt-3"><Button variant="outline" size="sm" onClick={load}><RefreshCw className="h-3 w-3" /> Retry</Button></div>
@@ -197,11 +166,11 @@ export default function LifecyclePage() {
   if (!data || data.units.length === 0) {
     return (
       <>
-        <PageHeader eyebrow="Module" title="Lease Lifecycle" description="Where every unit is in its placement and tenancy journey." />
+        <PageHeader eyebrow="Module" title="Leasing Lifecycle" description="From available unit to signed lease." />
         <EmptyState
           icon={<Workflow className="h-10 w-10" strokeWidth={1.2} />}
           title="No properties yet"
-          description="Add your first building and units to see the lifecycle pipeline."
+          description="Add your first building and units to see the leasing funnel."
           action={
             <Button variant="gold" onClick={() => navigate("/properties")}>
               <Plus className="h-4 w-4" /> Go to Properties
@@ -216,8 +185,8 @@ export default function LifecyclePage() {
     <>
       <PageHeader
         eyebrow="Module"
-        title="Lease Lifecycle"
-        description="Where every unit is in its placement and tenancy journey."
+        title="Leasing Lifecycle"
+        description="From available unit to signed lease."
         actions={
           <Button variant="outline" size="sm" onClick={load} disabled={loading}>
             <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} /> Refresh
@@ -225,7 +194,15 @@ export default function LifecyclePage() {
         }
       />
 
-      {/* ============= Filter bar ============= */}
+      {/* Funnel strip */}
+      <FunnelStrip
+        counts={counts}
+        deltas={data.stageDeltas}
+        active={highlightStage}
+        onSelect={focusStage}
+      />
+
+      {/* Filter bar */}
       <div className="flex flex-col md:flex-row md:items-center gap-3 mb-6">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -253,13 +230,13 @@ export default function LifecyclePage() {
 
         <div className="md:ml-auto inline-flex border hairline rounded-sm overflow-hidden">
           <button
-            onClick={() => setView("pipeline")}
+            onClick={() => setView("funnel")}
             className={cn(
               "flex items-center gap-1.5 px-3 py-1.5 text-[11px] uppercase tracking-wider transition-colors",
-              view === "pipeline" ? "bg-architect text-chalk" : "bg-card text-muted-foreground hover:text-architect",
+              view === "funnel" ? "bg-architect text-chalk" : "bg-card text-muted-foreground hover:text-architect",
             )}
           >
-            <LayoutGrid className="h-3.5 w-3.5" /> Pipeline
+            <LayoutGrid className="h-3.5 w-3.5" /> Funnel
           </button>
           <button
             onClick={() => setView("table")}
@@ -273,29 +250,35 @@ export default function LifecyclePage() {
         </div>
       </div>
 
-      {/* ============= Pipeline / Table ============= */}
-      {view === "pipeline" && filtered && (
-        <div className="pb-2 mb-10">
-          <div className="grid grid-cols-6 gap-3 min-w-full">
-            {LIFECYCLE_STAGE_ORDER.map((stage) => (
-              <PipelineColumn
-                key={stage}
+      {/* Funnel view: vertical stage sections */}
+      {view === "funnel" && filtered && (
+        <div className="space-y-4 pb-8">
+          {LIFECYCLE_STAGE_ORDER.map((stage) => (
+            <StageSection
+              key={stage}
+              title={LIFECYCLE_STAGE_LABELS[stage]}
+              count={filtered.byStage[stage].length}
+              refSet={(el) => { sectionRefs.current[stage] = el; }}
+              highlight={highlightStage === stage}
+              toneClass={LIFECYCLE_STAGE_STYLES[stage]}
+              emptyMessage={emptyMessageFor(stage)}
+              headerActions={headerActionsFor(stage, navigate)}
+            >
+              <StageTable
                 stage={stage}
                 cards={filtered.byStage[stage]}
-                highlight={highlightStage === stage}
-                refCb={(el) => { stageRefs.current[stage] = el; }}
-                onCardClick={(c) => {
-                  if (c.lease) navigate(`/contracts/${c.lease.contract_id}`);
-                  else navigate(`/properties/${c.unit.building_id}/units/${c.unit.id}`);
-                }}
+                onMarkListed={(c) => setListDialog(c)}
+                onUnlist={(c) => setUnlistDialog(c)}
+                navigate={navigate}
               />
-            ))}
-          </div>
+            </StageSection>
+          ))}
         </div>
       )}
 
+      {/* Table view */}
       {view === "table" && filtered && (
-        <LifecycleTable
+        <FlatTable
           byStage={filtered.byStage}
           onRowClick={(c) => {
             if (c.lease) navigate(`/contracts/${c.lease.contract_id}`);
@@ -304,25 +287,27 @@ export default function LifecyclePage() {
         />
       )}
 
-      {/* ============= Cheque action dialogs ============= */}
-      {depositCheque && (
-        <DepositChequeDialog
+      {/* Listing dialogs */}
+      {listDialog && (
+        <MarkListedDialog
           open
-          onOpenChange={(v) => { if (!v) setDepositCheque(null); }}
-          chequeId={depositCheque.id}
-          contractId={depositCheque.contract_id}
-          sequence={depositCheque.sequence_number}
-          onSaved={() => { setDepositCheque(null); load(); toast.success("Cheque updated."); }}
+          onOpenChange={(v) => { if (!v) setListDialog(null); }}
+          unitId={listDialog.unit.id}
+          unitNumber={listDialog.unit.unit_number}
+          buildingName={listDialog.unit.building_name}
+          initialAskingRent={listDialog.unit.asking_rent}
+          initialCurrency={listDialog.unit.asking_rent_currency}
+          initialNotes={listDialog.unit.listing_notes}
+          onSaved={() => { setListDialog(null); load(); }}
         />
       )}
-      {bounceCheque && (
-        <BounceChequeDialog
+      {unlistDialog && (
+        <UnlistDialog
           open
-          onOpenChange={(v) => { if (!v) setBounceCheque(null); }}
-          chequeId={bounceCheque.id}
-          contractId={bounceCheque.contract_id}
-          sequence={bounceCheque.sequence_number}
-          onSaved={() => { setBounceCheque(null); load(); }}
+          onOpenChange={(v) => { if (!v) setUnlistDialog(null); }}
+          unitId={unlistDialog.unit.id}
+          unitNumber={unlistDialog.unit.unit_number}
+          onSaved={() => { setUnlistDialog(null); load(); }}
         />
       )}
     </>
@@ -330,29 +315,243 @@ export default function LifecyclePage() {
 }
 
 /* =========================================================
- * KPI Card
+ * Per-stage helpers
  * ========================================================= */
-function KpiCard({
-  label, value, sublabel, tone = "neutral", onClick,
+function emptyMessageFor(stage: LifecycleStage): string {
+  switch (stage) {
+    case "not_ready": return "All units are at least ready to list.";
+    case "ready_unlisted": return "Every ready unit has been listed. Nice.";
+    case "listed": return "No active listings right now.";
+    case "offer_pending": return "No offers awaiting landlord confirmation.";
+    case "in_signing": return "Nothing currently in signing.";
+    case "leased": return "No new leases activated in the last 30 days.";
+  }
+}
+
+function headerActionsFor(stage: LifecycleStage, navigate: (p: string) => void) {
+  if (stage === "leased") {
+    return (
+      <Button variant="ghost" size="sm" onClick={() => navigate("/contracts?type=lease&status=active")}>
+        <ExternalLink className="h-3 w-3" /> All in Contracts
+      </Button>
+    );
+  }
+  return null;
+}
+
+/* =========================================================
+ * Per-stage tables
+ * ========================================================= */
+function StageTable({
+  stage, cards, onMarkListed, onUnlist, navigate,
 }: {
-  label: string; value: number | string; sublabel?: string;
-  tone?: "neutral" | "amber" | "red"; onClick?: () => void;
+  stage: LifecycleStage;
+  cards: LifecycleCard[];
+  onMarkListed: (c: LifecycleCard) => void;
+  onUnlist: (c: LifecycleCard) => void;
+  navigate: (p: string) => void;
 }) {
-  const toneClass =
-    tone === "red" ? "text-destructive" :
-    tone === "amber" ? "text-amber-700" : "text-architect";
+  // Each stage gets its own column set
+  switch (stage) {
+    case "not_ready":
+      return (
+        <Table headers={["Unit", "Building", "Status", "Since", ""]}>
+          {cards.map((c) => (
+            <Row key={c.key} onClick={() => navigate(`/properties/${c.unit.building_id}/units/${c.unit.id}`)}>
+              <Td primary>{c.unit.unit_number}</Td>
+              <Td>{c.unit.building_name}</Td>
+              <Td><Pill stage={stage} label={formatEnumLabel(c.unit.status)} /></Td>
+              <Td mono>{fmtDate(c.unit.vacant_since)}</Td>
+              <Td action>
+                <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); navigate(`/properties/${c.unit.building_id}/units/${c.unit.id}`); }}>View unit</Button>
+              </Td>
+            </Row>
+          ))}
+        </Table>
+      );
+
+    case "ready_unlisted":
+      return (
+        <Table headers={["Unit", "Building", "Type", "Vacant for", "Mgmt", ""]}>
+          {cards.map((c) => {
+            const days = daysSince(c.unit.vacant_since);
+            return (
+              <Row key={c.key} onClick={() => navigate(`/properties/${c.unit.building_id}/units/${c.unit.id}`)}>
+                <Td primary>{c.unit.unit_number}</Td>
+                <Td>{c.unit.building_name}</Td>
+                <Td>{formatEnumLabel(c.unit.unit_type)}{c.unit.floor != null ? ` · F${c.unit.floor}` : ""}</Td>
+                <Td mono>{days != null ? `${days}d` : "—"}</Td>
+                <Td>{c.unit.has_mgmt_agreement ? <Pill stage="leased" label="Yes" /> : <Pill stage="not_ready" label="No" />}</Td>
+                <Td action>
+                  <Button variant="gold" size="sm" onClick={(e) => { e.stopPropagation(); onMarkListed(c); }}>
+                    <Tag className="h-3 w-3" /> Mark listed
+                  </Button>
+                </Td>
+              </Row>
+            );
+          })}
+        </Table>
+      );
+
+    case "listed":
+      return (
+        <Table headers={["Unit", "Building", "Asking", "Listed", "Days listed", ""]}>
+          {cards.map((c) => {
+            const days = daysSince(c.unit.listed_at);
+            return (
+              <Row key={c.key} onClick={() => navigate(`/properties/${c.unit.building_id}/units/${c.unit.id}`)}>
+                <Td primary>{c.unit.unit_number}</Td>
+                <Td>{c.unit.building_name}</Td>
+                <Td mono>{fmtMoney(c.unit.asking_rent, c.unit.asking_rent_currency ?? "AED")}</Td>
+                <Td mono>{fmtDate(c.unit.listed_at)}</Td>
+                <Td mono>{days != null ? `${days}d` : "—"}</Td>
+                <Td action>
+                  <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onUnlist(c); }}>
+                    Unlist
+                  </Button>
+                </Td>
+              </Row>
+            );
+          })}
+        </Table>
+      );
+
+    case "offer_pending":
+      return (
+        <Table headers={["Unit", "Building", "Tenant", "Proposed rent", "Awaiting for", ""]}>
+          {cards.map((c) => {
+            const l = c.lease!;
+            const ageDays = daysSince(l.created_at);
+            return (
+              <Row key={c.key} onClick={() => navigate(`/contracts/${l.contract_id}`)}>
+                <Td primary>{c.unit.unit_number}</Td>
+                <Td>{c.unit.building_name}</Td>
+                <Td>{l.tenant_name ?? "—"}</Td>
+                <Td mono>{fmtMoney(l.annual_rent, l.currency)}/yr</Td>
+                <Td mono>{ageDays != null ? `${ageDays}d` : "—"}</Td>
+                <Td action>
+                  <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); navigate(`/contracts/${l.contract_id}`); }}>
+                    Open lease
+                  </Button>
+                </Td>
+              </Row>
+            );
+          })}
+        </Table>
+      );
+
+    case "in_signing":
+      return (
+        <Table headers={["Unit", "Building", "Tenant", "Rent", "Signatures", "Days in signing", ""]}>
+          {cards.map((c) => {
+            const l = c.lease!;
+            const ageDays = daysSince(l.updated_at);
+            return (
+              <Row key={c.key} onClick={() => navigate(`/contracts/${l.contract_id}`)}>
+                <Td primary>{c.unit.unit_number}</Td>
+                <Td>{c.unit.building_name}</Td>
+                <Td>{l.tenant_name ?? "—"}</Td>
+                <Td mono>{fmtMoney(l.annual_rent, l.currency)}/yr</Td>
+                <Td mono>
+                  <span className={cn(l.signed_count < l.party_count && "text-amber-700")}>
+                    {l.signed_count}/{l.party_count}
+                  </span>
+                </Td>
+                <Td mono>{ageDays != null ? `${ageDays}d` : "—"}</Td>
+                <Td action>
+                  <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); navigate(`/contracts/${l.contract_id}`); }}>
+                    <ListChecks className="h-3 w-3" /> Open
+                  </Button>
+                </Td>
+              </Row>
+            );
+          })}
+        </Table>
+      );
+
+    case "leased":
+      return (
+        <Table headers={["Unit", "Building", "Tenant", "Annual rent", "Start", "End", ""]}>
+          {cards.map((c) => {
+            const l = c.lease!;
+            return (
+              <Row key={c.key} onClick={() => navigate(`/contracts/${l.contract_id}`)}>
+                <Td primary>{c.unit.unit_number}</Td>
+                <Td>{c.unit.building_name}</Td>
+                <Td>{l.tenant_name ?? "—"}</Td>
+                <Td mono>{fmtMoney(l.annual_rent, l.currency)}</Td>
+                <Td mono>{fmtDate(l.start_date)}</Td>
+                <Td mono>{fmtDate(l.end_date)}</Td>
+                <Td action>
+                  <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); navigate(`/contracts/${l.contract_id}`); }}>View</Button>
+                </Td>
+              </Row>
+            );
+          })}
+        </Table>
+      );
+  }
+}
+
+/* =========================================================
+ * Reusable table primitives
+ * ========================================================= */
+function Table({ headers, children }: { headers: string[]; children: React.ReactNode }) {
   return (
-    <button
-      onClick={onClick}
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead className="bg-muted/30 text-left">
+          <tr>
+            {headers.map((h, i) => (
+              <th key={i} className={cn("px-4 py-2 label-eyebrow", i === headers.length - 1 && "text-right")}>
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>{children}</tbody>
+      </table>
+    </div>
+  );
+}
+
+function Row({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
+  return (
+    <tr onClick={onClick} className="border-t hairline hover:bg-muted/20 cursor-pointer">
+      {children}
+    </tr>
+  );
+}
+
+function Td({
+  children, primary, mono, action,
+}: {
+  children: React.ReactNode; primary?: boolean; mono?: boolean; action?: boolean;
+}) {
+  return (
+    <td
       className={cn(
-        "text-left border hairline rounded-sm bg-card px-4 py-3 transition-all",
-        "hover:shadow-sm hover:border-warm-stone",
+        "px-4 py-2",
+        primary && "text-architect font-medium",
+        mono && "mono text-xs text-muted-foreground",
+        !primary && !mono && !action && "text-muted-foreground",
+        action && "text-right whitespace-nowrap",
       )}
     >
-      <div className="label-eyebrow text-muted-foreground text-[10px]">{label}</div>
-      <div className={cn("font-display text-3xl mt-1 leading-none", toneClass)}>{value}</div>
-      {sublabel && <div className="text-[11px] text-muted-foreground mt-1.5">{sublabel}</div>}
-    </button>
+      {children}
+    </td>
+  );
+}
+
+function Pill({ stage, label }: { stage: LifecycleStage; label: string }) {
+  return (
+    <span className={cn(
+      "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm border text-[10px] uppercase tracking-wider font-medium",
+      LIFECYCLE_STAGE_STYLES[stage],
+    )}>
+      <span className="h-1.5 w-1.5 rounded-full bg-current" />
+      {label}
+    </span>
   );
 }
 
@@ -411,426 +610,54 @@ function BuildingFilter({
 }
 
 /* =========================================================
- * Pipeline column + cards
+ * Flat table view (all stages)
  * ========================================================= */
-function PipelineColumn({
-  stage, cards, highlight, refCb, onCardClick,
-}: {
-  stage: LifecycleStage;
-  cards: LifecycleCard[];
-  highlight: boolean;
-  refCb: (el: HTMLDivElement | null) => void;
-  onCardClick: (c: LifecycleCard) => void;
-}) {
-  return (
-    <div
-      ref={refCb}
-      className={cn(
-        "border hairline rounded-sm bg-muted/20 flex flex-col min-h-[420px] max-h-[720px] transition-shadow",
-        highlight && "ring-2 ring-gold shadow-md",
-      )}
-    >
-      <div className="px-3 py-3 border-b hairline bg-card">
-        <div className="flex items-center justify-between">
-          <div className="label-eyebrow text-architect">{LIFECYCLE_STAGE_LABELS[stage]}</div>
-          <span className="mono text-[10px] px-1.5 py-0.5 bg-architect text-chalk rounded-sm">{cards.length}</span>
-        </div>
-        <div className="text-[11px] text-muted-foreground mt-1">{LIFECYCLE_STAGE_SUBLABELS[stage]}</div>
-      </div>
-      <div className="flex-1 overflow-y-auto p-2 space-y-2">
-        {cards.length === 0 ? (
-          <div className="text-center text-[11px] italic text-muted-foreground py-8">No {LIFECYCLE_STAGE_LABELS[stage].toLowerCase()} items</div>
-        ) : (
-          cards.map((c) => <PipelineCard key={c.key} card={c} onClick={() => onCardClick(c)} />)
-        )}
-      </div>
-    </div>
-  );
-}
-
-function MiniBadge({ children, tone = "neutral" }: { children: ReactNode; tone?: "neutral" | "amber" | "red" | "green" }) {
-  const styles =
-    tone === "red" ? "bg-destructive/10 text-destructive border-destructive/30" :
-    tone === "amber" ? "bg-amber-500/10 text-amber-700 border-amber-500/30" :
-    tone === "green" ? "bg-status-occupied/10 text-status-occupied border-status-occupied/30" :
-    "bg-warm-stone/40 text-true-taupe border-warm-stone";
-  return (
-    <span className={cn("inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm border text-[9px] uppercase tracking-wider font-medium", styles)}>
-      {children}
-    </span>
-  );
-}
-
-function PipelineCard({ card, onClick }: { card: LifecycleCard; onClick: () => void }) {
-  const u = card.unit;
-  const l = card.lease;
-
-  // Render variants per stage
-  if (card.stage === "vacant") {
-    const days = u.vacant_since ? daysBetween(u.vacant_since, new Date()) : null;
-    return (
-      <CardShell onClick={onClick}>
-        <div className="font-display text-base text-architect leading-tight">{u.unit_number}</div>
-        <div className="text-[11px] text-muted-foreground">{u.building_name}</div>
-        <div className="text-[10px] text-muted-foreground/80 mt-0.5">
-          {formatEnumLabel(u.unit_type)}{u.floor != null ? ` · Floor ${u.floor}` : ""}
-        </div>
-        <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-          {days != null && <MiniBadge>Vacant {days}d</MiniBadge>}
-          {!u.has_mgmt_agreement && <MiniBadge tone="red">No mgmt agreement</MiniBadge>}
-        </div>
-      </CardShell>
-    );
-  }
-
-  if (card.stage === "not_ready") {
-    return (
-      <CardShell onClick={onClick}>
-        <div className="flex items-start justify-between gap-2">
-          <div className="font-display text-base text-architect leading-tight">{u.unit_number}</div>
-          <StatusBadge status={u.status} />
-        </div>
-        <div className="text-[11px] text-muted-foreground mt-1">{u.building_name}</div>
-        {u.vacant_since && (
-          <div className="text-[10px] text-muted-foreground/80 mt-1">Since {fmtDate(u.vacant_since)}</div>
-        )}
-      </CardShell>
-    );
-  }
-
-  if (card.stage === "in_signing" && l) {
-    const ageDays = daysBetween(l.created_at, new Date());
-    return (
-      <CardShell onClick={onClick}>
-        <ContractStatusPill status={l.contract_status} />
-        <div className="font-display text-sm text-architect mt-1.5 truncate">{l.tenant_name ?? "Tenant TBD"}</div>
-        <div className="text-[11px] text-muted-foreground">{u.unit_number} · {u.building_name}</div>
-        {l.annual_rent != null && (
-          <div className="text-[11px] text-architect mt-1">{fmtMoney(l.annual_rent, l.currency)}/year</div>
-        )}
-        <div className="text-[10px] text-muted-foreground/80 mt-1">{ageDays}d in flight</div>
-      </CardShell>
-    );
-  }
-
-  if ((card.stage === "active" || card.stage === "ending_soon") && l) {
-    const days = l.end_date ? daysBetween(new Date(), l.end_date) : null;
-    const isUrgent = days != null && days <= 30;
-    return (
-      <CardShell onClick={onClick}>
-        <div className="font-display text-sm text-architect truncate">{l.tenant_name ?? "—"}</div>
-        <div className="text-[11px] text-muted-foreground">{u.unit_number} · {u.building_name}</div>
-        {l.end_date && (
-          <div className={cn(
-            "text-[11px] mt-1",
-            card.stage === "ending_soon" ? (isUrgent ? "text-destructive font-medium" : "text-amber-700") : "text-muted-foreground",
-          )}>
-            {card.stage === "ending_soon" ? `${days}d left` : `Until ${fmtDate(l.end_date)}`}
-          </div>
-        )}
-        {l.annual_rent != null && (
-          <div className="text-[11px] text-architect mt-1">{fmtMoney(l.annual_rent, l.currency)}/year</div>
-        )}
-        {l.next_pending_cheque && (
-          <div className="mt-2">
-            <MiniBadge tone={l.next_pending_cheque.days_until < 0 ? "red" : l.next_pending_cheque.days_until <= 7 ? "amber" : "neutral"}>
-              {l.currency} {Number(l.next_pending_cheque.amount).toLocaleString()} {l.next_pending_cheque.days_until < 0
-                ? `overdue ${Math.abs(l.next_pending_cheque.days_until)}d`
-                : `due in ${l.next_pending_cheque.days_until}d`}
-            </MiniBadge>
-          </div>
-        )}
-      </CardShell>
-    );
-  }
-
-  if (card.stage === "recently_ended" && l) {
-    const ref = l.terminated_at ?? l.end_date;
-    const ago = ref ? daysBetween(ref, new Date()) : null;
-    const reason = l.terminated_reason ?? (l.contract_status === "expired" ? "Expired" : formatEnumLabel(l.contract_status));
-    return (
-      <CardShell onClick={onClick}>
-        <div className="font-display text-sm text-architect truncate">{l.tenant_name ?? "—"}</div>
-        <div className="text-[11px] text-muted-foreground">{u.unit_number} · {u.building_name}</div>
-        <div className="text-[11px] text-muted-foreground/90 mt-1">
-          Ended {ago != null ? `${ago}d ago` : "—"} · {reason}
-        </div>
-        <div className="text-[10px] text-muted-foreground/80 mt-1">Unit: {formatEnumLabel(u.status)}</div>
-      </CardShell>
-    );
-  }
-
-  return null;
-}
-
-function CardShell({ children, onClick }: { children: ReactNode; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className="block w-full text-left bg-card border hairline rounded-sm p-2.5 hover:shadow-md hover:border-warm-stone transition-all"
-    >
-      {children}
-    </button>
-  );
-}
-
-/* =========================================================
- * Attention section
- * ========================================================= */
-function AttentionSection({
-  title, count, tone, empty, children, refSet,
-}: {
-  title: string; count: number; tone: "neutral" | "amber" | "red"; empty: string;
-  children?: ReactNode; refSet?: (el: HTMLDivElement | null) => void;
-}) {
-    const [open, setOpen] = useState(true);
-    const toneClass = tone === "red" ? "text-destructive" : tone === "amber" ? "text-amber-700" : "text-muted-foreground";
-    return (
-      <div ref={refSet} className="border hairline rounded-sm bg-card overflow-hidden">
-        <button
-          onClick={() => setOpen(!open)}
-          className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-            <div className="label-eyebrow text-architect">{title}</div>
-            <span className={cn("mono text-[11px] px-2 py-0.5 rounded-sm border", count > 0 ? "border-current bg-card" : "border-warm-stone bg-muted/30 text-muted-foreground", count > 0 && toneClass)}>
-              {count}
-            </span>
-          </div>
-        </button>
-        {open && (
-          <div className="border-t hairline">
-            {count === 0 ? (
-              <div className="px-4 py-6 text-sm text-muted-foreground italic flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-status-occupied" /> {empty}
-              </div>
-            ) : children}
-          </div>
-        )}
-      </div>
-    );
-}
-
-/* Tables for attention sections */
-function ExpiringTable({ leases, units, navigate }: { leases: LifecycleLease[]; units: LifecycleUnit[]; navigate: (p: string) => void }) {
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead className="bg-muted/30 text-left">
-          <tr>
-            <th className="px-4 py-2 label-eyebrow">Tenant</th>
-            <th className="px-4 py-2 label-eyebrow">Unit · Building</th>
-            <th className="px-4 py-2 label-eyebrow">Days remaining</th>
-            <th className="px-4 py-2 label-eyebrow">Annual rent</th>
-            <th className="px-4 py-2 label-eyebrow text-right">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {leases.map((l) => {
-            const u = units.find((x) => x.id === l.unit_id);
-            const days = l.end_date ? daysBetween(new Date(), l.end_date) : null;
-            return (
-              <tr key={l.contract_id} className="border-t hairline hover:bg-muted/20">
-                <td className="px-4 py-2 text-architect">{l.tenant_name ?? "—"}</td>
-                <td className="px-4 py-2 text-muted-foreground">{u?.unit_number ?? "—"} · {u?.building_name ?? "—"}</td>
-                <td className="px-4 py-2">
-                  <span className={cn("mono text-xs", days != null && days <= 30 ? "text-destructive font-medium" : "text-amber-700")}>
-                    {days != null ? `${days}d` : "—"}
-                  </span>
-                </td>
-                <td className="px-4 py-2 text-architect mono text-xs">{fmtMoney(l.annual_rent, l.currency)}</td>
-                <td className="px-4 py-2 text-right">
-                  <Button variant="ghost" size="sm" onClick={() => navigate(`/contracts/${l.contract_id}`)}>View lease</Button>
-                  {l.tenant_id && (
-                    <Button variant="ghost" size="sm" onClick={() => navigate(`/people/${l.tenant_id}`)}>Contact</Button>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function OverdueChequesTable({
-  cheques, onView, onDeposit, onBounce,
-}: {
-  cheques: LifecycleCheque[];
-  onView: (c: LifecycleCheque) => void;
-  onDeposit: (c: LifecycleCheque) => void;
-  onBounce: (c: LifecycleCheque) => void;
-}) {
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead className="bg-muted/30 text-left">
-          <tr>
-            <th className="px-4 py-2 label-eyebrow">Cheque #</th>
-            <th className="px-4 py-2 label-eyebrow">Tenant</th>
-            <th className="px-4 py-2 label-eyebrow">Unit</th>
-            <th className="px-4 py-2 label-eyebrow">Amount</th>
-            <th className="px-4 py-2 label-eyebrow">Due date</th>
-            <th className="px-4 py-2 label-eyebrow">Days overdue</th>
-            <th className="px-4 py-2 label-eyebrow text-right">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {cheques.map((c) => (
-            <tr key={c.id} className="border-t hairline hover:bg-muted/20">
-              <td className="px-4 py-2 mono text-xs text-architect">#{c.sequence_number}</td>
-              <td className="px-4 py-2 text-architect">{c.tenant_name ?? "—"}</td>
-              <td className="px-4 py-2 text-muted-foreground">{c.unit_number ?? "—"}</td>
-              <td className="px-4 py-2 mono text-xs text-architect">{fmtMoney(c.amount)}</td>
-              <td className="px-4 py-2 text-muted-foreground text-xs">{fmtDate(c.due_date)}</td>
-              <td className="px-4 py-2 mono text-xs text-destructive font-medium">{c.days_overdue}d</td>
-              <td className="px-4 py-2 text-right whitespace-nowrap">
-                <Button variant="ghost" size="sm" onClick={() => onView(c)}>View</Button>
-                <Button variant="ghost" size="sm" onClick={() => onDeposit(c)}>Deposit</Button>
-                <Button variant="ghost" size="sm" onClick={() => onBounce(c)}>Bounce</Button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function DataGapsTable({ units, navigate }: { units: LifecycleUnit[]; navigate: (p: string) => void }) {
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead className="bg-muted/30 text-left">
-          <tr>
-            <th className="px-4 py-2 label-eyebrow">Unit · Building</th>
-            <th className="px-4 py-2 label-eyebrow">Status</th>
-            <th className="px-4 py-2 label-eyebrow">Since</th>
-            <th className="px-4 py-2 label-eyebrow text-right">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {units.map((u) => (
-            <tr key={u.id} className="border-t hairline hover:bg-muted/20">
-              <td className="px-4 py-2 text-architect">{u.unit_number} · <span className="text-muted-foreground">{u.building_name}</span></td>
-              <td className="px-4 py-2"><StatusBadge status={u.status} /></td>
-              <td className="px-4 py-2 text-muted-foreground text-xs">{fmtDate(u.vacant_since)}</td>
-              <td className="px-4 py-2 text-right">
-                <Button variant="ghost" size="sm" onClick={() => navigate(`/contracts?type=lease`)}>Add lease</Button>
-                <Button variant="ghost" size="sm" onClick={() => navigate(`/properties/${u.building_id}/units/${u.id}`)}>View unit</Button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-/* =========================================================
- * Table view
- * ========================================================= */
-type SortKey = "stage" | "unit" | "building" | "tenant" | "rent" | "start" | "end" | "days";
-
-function LifecycleTable({
+function FlatTable({
   byStage, onRowClick,
 }: {
   byStage: Record<LifecycleStage, LifecycleCard[]>;
   onRowClick: (c: LifecycleCard) => void;
 }) {
-  const [sortBy, setSortBy] = useState<SortKey>("stage");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
-
   const rows = useMemo(() => {
     const all: LifecycleCard[] = [];
     LIFECYCLE_STAGE_ORDER.forEach((s) => all.push(...byStage[s]));
-
-    const stageRank = (s: LifecycleStage) => LIFECYCLE_STAGE_ORDER.indexOf(s);
-
-    const cmp = (a: LifecycleCard, b: LifecycleCard): number => {
-      let v = 0;
-      switch (sortBy) {
-        case "stage": v = stageRank(a.stage) - stageRank(b.stage); break;
-        case "unit": v = a.unit.unit_number.localeCompare(b.unit.unit_number); break;
-        case "building": v = a.unit.building_name.localeCompare(b.unit.building_name); break;
-        case "tenant": v = (a.lease?.tenant_name ?? "").localeCompare(b.lease?.tenant_name ?? ""); break;
-        case "rent": v = (a.lease?.annual_rent ?? 0) - (b.lease?.annual_rent ?? 0); break;
-        case "start": v = (a.lease?.start_date ?? "").localeCompare(b.lease?.start_date ?? ""); break;
-        case "end": v = (a.lease?.end_date ?? "").localeCompare(b.lease?.end_date ?? ""); break;
-        case "days": {
-          const da = a.lease?.end_date ? daysBetween(new Date(), a.lease.end_date) : Number.MAX_SAFE_INTEGER;
-          const db = b.lease?.end_date ? daysBetween(new Date(), b.lease.end_date) : Number.MAX_SAFE_INTEGER;
-          v = da - db;
-          break;
-        }
-      }
-      return sortDir === "asc" ? v : -v;
-    };
-    return all.sort(cmp);
-  }, [byStage, sortBy, sortDir]);
-
-  const setSort = (k: SortKey) => {
-    if (k === sortBy) setSortDir(sortDir === "asc" ? "desc" : "asc");
-    else { setSortBy(k); setSortDir("asc"); }
-  };
-
-  const Th = ({ k, label, className }: { k: SortKey; label: string; className?: string }) => (
-    <th className={cn("px-4 py-2 label-eyebrow text-left cursor-pointer hover:text-architect", className)} onClick={() => setSort(k)}>
-      {label} {sortBy === k && <span className="text-[9px]">{sortDir === "asc" ? "↑" : "↓"}</span>}
-    </th>
-  );
+    return all;
+  }, [byStage]);
 
   return (
     <div className="border hairline rounded-sm bg-card overflow-hidden mb-10">
       <div className="flex items-center justify-between px-4 py-2.5 border-b hairline bg-muted/20">
         <div className="text-xs text-muted-foreground">{rows.length} item{rows.length === 1 ? "" : "s"}</div>
-        <Button variant="outline" size="sm" disabled title="Coming soon">Export CSV</Button>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-muted/30">
             <tr>
-              <Th k="unit" label="Unit" />
-              <Th k="building" label="Building" />
-              <Th k="stage" label="Stage" />
-              <Th k="tenant" label="Tenant" />
-              <Th k="rent" label="Annual rent" />
-              <Th k="start" label="Start" />
-              <Th k="end" label="End" />
-              <Th k="days" label="Days remaining" />
-              <th className="px-4 py-2 label-eyebrow">Next action</th>
+              <th className="px-4 py-2 label-eyebrow text-left">Unit</th>
+              <th className="px-4 py-2 label-eyebrow text-left">Building</th>
+              <th className="px-4 py-2 label-eyebrow text-left">Stage</th>
+              <th className="px-4 py-2 label-eyebrow text-left">Tenant</th>
+              <th className="px-4 py-2 label-eyebrow text-left">Annual rent</th>
+              <th className="px-4 py-2 label-eyebrow text-left">Listed / Started</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((c) => {
-              const days = c.lease?.end_date ? daysBetween(new Date(), c.lease.end_date) : null;
-              const nextAction =
-                c.stage === "vacant" ? "List unit" :
-                c.stage === "in_signing" ? "Complete signing" :
-                c.stage === "ending_soon" ? "Renew or turn over" :
-                c.stage === "recently_ended" ? "Re-list or follow up" :
-                c.stage === "not_ready" ? "Resolve status" : "Monitor";
-              return (
-                <tr key={c.key} onClick={() => onRowClick(c)} className="border-t hairline hover:bg-muted/20 cursor-pointer">
-                  <td className="px-4 py-2 text-architect">{c.unit.unit_number}</td>
-                  <td className="px-4 py-2 text-muted-foreground">{c.unit.building_name}</td>
-                  <td className="px-4 py-2">
-                    <span className={cn("inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm border text-[10px] uppercase tracking-wider font-medium", LIFECYCLE_STAGE_STYLES[c.stage])}>
-                      <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                      {LIFECYCLE_STAGE_LABELS[c.stage]}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2 text-muted-foreground">{c.lease?.tenant_name ?? "—"}</td>
-                  <td className="px-4 py-2 mono text-xs text-architect">{c.lease?.annual_rent != null ? fmtMoney(c.lease.annual_rent, c.lease.currency) : "—"}</td>
-                  <td className="px-4 py-2 text-muted-foreground text-xs">{fmtDate(c.lease?.start_date)}</td>
-                  <td className="px-4 py-2 text-muted-foreground text-xs">{fmtDate(c.lease?.end_date)}</td>
-                  <td className="px-4 py-2 mono text-xs text-muted-foreground">{days != null ? `${days}d` : "—"}</td>
-                  <td className="px-4 py-2 text-muted-foreground text-xs">{nextAction}</td>
-                </tr>
-              );
-            })}
+            {rows.map((c) => (
+              <tr key={c.key} onClick={() => onRowClick(c)} className="border-t hairline hover:bg-muted/20 cursor-pointer">
+                <td className="px-4 py-2 text-architect">{c.unit.unit_number}</td>
+                <td className="px-4 py-2 text-muted-foreground">{c.unit.building_name}</td>
+                <td className="px-4 py-2"><Pill stage={c.stage} label={LIFECYCLE_STAGE_LABELS[c.stage]} /></td>
+                <td className="px-4 py-2 text-muted-foreground">{c.lease?.tenant_name ?? "—"}</td>
+                <td className="px-4 py-2 mono text-xs text-architect">
+                  {c.lease?.annual_rent != null
+                    ? fmtMoney(c.lease.annual_rent, c.lease.currency)
+                    : c.unit.asking_rent != null ? `${fmtMoney(c.unit.asking_rent, c.unit.asking_rent_currency ?? "AED")} ask` : "—"}
+                </td>
+                <td className="px-4 py-2 mono text-xs text-muted-foreground">
+                  {fmtDate(c.unit.listed_at ?? c.lease?.start_date ?? c.unit.vacant_since)}
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
