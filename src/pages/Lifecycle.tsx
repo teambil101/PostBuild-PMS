@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Search, RefreshCw, ChevronDown, Building2, Workflow, X, Plus,
-  LayoutGrid, TableIcon, Tag, ListChecks, ExternalLink,
+  LayoutGrid, TableIcon, Tag, ListChecks, ExternalLink, Columns3,
 } from "lucide-react";
 import { processSystemAutomations } from "@/lib/automations";
 
@@ -26,6 +26,7 @@ import {
 } from "@/lib/lifecycle";
 import { FunnelStrip } from "@/components/lifecycle/FunnelStrip";
 import { StageSection } from "@/components/lifecycle/StageSection";
+import { LifecycleKanban } from "@/components/lifecycle/LifecycleKanban";
 import { MarkListedDialog } from "@/components/lifecycle/MarkListedDialog";
 import { UnlistDialog } from "@/components/lifecycle/UnlistDialog";
 
@@ -59,7 +60,7 @@ export default function LifecyclePage() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [buildingFilter, setBuildingFilter] = useState<Set<string>>(new Set());
-  const [view, setView] = useState<"funnel" | "table">("funnel");
+  const [view, setView] = useState<"kanban" | "funnel" | "table">("kanban");
   const [highlightStage, setHighlightStage] = useState<LifecycleStage | null>(null);
   const sectionRefs = useRef<Record<LifecycleStage, HTMLDivElement | null>>({
     not_ready: null, ready_unlisted: null, listed: null,
@@ -128,7 +129,7 @@ export default function LifecyclePage() {
   }, [filtered]);
 
   const focusStage = (s: LifecycleStage) => {
-    if (view === "table") setView("funnel");
+    if (view === "table") setView("kanban");
     setHighlightStage(s);
     setTimeout(() => {
       sectionRefs.current[s]?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -230,9 +231,18 @@ export default function LifecyclePage() {
 
         <div className="md:ml-auto inline-flex border hairline rounded-sm overflow-hidden">
           <button
-            onClick={() => setView("funnel")}
+            onClick={() => setView("kanban")}
             className={cn(
               "flex items-center gap-1.5 px-3 py-1.5 text-[11px] uppercase tracking-wider transition-colors",
+              view === "kanban" ? "bg-architect text-chalk" : "bg-card text-muted-foreground hover:text-architect",
+            )}
+          >
+            <Columns3 className="h-3.5 w-3.5" /> Kanban
+          </button>
+          <button
+            onClick={() => setView("funnel")}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-1.5 text-[11px] uppercase tracking-wider transition-colors border-l hairline",
               view === "funnel" ? "bg-architect text-chalk" : "bg-card text-muted-foreground hover:text-architect",
             )}
           >
@@ -249,6 +259,18 @@ export default function LifecyclePage() {
           </button>
         </div>
       </div>
+
+      {/* Kanban view: column per stage */}
+      {view === "kanban" && filtered && (
+        <LifecycleKanban
+          byStage={filtered.byStage}
+          highlightStage={highlightStage}
+          laneRefSet={(stage) => (el) => { sectionRefs.current[stage] = el; }}
+          onMarkListed={(c) => setListDialog(c)}
+          onUnlist={(c) => setUnlistDialog(c)}
+          navigate={navigate}
+        />
+      )}
 
       {/* Funnel view: vertical stage sections */}
       {view === "funnel" && filtered && (
