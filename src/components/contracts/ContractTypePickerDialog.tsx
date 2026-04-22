@@ -8,8 +8,6 @@ interface Props {
   onSelect: (type: ContractType) => void;
 }
 
-const COMING_SOON: ContractType[] = ["brokerage_agreement"];
-
 export function ContractTypePickerDialog({ open, onOpenChange, onSelect }: Props) {
   const renderCard = (t: ContractType, available: boolean) => {
     const Icon = CONTRACT_TYPE_ICONS[t];
@@ -81,7 +79,6 @@ export function ContractTypePickerDialog({ open, onOpenChange, onSelect }: Props
           {renderCard("management_agreement", true)}
           {renderCard("lease", true)}
           {renderCard("service_agreement", true)}
-          {COMING_SOON.map((t) => renderCard(t, false))}
           {renderCard("other", true)}
         </div>
       </DialogContent>
