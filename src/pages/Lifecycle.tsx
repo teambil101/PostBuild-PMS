@@ -60,7 +60,7 @@ export default function LifecyclePage() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [buildingFilter, setBuildingFilter] = useState<Set<string>>(new Set());
-  const [view, setView] = useState<"funnel" | "table">("funnel");
+  const [view, setView] = useState<"kanban" | "funnel" | "table">("kanban");
   const [highlightStage, setHighlightStage] = useState<LifecycleStage | null>(null);
   const sectionRefs = useRef<Record<LifecycleStage, HTMLDivElement | null>>({
     not_ready: null, ready_unlisted: null, listed: null,
@@ -129,7 +129,7 @@ export default function LifecyclePage() {
   }, [filtered]);
 
   const focusStage = (s: LifecycleStage) => {
-    if (view === "table") setView("funnel");
+    if (view === "table") setView("kanban");
     setHighlightStage(s);
     setTimeout(() => {
       sectionRefs.current[s]?.scrollIntoView({ behavior: "smooth", block: "start" });
