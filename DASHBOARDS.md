@@ -5,9 +5,14 @@ Cross-cutting synthesis of operational and portfolio data, surfaced at `/dashboa
 ## 1. Purpose
 
 The Dashboard is the cross-cutting surface that pulls signals from every other
-module (Properties, People, Leads, Contracts, Lifecycle, Tickets, Vendors,
+module (Properties, People, Contracts, Leasing Lifecycle, Tickets, Vendors,
 Services) into one role-aware home view. It is read-only — every metric is
 a window into another module, and every row drills into a detail page.
+
+Note: the **Leasing Lifecycle** module is a placement funnel (vacant → listed →
+offer → signing → leased). Live-tenancy concerns (expiring leases, overdue
+cheques) live on the Dashboard's "Attention Needed" cards and the Contracts
+module — not on the Lifecycle page.
 
 ## 2. Two tabs, one route
 
