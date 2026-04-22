@@ -28,7 +28,7 @@ export const LIFECYCLE_STAGE_LABELS: Record<LifecycleStage, string> = {
   listed: "Listed",
   offer_pending: "Offer pending landlord confirmation",
   in_signing: "In signing",
-  leased: "Leased",
+  leased: "Recently leased",
 };
 
 export const LIFECYCLE_STAGE_SHORT: Record<LifecycleStage, string> = {
@@ -37,7 +37,7 @@ export const LIFECYCLE_STAGE_SHORT: Record<LifecycleStage, string> = {
   listed: "Listed",
   offer_pending: "Offer",
   in_signing: "Signing",
-  leased: "Leased",
+  leased: "Recently leased",
 };
 
 export const LIFECYCLE_STAGE_SUBLABELS: Record<LifecycleStage, string> = {
@@ -46,7 +46,7 @@ export const LIFECYCLE_STAGE_SUBLABELS: Record<LifecycleStage, string> = {
   listed: "Actively marketed, no offer yet",
   offer_pending: "Draft lease prepared — awaiting landlord OK",
   in_signing: "Sent for signature — awaiting all parties",
-  leased: "Tenant moved in — terminal stage",
+  leased: "Tenant moved in within the last 30 days",
 };
 
 export const LIFECYCLE_STAGE_STYLES: Record<LifecycleStage, string> = {
