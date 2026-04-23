@@ -99,11 +99,9 @@ export function CatalogEntryDialog({ open, onOpenChange, entry, onSaved }: Props
       return;
     }
     if (form.is_workflow) {
-      const badStep = form.workflow_steps.find(
-        (s) => s.category === "other" && !(s.category_other ?? "").trim(),
-      );
-      if (badStep) {
-        toast.error(`Describe the 'Other' category for step "${badStep.title || badStep.key}".`);
+      const badStep = form.workflow_steps.findIndex((s) => !s.catalog_id);
+      if (badStep !== -1) {
+        toast.error(`Step ${badStep + 1} needs a catalog service. Pick one or remove the step.`);
         return;
       }
     }
@@ -321,6 +319,7 @@ export function CatalogEntryDialog({ open, onOpenChange, entry, onSaved }: Props
               <WorkflowStepsEditor
                 value={form.workflow_steps}
                 onChange={(steps) => update("workflow_steps", steps)}
+                selfCatalogId={entry?.id ?? null}
               />
             ) : (
               <div className="border hairline rounded-sm bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
