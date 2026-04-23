@@ -304,10 +304,14 @@ export default function NewVendorServiceAgreement() {
                 <Label>PM company (auto-filled)</Label>
                 <div className="mt-1.5">
                   <PersonCombobox
-                    value={form.pmCompany}
+                    value={form.pmCompany?.id ?? ""}
+                    valueLabel={
+                      form.pmCompany
+                        ? form.pmCompany.company || `${form.pmCompany.first_name} ${form.pmCompany.last_name}`
+                        : undefined
+                    }
                     onChange={(p) => update("pmCompany", p)}
                     placeholder="Pick your company…"
-                    roleFilter={[]}
                   />
                 </div>
               </div>
