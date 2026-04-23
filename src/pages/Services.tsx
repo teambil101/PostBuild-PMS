@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { Plus, Wrench, Search, Pencil, Workflow, Power, PowerOff, Filter } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
@@ -14,6 +15,7 @@ import {
 } from "@/lib/services";
 import { BillingBadge, CategoryBadge, DeliveryBadge } from "@/components/services/CatalogBadges";
 import { CatalogEntryDialog, type CatalogEntry } from "@/components/services/CatalogEntryDialog";
+import ServiceRequests from "./ServiceRequests";
 import { cn } from "@/lib/utils";
 
 type CatalogFilter = "all" | "active" | "inactive" | "workflow" | "atomic";
@@ -27,7 +29,26 @@ const FILTERS: { key: CatalogFilter; label: string }[] = [
 ];
 
 export default function Services() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab") === "requests" ? "requests" : "catalog";
+  const [tab, setTab] = useState<string>(tabParam);
+
   const [entries, setEntries] = useState<CatalogEntry[]>([]);
+  const [requestCount, setRequestCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    void (async () => {
+      const { count } = await supabase
+        .from("service_requests")
+        .select("*", { count: "exact", head: true });
+      setRequestCount(count ?? 0);
+    })();
+  }, []);
+
+  const onTabChange = (v: string) => {
+    setTab(v);
+    setSearchParams(v === "requests" ? { tab: "requests" } : {});
+  };
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<CatalogFilter>("all");
@@ -112,18 +133,27 @@ export default function Services() {
         title="Services"
         description="The catalog of services your team offers — atomic jobs and multi-step workflows. Drives every service request."
         actions={
-          <Button onClick={startCreate}>
-            <Plus className="h-4 w-4" />
-            New service
-          </Button>
+          tab === "requests" ? (
+            <Button asChild>
+              <Link to="/services/requests/new">
+                <Plus className="h-4 w-4" />
+                New request
+              </Link>
+            </Button>
+          ) : (
+            <Button onClick={startCreate}>
+              <Plus className="h-4 w-4" />
+              New service
+            </Button>
+          )
         }
       />
 
-      <Tabs defaultValue="catalog">
+      <Tabs value={tab} onValueChange={onTabChange}>
         <TabsList>
           <TabsTrigger value="catalog">Catalog ({entries.length})</TabsTrigger>
-          <TabsTrigger value="requests" disabled>
-            Requests <span className="ml-1.5 text-[9px] uppercase tracking-wider opacity-60">Soon</span>
+          <TabsTrigger value="requests">
+            Requests{requestCount !== null ? ` (${requestCount})` : ""}
           </TabsTrigger>
         </TabsList>
 
@@ -264,7 +294,9 @@ export default function Services() {
           )}
         </TabsContent>
 
-        <TabsContent value="requests" />
+        <TabsContent value="requests" className="mt-6">
+          <ServiceRequests />
+        </TabsContent>
       </Tabs>
 
       <CatalogEntryDialog
