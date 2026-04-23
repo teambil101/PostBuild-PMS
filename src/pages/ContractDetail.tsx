@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, FileText, Building2, Home, Users, History as HistoryIcon, FileBox, StickyNote, CheckCircle2, XCircle } from "lucide-react";
+import { ArrowLeft, FileText, Building2, Home, Users, History as HistoryIcon, FileBox, StickyNote, CheckCircle2, XCircle, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
@@ -29,6 +29,7 @@ import {
 } from "@/lib/contracts";
 import { formatCurrency } from "@/lib/format";
 import { EmptyState } from "@/components/EmptyState";
+import { LeaseFinancialsSection } from "@/components/financials/LeaseFinancialsSection";
 
 interface PartyRow {
   id: string;
@@ -301,6 +302,7 @@ export default function ContractDetail() {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="parties">Parties ({parties.length})</TabsTrigger>
           <TabsTrigger value="properties">Properties ({subjects.length})</TabsTrigger>
+          {lease && <TabsTrigger value="financials">Financials</TabsTrigger>}
           <TabsTrigger value="documents">Documents</TabsTrigger>
           <TabsTrigger value="notes">Notes</TabsTrigger>
           <TabsTrigger value="history">History ({events.length})</TabsTrigger>
