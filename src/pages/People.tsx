@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
-import { Plus, Search, Users as UsersIcon, Target } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Plus, Search, Users as UsersIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -9,8 +9,6 @@ import { EmptyState } from "@/components/EmptyState";
 import { useAuth } from "@/contexts/AuthContext";
 import { PersonFormDialog } from "@/components/people/PersonFormDialog";
 import { PersonRoleBadge } from "@/components/people/PersonRoleBadge";
-import { PipelineView } from "@/components/people/PipelineView";
-import { NewLeadDialog } from "@/components/leads/NewLeadDialog";
 import { initials } from "@/lib/format";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -41,22 +39,11 @@ const ROLE_FILTERS = [
 
 export default function People() {
   const { canEdit } = useAuth();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const tab: "directory" | "pipeline" =
-    searchParams.get("tab") === "pipeline" ? "pipeline" : "directory";
-  const setTab = (v: "directory" | "pipeline") => {
-    const next = new URLSearchParams(searchParams);
-    if (v === "directory") next.delete("tab");
-    else next.set("tab", v);
-    setSearchParams(next, { replace: true });
-  };
-
   const [people, setPeople] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [open, setOpen] = useState(false);
-  const [leadOpen, setLeadOpen] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -97,41 +84,17 @@ export default function People() {
       <PageHeader
         eyebrow="Module · 03"
         title="People"
-        description="A unified directory of everyone in your operation — and the sales pipeline of prospects you're trying to win."
+        description="A unified directory of everyone in your operation."
         actions={
-          canEdit && tab === "directory" ? (
+          canEdit ? (
             <Button variant="gold" onClick={() => setOpen(true)}>
               <Plus className="h-4 w-4" /> New person
-            </Button>
-          ) : canEdit && tab === "pipeline" ? (
-            <Button variant="gold" onClick={() => setLeadOpen(true)}>
-              <Plus className="h-4 w-4" /> New lead
             </Button>
           ) : null
         }
       />
 
-      <div className="border-b hairline mb-6 flex items-end gap-1">
-        <TabButton active={tab === "directory"} onClick={() => setTab("directory")}>
-          <UsersIcon className="h-3.5 w-3.5" /> Directory
-        </TabButton>
-        <TabButton active={tab === "pipeline"} onClick={() => setTab("pipeline")}>
-          <Target className="h-3.5 w-3.5" /> Pipeline
-        </TabButton>
-      </div>
-
-      {tab === "pipeline" ? (
-        <>
-          <PipelineView />
-          <NewLeadDialog
-            open={leadOpen}
-            onOpenChange={setLeadOpen}
-            onSaved={() => setLeadOpen(false)}
-          />
-        </>
-      ) : (
-        <>
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
@@ -214,8 +177,6 @@ export default function People() {
               ))}
             </div>
           )}
-        </>
-      )}
 
       <PersonFormDialog
         open={open}
@@ -223,23 +184,5 @@ export default function People() {
         onSaved={() => { setOpen(false); load(); }}
       />
     </>
-  );
-}
-
-function TabButton({
-  active, onClick, children,
-}: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors flex items-center gap-2",
-        active
-          ? "border-architect text-architect"
-          : "border-transparent text-muted-foreground hover:text-architect",
-      )}
-    >
-      {children}
-    </button>
   );
 }

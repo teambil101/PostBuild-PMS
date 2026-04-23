@@ -172,7 +172,7 @@ function MyWorkTab() {
               {kpis.my_leads.stuck} stage-stuck
             </span>
           }
-          to="/people?tab=pipeline"
+          to="/people"
         />
         <KpiCard
           label="Awaiting My Response"
@@ -270,7 +270,7 @@ function MyWorkTab() {
         <QueueCard
           title="My Leads — Follow-up"
           count={queues.my_leads_follow_up.length}
-          viewAllTo="/people?tab=pipeline"
+          viewAllTo="/people"
           emptyMessage="No leads needing follow-up."
         >
           <Table>
@@ -396,7 +396,7 @@ function MyWorkTab() {
           </Link>
         </Button>
         <Button asChild variant="outline" size="sm">
-          <Link to="/people?tab=pipeline">
+          <Link to="/people">
             <Plus className="h-4 w-4" />
             New lead
           </Link>
@@ -485,7 +485,7 @@ function OverviewTab() {
           label="Weighted Pipeline"
           value={formatCurrencyCompact(kpis.weighted_pipeline_value.amount, kpis.weighted_pipeline_value.currency)}
           subtitle="Expected fee value"
-          to="/people?tab=pipeline"
+          to="/people"
         />
         <KpiCard
           label="Attention Score"
@@ -540,7 +540,7 @@ function OverviewTab() {
                 : "Pipeline moving"
             }
             topItems={a.stuck_leads.top_5}
-            viewAllTo="/people?tab=pipeline"
+            viewAllTo="/people"
             tone={a.stuck_leads.count > 0 ? "warn" : "ok"}
           />
           <AttentionCard
