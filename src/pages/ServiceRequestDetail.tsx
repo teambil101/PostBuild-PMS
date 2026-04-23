@@ -240,6 +240,13 @@ export default function ServiceRequestDetail() {
   const totalSteps = steps.length;
   const progress = totalSteps ? Math.round((completedSteps / totalSteps) * 100) : 0;
   const allStepsDone = totalSteps > 0 && completedSteps === totalSteps;
+  const blockedByApproval = req.approval_status === "pending" || req.approval_status === "rejected";
+  const approvalBlockTitle =
+    req.approval_status === "pending"
+      ? "Awaiting landlord approval"
+      : req.approval_status === "rejected"
+        ? "Approval was rejected — re-request to proceed"
+        : "";
 
   return (
     <>
@@ -262,6 +269,24 @@ export default function ServiceRequestDetail() {
           </div>
         }
       />
+
+      {req.approval_status !== "not_required" && (
+        <div className="mb-6">
+          <ApprovalCard
+            requestId={req.id}
+            status={req.approval_status}
+            reason={req.approval_required_reason}
+            ruleSnapshot={req.approval_rule_snapshot}
+            thresholdAmount={req.approval_threshold_amount}
+            thresholdCurrency={req.approval_threshold_currency}
+            managementAgreementId={req.approval_management_agreement_id}
+            requestedAt={req.approval_requested_at}
+            decidedAt={req.approval_decided_at}
+            decisionNotes={req.approval_decision_notes}
+            onChanged={load}
+          />
+        </div>
+      )}
 
       {/* Status transition bar */}
       <Card className="hairline mb-6">
