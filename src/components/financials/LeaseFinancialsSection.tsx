@@ -161,7 +161,8 @@ export function LeaseFinancialsSection({
         </div>
       ) : (
         <div className="border hairline rounded-sm bg-card overflow-hidden">
-          <table className="w-full text-sm">
+          <div className="table-scroll">
+          <table className="w-full text-sm min-w-[680px]">
             <thead className="border-b hairline bg-muted/30">
               <tr className="text-left">
                 <th className="px-4 py-2.5 label-eyebrow text-muted-foreground font-normal">Invoice</th>
