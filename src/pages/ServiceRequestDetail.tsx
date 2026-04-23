@@ -293,13 +293,25 @@ export default function ServiceRequestDetail() {
         <CardContent className="pt-4 pb-4 flex items-center gap-2 flex-wrap">
           <span className="text-[11px] uppercase tracking-wider text-muted-foreground mr-1">Actions:</span>
           {req.status === "open" && (
-            <Button size="sm" variant="outline" onClick={() => transition("scheduled", "Scheduled")} disabled={working}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => transition("scheduled", "Scheduled")}
+              disabled={working || blockedByApproval}
+              title={blockedByApproval ? approvalBlockTitle : ""}
+            >
               <CalendarDays className="h-3.5 w-3.5" />
               Mark scheduled
             </Button>
           )}
           {(req.status === "open" || req.status === "scheduled") && (
-            <Button size="sm" variant="outline" onClick={() => transition("in_progress", "Started work")} disabled={working}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => transition("in_progress", "Started work")}
+              disabled={working || blockedByApproval}
+              title={blockedByApproval ? approvalBlockTitle : ""}
+            >
               <Play className="h-3.5 w-3.5" />
               Start work
             </Button>
