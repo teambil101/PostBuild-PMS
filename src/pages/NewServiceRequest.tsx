@@ -42,8 +42,8 @@ export default function NewServiceRequest() {
       toast.error("Pick a service from the catalog.");
       return;
     }
-    if (step === 2 && targetType !== "portfolio" && !targetId) {
-      toast.error("Pick a unit or building.");
+    if (step === 2 && !targetId) {
+      toast.error("Pick a unit.");
       return;
     }
     setStep((s) => Math.min(STEPS.length, s + 1));
@@ -56,8 +56,8 @@ export default function NewServiceRequest() {
     try {
       const { data, error } = await supabase.rpc("create_service_request_from_catalog", {
         p_catalog_id: catalog.id,
-        p_target_type: targetType,
-        p_target_id: targetType === "portfolio" ? null : targetId,
+        p_target_type: "unit",
+        p_target_id: targetId,
         p_priority: priority,
         p_scheduled_date: scheduledDate || null,
         p_description: description.trim() || null,
