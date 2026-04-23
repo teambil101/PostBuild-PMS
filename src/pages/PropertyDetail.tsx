@@ -11,7 +11,6 @@ import { BuildingFormDialog } from "@/components/properties/BuildingFormDialog";
 import { UnitFormDialog } from "@/components/properties/UnitFormDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSearchParams } from "react-router-dom";
-import { EntityTicketsTab, type TicketSection } from "@/components/tickets/EntityTicketsTab";
 import { PhotoGallery } from "@/components/attachments/PhotoGallery";
 import { DocumentList } from "@/components/attachments/DocumentList";
 import { NotesPanel } from "@/components/notes/NotesPanel";
@@ -49,7 +48,6 @@ interface Unit {
   size_unit_preference: string | null;
   bedrooms: number | null;
   bathrooms: number | null;
-  status_locked_by_lease_id: string | null;
 }
 
 export default function PropertyDetail() {
@@ -69,7 +67,6 @@ export default function PropertyDetail() {
   const [editingUnit, setEditingUnit] = useState<Unit | null>(null);
   const [leasePrompt, setLeasePrompt] = useState<{ unitId: string } | null>(null);
   const [unitsWithoutOwnersCount, setUnitsWithoutOwnersCount] = useState(0);
-  const [ticketCount, setTicketCount] = useState<number>(0);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get("tab") ?? "units";
   const setActiveTab = (v: string) => {
@@ -133,9 +130,6 @@ export default function PropertyDetail() {
   }
   if (!building) return null;
 
-  const occupiedNoLease = units.filter(
-    (u) => u.status === "occupied" && !u.status_locked_by_lease_id,
-  );
   const formatSize = (u: Unit) => {
     if (u.size_sqm == null) return "—";
     if (u.size_unit_preference === "sqft") return `${sqmToSqft(Number(u.size_sqm))} ft²`;
@@ -186,32 +180,6 @@ export default function PropertyDetail() {
         }
       />
 
-      {occupiedNoLease.length > 0 && (
-        <div className="mb-6 flex items-start gap-3 border border-amber-500/40 bg-amber-500/10 rounded-sm p-4">
-          <AlertTriangle className="h-4 w-4 text-amber-700 shrink-0 mt-0.5" />
-          <div className="flex-1 text-sm text-amber-900">
-            <div className="font-medium">
-              {occupiedNoLease.length === 1
-                ? "1 unit is marked Occupied but has no lease on file."
-                : `${occupiedNoLease.length} units are marked Occupied but have no lease on file.`}
-            </div>
-            <div className="text-xs text-amber-800/90 mt-0.5">
-              Add lease details so the system reflects reality.
-            </div>
-          </div>
-          {canEdit && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="border-amber-600/50 text-amber-900 hover:bg-amber-500/15"
-              onClick={() => toast("Lease creation coming soon")}
-            >
-              Add lease details
-            </Button>
-          )}
-        </div>
-      )}
-
       {/* Meta strip */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-warm-stone/60 border hairline rounded-sm overflow-hidden mb-10">
         <Meta label="Location" value={[building.city, COUNTRY_BY_CODE[building.country] ?? building.country].filter(Boolean).join(", ") || "—"} icon={<MapPin className="h-3.5 w-3.5" />} />
@@ -233,7 +201,6 @@ export default function PropertyDetail() {
             { v: "units", l: `Units (${units.length})` },
             { v: "photos", l: `Photos (${photoCount})` },
             { v: "documents", l: `Documents (${docCount})` },
-            { v: "tickets", l: `Tickets (${ticketCount})` },
             { v: "notes", l: `Notes (${noteCount})` },
             { v: "history", l: "Status history" },
           ].map((t) => (
@@ -306,12 +273,6 @@ export default function PropertyDetail() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1.5">
                           <StatusBadge status={u.status} />
-                          {u.status === "occupied" && !u.status_locked_by_lease_id && (
-                            <span
-                              title="Missing lease details"
-                              className="h-1.5 w-1.5 rounded-full bg-amber-500"
-                            />
-                          )}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-right mono text-xs">{u.floor ?? "—"}</td>
@@ -351,15 +312,6 @@ export default function PropertyDetail() {
             entityId={building.id}
             editable={canEdit}
             onCountChange={setDocCount}
-          />
-        </TabsContent>
-
-        {/* TICKETS */}
-        <TabsContent value="tickets" className="pt-6">
-          <BuildingTicketsTabSection
-            buildingId={building.id}
-            buildingName={building.name}
-            onActiveCountChange={setTicketCount}
           />
         </TabsContent>
 
@@ -413,34 +365,8 @@ export default function PropertyDetail() {
           setUnitOpen(false);
           setEditingUnit(null);
           load();
-          if (created && !editingUnit && created.status === "occupied") {
-            setLeasePrompt({ unitId: created.id });
-          }
         }}
       />
-
-      <AlertDialog open={!!leasePrompt} onOpenChange={(v) => !v && setLeasePrompt(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Add lease details?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This unit is marked Occupied. Add the lease details now so the system reflects reality.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setLeasePrompt(null)}>Later</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                setLeasePrompt(null);
-                toast("Lease creation coming soon");
-              }}
-              className="bg-gold text-architect hover:bg-gold/90"
-            >
-              Add lease
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }
@@ -451,72 +377,5 @@ function Meta({ label, value, icon }: { label: string; value: string; icon: Reac
       <div className="label-eyebrow flex items-center gap-1.5">{icon} {label}</div>
       <div className="font-display text-xl text-architect mt-1">{value}</div>
     </div>
-  );
-}
-
-function BuildingTicketsTabSection({
-  buildingId,
-  buildingName,
-  onActiveCountChange,
-}: {
-  buildingId: string;
-  buildingName: string;
-  onActiveCountChange: (n: number) => void;
-}) {
-  const sections: TicketSection[] = [
-    {
-      key: "direct",
-      label: "On this building",
-      emptyText: "No tickets target this building directly.",
-      fetch: async () => {
-        const { data } = await supabase
-          .from("tickets")
-          .select(
-            "id, ticket_number, subject, ticket_type, priority, status, assignee_id, due_date, created_at, target_entity_type, target_entity_id, is_system_generated",
-          )
-          .eq("target_entity_type", "building")
-          .eq("target_entity_id", buildingId)
-          .order("created_at", { ascending: false });
-        return (data ?? []) as any;
-      },
-    },
-    {
-      key: "units",
-      label: "On units in this building",
-      emptyText: "No tickets on units in this building.",
-      fetch: async () => {
-        const { data: units } = await supabase
-          .from("units")
-          .select("id, unit_number")
-          .eq("building_id", buildingId);
-        const unitRows = (units ?? []) as { id: string; unit_number: string }[];
-        if (unitRows.length === 0) return [];
-        const numMap = new Map(unitRows.map((u) => [u.id, u.unit_number]));
-        const { data: tix } = await supabase
-          .from("tickets")
-          .select(
-            "id, ticket_number, subject, ticket_type, priority, status, assignee_id, due_date, created_at, target_entity_type, target_entity_id, is_system_generated",
-          )
-          .eq("target_entity_type", "unit")
-          .in("target_entity_id", unitRows.map((u) => u.id))
-          .order("created_at", { ascending: false });
-        return ((tix ?? []) as any[]).map((t) => ({
-          ...t,
-          __unit_number: numMap.get(t.target_entity_id) ?? null,
-        }));
-      },
-      rowBadge: (row: any) => (row.__unit_number ? `Unit ${row.__unit_number}` : null),
-    },
-  ];
-
-  return (
-    <EntityTicketsTab
-      entityType="building"
-      entityId={buildingId}
-      entityLabel={buildingName}
-      groupedView
-      sections={sections}
-      onActiveCountChange={onActiveCountChange}
-    />
   );
 }

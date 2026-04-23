@@ -94,201 +94,6 @@ export type Database = {
         }
         Relationships: []
       }
-      contract_events: {
-        Row: {
-          actor_id: string | null
-          contract_id: string
-          created_at: string
-          description: string | null
-          event_type: string
-          from_value: string | null
-          id: string
-          to_value: string | null
-        }
-        Insert: {
-          actor_id?: string | null
-          contract_id: string
-          created_at?: string
-          description?: string | null
-          event_type: string
-          from_value?: string | null
-          id?: string
-          to_value?: string | null
-        }
-        Update: {
-          actor_id?: string | null
-          contract_id?: string
-          created_at?: string
-          description?: string | null
-          event_type?: string
-          from_value?: string | null
-          id?: string
-          to_value?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "contract_events_contract_id_fkey"
-            columns: ["contract_id"]
-            isOneToOne: false
-            referencedRelation: "contracts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      contract_parties: {
-        Row: {
-          contract_id: string
-          created_at: string
-          id: string
-          is_signatory: boolean
-          person_id: string
-          role: string
-          signature_reference: string | null
-          signed_at: string | null
-        }
-        Insert: {
-          contract_id: string
-          created_at?: string
-          id?: string
-          is_signatory?: boolean
-          person_id: string
-          role: string
-          signature_reference?: string | null
-          signed_at?: string | null
-        }
-        Update: {
-          contract_id?: string
-          created_at?: string
-          id?: string
-          is_signatory?: boolean
-          person_id?: string
-          role?: string
-          signature_reference?: string | null
-          signed_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "contract_parties_contract_id_fkey"
-            columns: ["contract_id"]
-            isOneToOne: false
-            referencedRelation: "contracts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contract_parties_person_id_fkey"
-            columns: ["person_id"]
-            isOneToOne: false
-            referencedRelation: "people"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      contract_subjects: {
-        Row: {
-          contract_id: string
-          created_at: string
-          entity_id: string
-          entity_type: string
-          id: string
-          role: string | null
-        }
-        Insert: {
-          contract_id: string
-          created_at?: string
-          entity_id: string
-          entity_type: string
-          id?: string
-          role?: string | null
-        }
-        Update: {
-          contract_id?: string
-          created_at?: string
-          entity_id?: string
-          entity_type?: string
-          id?: string
-          role?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "contract_subjects_contract_id_fkey"
-            columns: ["contract_id"]
-            isOneToOne: false
-            referencedRelation: "contracts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      contracts: {
-        Row: {
-          auto_renew: boolean
-          contract_number: string
-          contract_type: string
-          created_at: string
-          created_by: string | null
-          currency: string
-          end_date: string | null
-          external_reference: string | null
-          id: string
-          notes: string | null
-          parent_contract_id: string | null
-          start_date: string | null
-          status: string
-          terminated_at: string | null
-          terminated_reason: string | null
-          title: string
-          total_value: number | null
-          updated_at: string
-        }
-        Insert: {
-          auto_renew?: boolean
-          contract_number: string
-          contract_type: string
-          created_at?: string
-          created_by?: string | null
-          currency?: string
-          end_date?: string | null
-          external_reference?: string | null
-          id?: string
-          notes?: string | null
-          parent_contract_id?: string | null
-          start_date?: string | null
-          status?: string
-          terminated_at?: string | null
-          terminated_reason?: string | null
-          title: string
-          total_value?: number | null
-          updated_at?: string
-        }
-        Update: {
-          auto_renew?: boolean
-          contract_number?: string
-          contract_type?: string
-          created_at?: string
-          created_by?: string | null
-          currency?: string
-          end_date?: string | null
-          external_reference?: string | null
-          id?: string
-          notes?: string | null
-          parent_contract_id?: string | null
-          start_date?: string | null
-          status?: string
-          terminated_at?: string | null
-          terminated_reason?: string | null
-          title?: string
-          total_value?: number | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "contracts_parent_contract_id_fkey"
-            columns: ["parent_contract_id"]
-            isOneToOne: false
-            referencedRelation: "contracts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       documents: {
         Row: {
           created_at: string
@@ -409,7 +214,6 @@ export type Database = {
           target_close_date: string | null
           updated_at: string
           won_at: string | null
-          won_contract_id: string | null
         }
         Insert: {
           assignee_id?: string | null
@@ -444,7 +248,6 @@ export type Database = {
           target_close_date?: string | null
           updated_at?: string
           won_at?: string | null
-          won_contract_id?: string | null
         }
         Update: {
           assignee_id?: string | null
@@ -479,7 +282,6 @@ export type Database = {
           target_close_date?: string | null
           updated_at?: string
           won_at?: string | null
-          won_contract_id?: string | null
         }
         Relationships: [
           {
@@ -501,209 +303,6 @@ export type Database = {
             columns: ["primary_contact_id"]
             isOneToOne: false
             referencedRelation: "people"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "leads_won_contract_id_fkey"
-            columns: ["won_contract_id"]
-            isOneToOne: false
-            referencedRelation: "contracts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      lease_cheques: {
-        Row: {
-          amount: number
-          bank_name: string | null
-          bounce_reason: string | null
-          bounced_on: string | null
-          cheque_number: string | null
-          cleared_on: string | null
-          created_at: string
-          deposited_on: string | null
-          due_date: string
-          id: string
-          lease_id: string
-          notes: string | null
-          replacement_cheque_id: string | null
-          sequence_number: number
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          amount: number
-          bank_name?: string | null
-          bounce_reason?: string | null
-          bounced_on?: string | null
-          cheque_number?: string | null
-          cleared_on?: string | null
-          created_at?: string
-          deposited_on?: string | null
-          due_date: string
-          id?: string
-          lease_id: string
-          notes?: string | null
-          replacement_cheque_id?: string | null
-          sequence_number: number
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          amount?: number
-          bank_name?: string | null
-          bounce_reason?: string | null
-          bounced_on?: string | null
-          cheque_number?: string | null
-          cleared_on?: string | null
-          created_at?: string
-          deposited_on?: string | null
-          due_date?: string
-          id?: string
-          lease_id?: string
-          notes?: string | null
-          replacement_cheque_id?: string | null
-          sequence_number?: number
-          status?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lease_cheques_lease_id_fkey"
-            columns: ["lease_id"]
-            isOneToOne: false
-            referencedRelation: "leases"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lease_cheques_replacement_cheque_id_fkey"
-            columns: ["replacement_cheque_id"]
-            isOneToOne: false
-            referencedRelation: "lease_cheques"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      leases: {
-        Row: {
-          annual_rent: number
-          commission_amount: number | null
-          commission_payer: string | null
-          commission_status: string | null
-          contract_id: string
-          created_at: string
-          ejari_number: string | null
-          first_cheque_date: string | null
-          id: string
-          payment_frequency: string
-          security_deposit_amount: number | null
-          security_deposit_notes: string | null
-          security_deposit_status: string | null
-          updated_at: string
-        }
-        Insert: {
-          annual_rent: number
-          commission_amount?: number | null
-          commission_payer?: string | null
-          commission_status?: string | null
-          contract_id: string
-          created_at?: string
-          ejari_number?: string | null
-          first_cheque_date?: string | null
-          id?: string
-          payment_frequency: string
-          security_deposit_amount?: number | null
-          security_deposit_notes?: string | null
-          security_deposit_status?: string | null
-          updated_at?: string
-        }
-        Update: {
-          annual_rent?: number
-          commission_amount?: number | null
-          commission_payer?: string | null
-          commission_status?: string | null
-          contract_id?: string
-          created_at?: string
-          ejari_number?: string | null
-          first_cheque_date?: string | null
-          id?: string
-          payment_frequency?: string
-          security_deposit_amount?: number | null
-          security_deposit_notes?: string | null
-          security_deposit_status?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "leases_contract_id_fkey"
-            columns: ["contract_id"]
-            isOneToOne: true
-            referencedRelation: "contracts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      management_agreements: {
-        Row: {
-          contract_id: string
-          created_at: string
-          fee_applies_to: string | null
-          fee_model: string
-          fee_value: number
-          hybrid_base_flat: number | null
-          hybrid_overage_percentage: number | null
-          hybrid_threshold: number | null
-          id: string
-          lease_up_fee_model: string | null
-          lease_up_fee_value: number | null
-          repair_approval_threshold: number | null
-          scope_of_services: Json
-          scope_of_services_other: string | null
-          termination_notice_days: number | null
-          updated_at: string
-        }
-        Insert: {
-          contract_id: string
-          created_at?: string
-          fee_applies_to?: string | null
-          fee_model: string
-          fee_value: number
-          hybrid_base_flat?: number | null
-          hybrid_overage_percentage?: number | null
-          hybrid_threshold?: number | null
-          id?: string
-          lease_up_fee_model?: string | null
-          lease_up_fee_value?: number | null
-          repair_approval_threshold?: number | null
-          scope_of_services?: Json
-          scope_of_services_other?: string | null
-          termination_notice_days?: number | null
-          updated_at?: string
-        }
-        Update: {
-          contract_id?: string
-          created_at?: string
-          fee_applies_to?: string | null
-          fee_model?: string
-          fee_value?: number
-          hybrid_base_flat?: number | null
-          hybrid_overage_percentage?: number | null
-          hybrid_threshold?: number | null
-          id?: string
-          lease_up_fee_model?: string | null
-          lease_up_fee_value?: number | null
-          repair_approval_threshold?: number | null
-          scope_of_services?: Json
-          scope_of_services_other?: string | null
-          termination_notice_days?: number | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "management_agreements_contract_id_fkey"
-            columns: ["contract_id"]
-            isOneToOne: true
-            referencedRelation: "contracts"
             referencedColumns: ["id"]
           },
         ]
@@ -1179,7 +778,6 @@ export type Database = {
           size_sqm: number | null
           size_unit_preference: string | null
           status: Database["public"]["Enums"]["property_status"]
-          status_locked_by_lease_id: string | null
           unit_number: string
           unit_type: Database["public"]["Enums"]["unit_type"]
           updated_at: string
@@ -1202,7 +800,6 @@ export type Database = {
           size_sqm?: number | null
           size_unit_preference?: string | null
           status?: Database["public"]["Enums"]["property_status"]
-          status_locked_by_lease_id?: string | null
           unit_number: string
           unit_type?: Database["public"]["Enums"]["unit_type"]
           updated_at?: string
@@ -1225,7 +822,6 @@ export type Database = {
           size_sqm?: number | null
           size_unit_preference?: string | null
           status?: Database["public"]["Enums"]["property_status"]
-          status_locked_by_lease_id?: string | null
           unit_number?: string
           unit_type?: Database["public"]["Enums"]["unit_type"]
           updated_at?: string
@@ -1459,6 +1055,8 @@ export type Database = {
     Views: {
       units_with_data_gaps: {
         Row: {
+          asking_rent: number | null
+          asking_rent_currency: string | null
           bathrooms: number | null
           bedrooms: number | null
           building_id: string | null
@@ -1467,17 +1065,20 @@ export type Database = {
           description: string | null
           floor: number | null
           id: string | null
+          listed_at: string | null
+          listing_notes: string | null
           notes: string | null
           ref_code: string | null
           size_sqm: number | null
           size_unit_preference: string | null
           status: Database["public"]["Enums"]["property_status"] | null
-          status_locked_by_lease_id: string | null
           unit_number: string | null
           unit_type: Database["public"]["Enums"]["unit_type"] | null
           updated_at: string | null
         }
         Insert: {
+          asking_rent?: number | null
+          asking_rent_currency?: string | null
           bathrooms?: number | null
           bedrooms?: number | null
           building_id?: string | null
@@ -1486,17 +1087,20 @@ export type Database = {
           description?: string | null
           floor?: number | null
           id?: string | null
+          listed_at?: string | null
+          listing_notes?: string | null
           notes?: string | null
           ref_code?: string | null
           size_sqm?: number | null
           size_unit_preference?: string | null
           status?: Database["public"]["Enums"]["property_status"] | null
-          status_locked_by_lease_id?: string | null
           unit_number?: string | null
           unit_type?: Database["public"]["Enums"]["unit_type"] | null
           updated_at?: string | null
         }
         Update: {
+          asking_rent?: number | null
+          asking_rent_currency?: string | null
           bathrooms?: number | null
           bedrooms?: number | null
           building_id?: string | null
@@ -1505,12 +1109,13 @@ export type Database = {
           description?: string | null
           floor?: number | null
           id?: string | null
+          listed_at?: string | null
+          listing_notes?: string | null
           notes?: string | null
           ref_code?: string | null
           size_sqm?: number | null
           size_unit_preference?: string | null
           status?: Database["public"]["Enums"]["property_status"] | null
-          status_locked_by_lease_id?: string | null
           unit_number?: string | null
           unit_type?: Database["public"]["Enums"]["unit_type"] | null
           updated_at?: string | null
@@ -1527,6 +1132,8 @@ export type Database = {
       }
       units_without_owners: {
         Row: {
+          asking_rent: number | null
+          asking_rent_currency: string | null
           bathrooms: number | null
           bedrooms: number | null
           building_id: string | null
@@ -1535,15 +1142,60 @@ export type Database = {
           description: string | null
           floor: number | null
           id: string | null
+          listed_at: string | null
+          listing_notes: string | null
           notes: string | null
           ref_code: string | null
           size_sqm: number | null
           size_unit_preference: string | null
           status: Database["public"]["Enums"]["property_status"] | null
-          status_locked_by_lease_id: string | null
           unit_number: string | null
           unit_type: Database["public"]["Enums"]["unit_type"] | null
           updated_at: string | null
+        }
+        Insert: {
+          asking_rent?: number | null
+          asking_rent_currency?: string | null
+          bathrooms?: number | null
+          bedrooms?: number | null
+          building_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          floor?: number | null
+          id?: string | null
+          listed_at?: string | null
+          listing_notes?: string | null
+          notes?: string | null
+          ref_code?: string | null
+          size_sqm?: number | null
+          size_unit_preference?: string | null
+          status?: Database["public"]["Enums"]["property_status"] | null
+          unit_number?: string | null
+          unit_type?: Database["public"]["Enums"]["unit_type"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          asking_rent?: number | null
+          asking_rent_currency?: string | null
+          bathrooms?: number | null
+          bedrooms?: number | null
+          building_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          floor?: number | null
+          id?: string | null
+          listed_at?: string | null
+          listing_notes?: string | null
+          notes?: string | null
+          ref_code?: string | null
+          size_sqm?: number | null
+          size_unit_preference?: string | null
+          status?: Database["public"]["Enums"]["property_status"] | null
+          unit_number?: string | null
+          unit_type?: Database["public"]["Enums"]["unit_type"] | null
+          updated_at?: string | null
         }
         Relationships: [
           {

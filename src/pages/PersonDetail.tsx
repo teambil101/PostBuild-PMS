@@ -1,29 +1,18 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Mail, Phone, Building2, Pencil, Trash2, FileText, Upload, Star, Home, Target, Plus } from "lucide-react";
+import { ArrowLeft, Mail, Phone, Building2, Pencil, Trash2, FileText, Upload, Star, Home } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { PageHeader } from "@/components/PageHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import { PersonRoleBadge } from "@/components/people/PersonRoleBadge";
 import { PersonFormDialog } from "@/components/people/PersonFormDialog";
 import { PersonLoginLink } from "@/components/people/PersonLoginLink";
-import { NewLeadDialog } from "@/components/leads/NewLeadDialog";
 import { EmptyState } from "@/components/EmptyState";
 import { initials } from "@/lib/format";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSearchParams } from "react-router-dom";
-import { EntityTicketsTab, type TicketSection } from "@/components/tickets/EntityTicketsTab";
-import { format } from "date-fns";
 import { toast } from "sonner";
 import { fetchOwnershipsByPerson, OwnedProperty } from "@/lib/ownership";
-import {
-  LEAD_STATUS_LABELS, LEAD_STATUS_STYLES, LEAD_SOURCE_LABELS,
-  TERMINAL_STATUSES,
-  getStageAgingDays, getDaysToClose,
-  type LeadRow,
-} from "@/lib/leads";
-import { cn } from "@/lib/utils";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -39,10 +28,6 @@ export default function PersonDetail() {
   const [ownerships, setOwnerships] = useState<OwnedProperty[]>([]);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
-  const [ticketCount, setTicketCount] = useState<number>(0);
-  const [leadCount, setLeadCount] = useState<number>(0);
-  const [newLeadOpen, setNewLeadOpen] = useState(false);
-  const [pipelineRefreshKey, setPipelineRefreshKey] = useState(0);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get("tab") ?? "ownership";
   const setActiveTab = (v: string) => {
@@ -120,7 +105,7 @@ export default function PersonDetail() {
     <>
       <Button variant="ghost" size="sm" onClick={() => navigate("/people")} className="mb-4">
         <ArrowLeft className="h-3.5 w-3.5" />
-        Back to people
+        Back to directory
       </Button>
 
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6 border-b hairline pb-8 mb-8">
@@ -169,7 +154,6 @@ export default function PersonDetail() {
         )}
       </div>
 
-      {/* Contact strip */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-px bg-warm-stone/60 border hairline rounded-sm overflow-hidden mb-10">
         <Meta label="Email" icon={<Mail className="h-3.5 w-3.5" />} value={person.email ?? "—"} />
         <Meta label="Phone" icon={<Phone className="h-3.5 w-3.5" />} value={person.phone ?? "—"} />
@@ -185,11 +169,8 @@ export default function PersonDetail() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="bg-transparent border-b hairline rounded-none w-full justify-start gap-0 h-auto p-0">
           {[
-            { v: "ownership", l: "Ownership" },
-            { v: "tenancy", l: "Tenancy" },
+            { v: "ownership", l: "Properties" },
             { v: "documents", l: `Documents (${docs.length})` },
-            { v: "leads", l: `Pipeline (${leadCount})` },
-            { v: "tickets", l: `Tickets (${ticketCount})` },
             { v: "notes", l: "Notes" },
           ].map((t) => (
             <TabsTrigger
@@ -280,13 +261,6 @@ export default function PersonDetail() {
           )}
         </TabsContent>
 
-        <TabsContent value="tenancy" className="pt-6">
-          <EmptyState
-            title="No leases on record"
-            description="Tenancies will appear here once the lease module is active."
-          />
-        </TabsContent>
-
         <TabsContent value="documents" className="pt-6">
           <div className="flex justify-between items-center mb-4">
             <div className="label-eyebrow">Documents</div>
@@ -325,30 +299,6 @@ export default function PersonDetail() {
           )}
         </TabsContent>
 
-        <TabsContent value="tickets" className="pt-6">
-          <PersonTicketsSection
-            personId={person.id}
-            personLabel={`${person.first_name} ${person.last_name}`.trim()}
-            onActiveCountChange={setTicketCount}
-          />
-        </TabsContent>
-
-        <TabsContent value="leads" className="pt-6">
-          <div className="flex justify-between items-center mb-4">
-            <div className="label-eyebrow">Leads & opportunities</div>
-            {canEdit && (
-              <Button variant="gold" size="sm" onClick={() => setNewLeadOpen(true)}>
-                <Plus className="h-3.5 w-3.5" /> New lead
-              </Button>
-            )}
-          </div>
-          <PersonLeadsTab
-            key={pipelineRefreshKey}
-            personId={person.id}
-            onActiveCountChange={setLeadCount}
-          />
-        </TabsContent>
-
         <TabsContent value="notes" className="pt-6">
           <div className="border hairline rounded-sm bg-card p-6 text-sm whitespace-pre-wrap text-foreground/90 min-h-[120px]">
             {person.notes || <span className="text-muted-foreground italic">No notes yet.</span>}
@@ -362,16 +312,6 @@ export default function PersonDetail() {
         initial={person}
         onSaved={() => { setEditOpen(false); load(); }}
       />
-
-      <NewLeadDialog
-        open={newLeadOpen}
-        onOpenChange={setNewLeadOpen}
-        defaultPersonId={person.id}
-        onSaved={() => {
-          setNewLeadOpen(false);
-          setPipelineRefreshKey((k) => k + 1);
-        }}
-      />
     </>
   );
 }
@@ -382,185 +322,5 @@ function Meta({ label, value, icon }: { label: string; value: string; icon: Reac
       <div className="label-eyebrow flex items-center gap-1.5">{icon} {label}</div>
       <div className="text-base text-architect mt-1 truncate">{value}</div>
     </div>
-  );
-}
-
-function PersonLeadsTab({
-  personId,
-  onActiveCountChange,
-}: {
-  personId: string;
-  onActiveCountChange: (n: number) => void;
-}) {
-  const [rows, setRows] = useState<LeadRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [assignees, setAssignees] = useState<Record<string, { first_name: string; last_name: string }>>({});
-
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      const { data } = await supabase
-        .from("leads")
-        .select("*")
-        .or(`primary_contact_id.eq.${personId},company_id.eq.${personId}`)
-        .order("stage_entered_at", { ascending: false });
-      const list = ((data ?? []) as unknown as LeadRow[]).map((l) => ({
-        ...l,
-        proposed_scope_of_services: Array.isArray(l.proposed_scope_of_services)
-          ? l.proposed_scope_of_services
-          : (l.proposed_scope_of_services as any) ?? [],
-      }));
-      setRows(list);
-      onActiveCountChange(list.filter((l) => !TERMINAL_STATUSES.includes(l.status)).length);
-
-      const ids = Array.from(new Set(list.map((l) => l.assignee_id).filter(Boolean) as string[]));
-      if (ids.length) {
-        const { data: ppl } = await supabase
-          .from("people").select("id, first_name, last_name").in("id", ids);
-        const map: Record<string, { first_name: string; last_name: string }> = {};
-        for (const p of ppl ?? []) map[p.id] = p as any;
-        setAssignees(map);
-      }
-      setLoading(false);
-    })();
-  }, [personId, onActiveCountChange]);
-
-  if (loading) return <div className="h-32 bg-muted/40 animate-pulse rounded-sm" />;
-  if (rows.length === 0) {
-    return (
-      <EmptyState
-        title="No leads associated with this person"
-        description="Leads where this person is the primary contact or company will appear here."
-      />
-    );
-  }
-
-  return (
-    <div className="border hairline rounded-sm overflow-hidden bg-card">
-      <table className="w-full text-sm">
-        <thead className="bg-muted/40 border-b hairline text-left">
-          <tr>
-            <th className="px-4 py-3 label-eyebrow">Lead #</th>
-            <th className="px-4 py-3 label-eyebrow">Status</th>
-            <th className="px-4 py-3 label-eyebrow">Source</th>
-            <th className="px-4 py-3 label-eyebrow">Stage age</th>
-            <th className="px-4 py-3 label-eyebrow">Assignee</th>
-            <th className="px-4 py-3 label-eyebrow">Target close</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((l) => {
-            const a = l.assignee_id ? assignees[l.assignee_id] : null;
-            const dToClose = getDaysToClose(l.target_close_date);
-            const overdue = dToClose != null && dToClose < 0 && !TERMINAL_STATUSES.includes(l.status);
-            return (
-              <tr key={l.id} className="border-b hairline last:border-0 hover:bg-muted/30">
-                <td className="px-4 py-3 mono text-xs">
-                  <Link to={`/leads/${l.id}`} className="text-architect hover:underline">
-                    {l.lead_number}
-                  </Link>
-                </td>
-                <td className="px-4 py-3">
-                  <span className={cn(
-                    "px-1.5 py-0.5 border rounded-sm text-[10px] uppercase tracking-wider",
-                    LEAD_STATUS_STYLES[l.status],
-                  )}>
-                    {LEAD_STATUS_LABELS[l.status]}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-xs text-architect">{LEAD_SOURCE_LABELS[l.source]}</td>
-                <td className="px-4 py-3 text-xs text-muted-foreground">
-                  {getStageAgingDays(l)}d
-                </td>
-                <td className="px-4 py-3 text-xs">
-                  {a ? (
-                    <span className="text-architect">{a.first_name} {a.last_name}</span>
-                  ) : (
-                    <span className="text-muted-foreground">Unassigned</span>
-                  )}
-                </td>
-                <td className={cn(
-                  "px-4 py-3 text-xs whitespace-nowrap",
-                  overdue ? "text-destructive" : "text-muted-foreground",
-                )}>
-                  {l.target_close_date
-                    ? format(new Date(l.target_close_date + "T00:00:00"), "MMM d, yyyy")
-                    : "—"}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function PersonTicketsSection({
-  personId,
-  personLabel,
-  onActiveCountChange,
-}: {
-  personId: string;
-  personLabel: string;
-  onActiveCountChange: (n: number) => void;
-}) {
-  const sections: TicketSection[] = [
-    {
-      key: "assigned",
-      label: "Assigned to them",
-      emptyText: "No tickets assigned to this person.",
-      fetch: async () => {
-        const { data } = await supabase
-          .from("tickets")
-          .select(
-            "id, ticket_number, subject, ticket_type, priority, status, assignee_id, due_date, created_at, target_entity_type, target_entity_id, is_system_generated",
-          )
-          .eq("assignee_id", personId)
-          .order("created_at", { ascending: false });
-        return (data ?? []) as any;
-      },
-    },
-    {
-      key: "reported",
-      label: "Reported by them",
-      emptyText: "No tickets reported by this person.",
-      fetch: async () => {
-        const { data } = await supabase
-          .from("tickets")
-          .select(
-            "id, ticket_number, subject, ticket_type, priority, status, assignee_id, due_date, created_at, target_entity_type, target_entity_id, is_system_generated",
-          )
-          .eq("reporter_id", personId)
-          .order("created_at", { ascending: false });
-        return (data ?? []) as any;
-      },
-    },
-    {
-      key: "about",
-      label: "About them",
-      emptyText: "No tickets target this person.",
-      fetch: async () => {
-        const { data } = await supabase
-          .from("tickets")
-          .select(
-            "id, ticket_number, subject, ticket_type, priority, status, assignee_id, due_date, created_at, target_entity_type, target_entity_id, is_system_generated",
-          )
-          .eq("target_entity_type", "person")
-          .eq("target_entity_id", personId)
-          .order("created_at", { ascending: false });
-        return (data ?? []) as any;
-      },
-    },
-  ];
-  return (
-    <EntityTicketsTab
-      entityType="person"
-      entityId={personId}
-      entityLabel={personLabel}
-      groupedView
-      sections={sections}
-      onActiveCountChange={onActiveCountChange}
-    />
   );
 }
