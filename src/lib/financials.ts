@@ -104,7 +104,7 @@ export async function generateLeaseInvoiceSchedule(
         subtotal: inst.amount,
         tax: 0,
         total: inst.amount,
-        status: "open",
+        status: "issued",
         notes: `Rent installment ${inst.installment_number} of ${installments.length}`,
       })
       .select("id")
@@ -140,18 +140,16 @@ export async function generateLeaseInvoiceSchedule(
 /** Status helpers */
 export const INVOICE_STATUS_LABEL: Record<string, string> = {
   draft: "Draft",
-  open: "Open",
-  partially_paid: "Partially paid",
+  issued: "Issued",
+  partial: "Partially paid",
   paid: "Paid",
-  overdue: "Overdue",
   void: "Void",
 };
 
 export const INVOICE_STATUS_TONE: Record<string, "ok" | "neutral" | "warning" | "danger"> = {
   draft: "neutral",
-  open: "neutral",
-  partially_paid: "warning",
+  issued: "neutral",
+  partial: "warning",
   paid: "ok",
-  overdue: "danger",
   void: "neutral",
 };
