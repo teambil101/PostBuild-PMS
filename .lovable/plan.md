@@ -1,131 +1,121 @@
 
 
-# Redesign: Leasing Lifecycle
+# Addendum: Sub-services (Service Workflows)
 
-Rebrand and restructure `/lifecycle` into a focused **placement funnel** — from a unit becoming available to a tenant moving in. Strip away the live-tenancy and post-tenancy stages that today muddy the view, and abandon the kanban metaphor (no drag-drop = no kanban).
+The previous plan stands. This addendum extends the **Services** module to support multi-step services like Tenant Search & Onboarding, where one engagement contains many sequenced sub-tasks.
 
-## New stage model
+---
 
-| # | Stage | Meaning | Source of truth |
-|---|---|---|---|
-| 1 | **Not ready for listing** | Unit needs work before it can be marketed | `units.status ∈ {under_maintenance, off_market}` |
-| 2 | **Ready but unlisted** | Unit is rentable but no listing has been published | `units.status = vacant` AND `listed_at IS NULL` |
-| 3 | **Listed** | Actively marketed, no offer yet | `units.status = vacant` AND `listed_at IS NOT NULL` AND no draft lease |
-| 4 | **Offer pending landlord confirmation** | Tenant interested, draft lease exists but not yet sent for signature | exists `contract` of `lease` type with `status = draft` for this unit |
-| 5 | **In signing** | Sent for signature, awaiting all parties | exists `contract` of `lease` type with `status = pending_signature` |
-| 6 | **Leased** *(terminal)* | Lease activated — unit is occupied | `units.status = occupied` with active lease |
+## The pattern
 
-Stages 1-5 are **pre-tenancy**. Once Leased, the unit exits the leasing lifecycle — renewals/move-outs are handled in the **Lease Lifecycle** workflows (Tickets module) and **Contracts** module. This page no longer shows ending-soon, recently-ended, or expiring leases.
+A "Service Request" can be either:
 
-### What about "Listed" and "Offer Pending" — these don't exist in the schema today
+- **Atomic** — a single job (e.g. pipe repair, AC service). What we already designed.
+- **Composite** — a parent service that contains ordered child sub-services (e.g. Tenant Search & Onboarding → Listing → Viewings → Offer & Negotiation → Contracting → Utilities setup → Move-in inspection → Handover).
 
-Two new concepts need a tiny data addition:
+No new top-level entity. We use **self-referential parenting** on the existing service request table: `parent_request_id` + `sequence_order`. A composite is just a request whose children render as a checklist/timeline.
 
-- `units.listed_at timestamptz NULL` — when set, the unit is "listed". Cleared when it transitions to occupied or back to not-ready.
-- `units.asking_rent numeric NULL` and `units.listing_notes text NULL` — optional, surfaced in the listing card.
+---
 
-"Offer pending landlord confirmation" maps to the existing **draft** lease state. No schema change needed — we just relabel `draft` in the lifecycle context to make the funnel readable. (`draft` already means "PM is preparing the offer, landlord hasn't approved sending it for signature.") A future v2 can split this into a richer offer model if needed.
+## How it works
 
-A `Mark as listed` / `Unlist` action on a unit (in PropertyDetail and inline on the lifecycle page) toggles `listed_at`.
+### Service Catalog gains "templates"
+A catalog entry can declare itself as a **workflow template** with an ordered list of sub-steps. Each sub-step carries its own defaults: title, category, default delivery (vendor/staff), default billing (free/paid), typical duration, and dependency (sequential or parallel-ok).
 
-## New UI: not a kanban
-
-Replace the 6-column board with a **single-page funnel dashboard** optimized for read-only scanning at the user's 2660px width:
-
+Example template — "Tenant Search & Onboarding" (free, included in PM agreement):
 ```text
-┌─────────────────────────────────────────────────────────────────────┐
-│  LEASING FUNNEL                                                     │
-│  ┌────┐ ┌────┐ ┌────┐ ┌────┐ ┌────┐ ┌────┐                          │
-│  │ 12 │→│  4 │→│  7 │→│  2 │→│  1 │→│ 38 │  (count + sparkline 30d) │
-│  │NotR│ │Rdy │ │List│ │Offr│ │Sign│ │Leasd│                         │
-│  └────┘ └────┘ └────┘ └────┘ └────┘ └────┘                          │
-│  Conversion rates between stages shown as inline %                  │
-├─────────────────────────────────────────────────────────────────────┤
-│  Filter: [search] [building ▾] [stage ▾]   View: ▣ Funnel  ☰ Table  │
-├─────────────────────────────────────────────────────────────────────┤
-│  STAGE SECTIONS (vertical, collapsible)                             │
-│                                                                     │
-│  ▾ Not ready for listing (12)              [Bulk: Mark ready]       │
-│    ┌───────────────────────────────────────────────────────────┐    │
-│    │ Unit · Building · Reason · Days here · Owner · Action     │    │
-│    │ rows...                                                   │    │
-│    └───────────────────────────────────────────────────────────┘    │
-│                                                                     │
-│  ▾ Ready but unlisted (4)                  [Bulk: Mark listed]      │
-│    rows with: days vacant, asking-rent suggestion, [Mark listed]    │
-│                                                                     │
-│  ▾ Listed (7)                                                       │
-│    rows with: days listed, asking rent, leads attached, [Unlist]    │
-│                                                                     │
-│  ▾ Offer pending landlord confirmation (2)                          │
-│    rows with: tenant, proposed rent, days awaiting, [Send to sign]  │
-│                                                                     │
-│  ▾ In signing (1)                                                   │
-│    rows with: tenant, who hasn't signed, days in signing            │
-│                                                                     │
-│  ▾ Leased — last 30 days (38)              [view all in Contracts]  │
-│    rows with: tenant, start date, annual rent (compact, read-only)  │
-└─────────────────────────────────────────────────────────────────────┘
+1. List unit on portals          — staff, free
+2. Conduct viewings               — staff, free
+3. Negotiate offer                — staff, free
+4. Draft & sign tenancy contract  — staff, free
+5. Ejari registration             — staff, paid (govt fee, pass-through)
+6. Utilities (DEWA/chiller) setup — staff, free
+7. Move-in inspection + photos    — staff, free
+8. Key handover                   — staff, free
 ```
 
-Why this layout works better than columns:
+### Creating a composite request
+When staff pick a workflow-template catalog entry:
+1. Parent request is created (e.g. `SVC-2026-0042 — Tenant Search & Onboarding, Unit BLD-01-1203`).
+2. All child sub-requests are created in one transaction with `parent_request_id = parent.id` and `sequence_order = 1..N`, each inheriting defaults from the template.
+3. The parent's billing is computed: `free` if all children are free, otherwise `mixed` (shown as a breakdown).
+4. The parent's status is **derived** from children, not set directly.
 
-- **Read-only ergonomics.** Funnel strip on top gives the at-a-glance count + flow. Vertical sections give breathing room for richer per-row info than a kanban card allows.
-- **Wide-screen friendly.** Tables fill the 1800px max-width without horizontal squeeze; no per-card truncation.
-- **Action-oriented.** Each stage's primary CTA is obvious (Mark listed, Send to sign), unlike kanban cards that hide actions behind clicks.
-- **No drag pretense.** Removes the affordance lie of the current board.
-- **Funnel intuition.** Counts + arrows make it instantly clear where bottlenecks are; a built-in conversion rate (e.g. "50% Ready→Listed in <14d") surfaces the real story.
+### Parent status derivation
+```text
+all children new/triaged          → parent: new
+any child in_progress             → parent: in_progress
+all children done                 → parent: done
+any child awaiting_approval       → parent badge: "Approval needed"
+any child cancelled (not all)     → parent stays in_progress, badge "Has cancellations"
+```
 
-A **Table** view toggle remains, showing all units in one sortable list with stage as a column — useful for ops review.
+### Approval at the right level
+Approval lives on **each paid child**, not the parent. Ejari registration needs landlord approval (paid, configurable per contract); the free steps don't. This matches reality: landlords approve specific costs, not the whole engagement.
 
-## What gets removed
+### Detail page for a composite
+`/services/:id` adapts its layout when `children.length > 0`:
+- Header: parent ref code, title, derived status, derived billing summary.
+- **New "Steps" tab** (default tab for composites): ordered list of child sub-requests with inline status, assignee, due date, and a click-through to the child's own detail page.
+- Existing tabs (Documents, Notes, History) aggregate across parent + children with a source label.
+- Action: "Add step" (insert ad-hoc sub-request mid-workflow, e.g. "Tenant requested AC service before move-in").
 
-- KPI cards row (already removed in a previous turn — confirmed staying gone).
-- Expiring soon section.
-- Overdue cheques section.
-- Data gaps section (occupied without active lease).
-- The 6-column kanban grid.
+### Detail page for a child
+Same `/services/:id` page, but with a breadcrumb "← Part of SVC-2026-0042 Tenant Search & Onboarding" and a "Step 5 of 8" indicator.
 
-These belong elsewhere:
-- Expiring leases → Contracts module + Tickets (renewal workflows already exist).
-- Overdue cheques → Dashboard "Attention Needed" + per-contract Cheques tab.
-- Data gaps → Settings/health check or a hidden admin tool.
+### Dependencies between steps
+v1 keeps it simple: steps are **advisory-sequential** — staff see the order but can work them in any sequence. A small `blocks_next` boolean per template step lets us later enforce hard gates (e.g. "Can't start Utilities until Contract signed"). Designed in, not enforced in v1.
 
-## Implementation outline
+### List view
+Service Requests list shows only **parents + atomic requests** by default (one row per engagement). A "Show sub-steps" toggle expands children inline. This keeps the queue readable.
 
-1. **Schema migration** — add to `units`:
-   - `listed_at timestamptz NULL`
-   - `asking_rent numeric NULL`, `asking_rent_currency text NULL DEFAULT 'AED'`
-   - `listing_notes text NULL`
-   - Trigger: when `status` changes to `occupied` or to a not-ready value, auto-clear `listed_at`.
-2. **`src/lib/lifecycle.ts`** — rewrite stage logic:
-   - New `LifecycleStage` enum: `not_ready | ready_unlisted | listed | offer_pending | in_signing | leased`.
-   - `fetchLifecycleData` simplified: no expiring/overdue/data-gap branches. Resolve each unit to one of the six stages. "Leased" capped to the last 30 days of activations to keep the section focused.
-   - Add 30-day stage-entry counts for the funnel sparkline (cheap groupby on `unit_status_history` + `contracts.created_at`).
-3. **`src/pages/Lifecycle.tsx`** — rebuild:
-   - PageHeader: title **"Leasing Lifecycle"**, eyebrow stays "Module", description "From available unit to signed lease."
-   - New `<FunnelStrip>` component: 6 stage tiles with count, 30-day delta, and arrow connectors; clicking a tile scrolls/filters to that section.
-   - New `<StageSection>` component: collapsible header (stage name, count, primary bulk action), table of rows tailored to that stage's info needs.
-   - Existing search + building filter retained.
-   - Table view kept; rewritten to use new stage labels.
-4. **`src/lib/modules.ts`** — rename label from "Lease Lifecycle" to **"Leasing Lifecycle"**.
-5. **`src/components/AppShell.tsx`** — update active-link match (path stays `/lifecycle`).
-6. **Listing actions** — add `MarkListedDialog` (asking rent + notes) and `UnlistDialog`. Surface buttons:
-   - On the lifecycle page rows in "Ready but unlisted" and "Listed" stages.
-   - On `PropertyDetail.tsx` unit cards.
-7. **Cleanup** — delete `LifecycleTable`'s expiring/overdue/data-gap helpers and the related dialog wiring (`DepositChequeDialog`, `BounceChequeDialog`) from this page.
-8. **Docs** — update `DASHBOARDS.md` to describe the funnel; note that ending-soon/overdue lives elsewhere now.
+### Recurrence
+Workflow templates can also recur (e.g. annual lease renewal workflow). The scheduler regenerates the parent + all children fresh each cycle.
 
-## Files touched
+---
 
-- **Edit:** `src/pages/Lifecycle.tsx`, `src/lib/lifecycle.ts`, `src/lib/modules.ts`, `src/components/AppShell.tsx`, `src/components/properties/UnitFormDialog.tsx` (surface `asking_rent`/`listed_at` if unit is vacant), `DASHBOARDS.md`.
-- **Create:** `src/components/lifecycle/FunnelStrip.tsx`, `src/components/lifecycle/StageSection.tsx`, `src/components/lifecycle/MarkListedDialog.tsx`, `src/components/lifecycle/UnlistDialog.tsx`.
-- **Migration:** add `units.listed_at`, `units.asking_rent`, `units.asking_rent_currency`, `units.listing_notes` + auto-clear trigger.
-- **Untouched:** all contracts code, all leads/people code, lifecycle workflows in tickets, `lease_cheques`.
+## Schema delta vs the previous plan
 
-## Open questions for you
+Two added columns on `service_requests`:
+- `parent_request_id uuid null` — self-FK, null for atomic & top-level composites.
+- `sequence_order int null` — position within parent.
 
-1. **"Offer pending" semantics.** Does today's `draft` lease state actually mean "tenant has made an offer, awaiting landlord OK"? If you want a dedicated state separate from `draft`, that's a bigger change (new contract status enum value + flow). Default plan: relabel `draft` for lifecycle display only.
-2. **Listing model depth.** Are you OK with `listed_at` as a single timestamp, or do you want a proper `listings` table later (multi-portal sync, listing history, asking-rent changes over time)? Default plan: single timestamp now, table later if needed.
-3. **"Leased" cap.** Show only units leased in the last 30 days (recent wins), or all currently-leased units? Default plan: last 30 days, with a "view all in Contracts" link.
+One added concept on `service_catalog`:
+- `workflow_steps jsonb` — ordered array of step templates (title, category, default_delivery, default_billing, blocks_next, typical_duration_days).
+
+Derived parent status is computed in a view or a small RPC `get_request_rollup(request_id)` — no stored denorm to keep stale.
+
+---
+
+## Examples mapped to this design
+
+| Scenario | Shape |
+|---|---|
+| Pipe repair | Atomic request, paid, vendor, approval per contract rule. |
+| Bi-annual visit | Atomic request, free, staff, scheduled. |
+| Tenant document collection | Atomic request, free, staff, auto-generated on lease pending_signature. |
+| **Tenant Search & Onboarding** | **Composite request from workflow template**, 8 children, mostly free, Ejari child triggers approval. |
+| Lease renewal | Composite request from workflow template, recurring annually per active lease. |
+| Vendor-quoted reno project with multiple trades | Composite request, ad-hoc (no template), staff adds children manually as quotes come in. |
+
+---
+
+## Build sequencing update
+
+This slots into the previous step **5 (Service Requests)** and step **6 (Scheduler)**:
+
+- Step 5 ships atomic requests first, then adds parent/child rendering and the "Steps" tab.
+- Step 4 (Service Catalog) gains the `workflow_steps` editor — drag-to-reorder list of step templates.
+- Step 6 scheduler handles both atomic recurrence and workflow recurrence with the same dedup key.
+
+No reordering of phases; each still ships as a coherent slice.
+
+---
+
+## Out of scope (still)
+
+- Hard dependency enforcement between steps (designed in via `blocks_next`, not enforced in v1).
+- Gantt/timeline visualization — the Steps tab is a vertical list in v1.
+- Per-step SLAs and escalation rules.
+- Cross-workflow templates (one workflow triggering another) — handle via automation rules later.
 
