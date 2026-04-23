@@ -30,6 +30,7 @@ export interface CatalogEntry {
   name: string;
   description: string | null;
   category: ServiceCategory;
+  category_other: string | null;
   default_delivery: ServiceDelivery;
   default_billing: ServiceBilling;
   typical_duration_days: number | null;
@@ -53,6 +54,7 @@ const BLANK: CatalogEntry = {
   name: "",
   description: "",
   category: "maintenance",
+  category_other: null,
   default_delivery: "vendor",
   default_billing: "paid",
   typical_duration_days: 1,
