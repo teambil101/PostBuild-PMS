@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { Plus, Search, Users as UsersIcon } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
+import { Plus, Search, Users as UsersIcon, Truck, Star, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -9,11 +9,17 @@ import { EmptyState } from "@/components/EmptyState";
 import { useAuth } from "@/contexts/AuthContext";
 import { PersonFormDialog } from "@/components/people/PersonFormDialog";
 import { PersonRoleBadge } from "@/components/people/PersonRoleBadge";
+import { NewVendorDialog } from "@/components/vendors/NewVendorDialog";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { vendorDisplayName, parseSpecialties, SPECIALTY_LABELS } from "@/lib/vendors";
 import { initials } from "@/lib/format";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-interface Person {
+interface PersonEntry {
+  kind: "person";
   id: string;
   ref_code: string;
   first_name: string;
@@ -28,56 +34,120 @@ interface Person {
   owns_count?: number;
 }
 
+interface VendorEntry {
+  kind: "vendor";
+  id: string;
+  ref_code: string;          // vendor_number
+  name: string;              // display_name || legal_name
+  legal_name: string;
+  email: string | null;
+  phone: string | null;
+  city: string | null;       // derived from address (best-effort: null)
+  is_active: boolean;        // status === 'active'
+  is_preferred: boolean;
+  status: string;
+  specialties: unknown;
+}
+
+type DirectoryEntry = PersonEntry | VendorEntry;
+
 const ROLE_FILTERS = [
   { v: "all", l: "All" },
   { v: "tenant", l: "Tenants" },
   { v: "owner", l: "Owners" },
   { v: "prospect", l: "Prospects" },
   { v: "staff", l: "Staff" },
-  { v: "vendor", l: "Vendors" },
+  { v: "vendor", l: "Vendors" }, // includes vendor companies + people tagged as vendor
 ];
 
 export default function People() {
   const { canEdit } = useAuth();
-  const [people, setPeople] = useState<Person[]>([]);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [people, setPeople] = useState<PersonEntry[]>([]);
+  const [vendors, setVendors] = useState<VendorEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [roleFilter, setRoleFilter] = useState("all");
-  const [open, setOpen] = useState(false);
+  const roleFilter = searchParams.get("role") ?? "all";
+  const setRoleFilter = (v: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (v === "all") next.delete("role");
+    else next.set("role", v);
+    setSearchParams(next, { replace: true });
+  };
+  const [personOpen, setPersonOpen] = useState(false);
+  const [vendorOpen, setVendorOpen] = useState(false);
 
   const load = async () => {
     setLoading(true);
-    const [pp, oo] = await Promise.all([
+    const [pp, oo, vv] = await Promise.all([
       supabase
         .from("people")
         .select("id, ref_code, first_name, last_name, email, phone, roles, company, city, is_active, avatar_url")
         .order("created_at", { ascending: false }),
       supabase.from("property_owners").select("person_id"),
+      supabase
+        .from("vendors")
+        .select("id, vendor_number, legal_name, display_name, primary_email, primary_phone, address, status, is_preferred, specialties")
+        .order("is_preferred", { ascending: false })
+        .order("legal_name", { ascending: true }),
     ]);
     if (pp.error) toast.error(pp.error.message);
+    if (vv.error) toast.error(vv.error.message);
     const ownsMap = new Map<string, number>();
     (oo.data ?? []).forEach((r: any) => {
       ownsMap.set(r.person_id, (ownsMap.get(r.person_id) ?? 0) + 1);
     });
-    const merged = ((pp.data ?? []) as Person[]).map((p) => ({
+    const mergedPeople: PersonEntry[] = ((pp.data ?? []) as any[]).map((p) => ({
+      kind: "person",
       ...p,
       owns_count: ownsMap.get(p.id) ?? 0,
     }));
-    setPeople(merged);
+    const mergedVendors: VendorEntry[] = ((vv.data ?? []) as any[]).map((v) => ({
+      kind: "vendor",
+      id: v.id,
+      ref_code: v.vendor_number,
+      name: (v.display_name && v.display_name.trim()) || v.legal_name,
+      legal_name: v.legal_name,
+      email: v.primary_email,
+      phone: v.primary_phone,
+      city: null,
+      is_active: v.status === "active",
+      is_preferred: !!v.is_preferred,
+      status: v.status,
+      specialties: v.specialties,
+    }));
+    setPeople(mergedPeople);
+    setVendors(mergedVendors);
     setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
 
-  const filtered = useMemo(() => {
+  const filtered = useMemo<DirectoryEntry[]>(() => {
     const q = search.toLowerCase().trim();
-    return people.filter((p) => {
-      if (roleFilter !== "all" && !p.roles?.includes(roleFilter)) return false;
+
+    const matchPerson = (p: PersonEntry) => {
+      if (roleFilter !== "all" && roleFilter !== "vendor" && !p.roles?.includes(roleFilter)) return false;
+      if (roleFilter === "vendor" && !p.roles?.includes("vendor")) return false;
       if (!q) return true;
       const blob = `${p.first_name} ${p.last_name} ${p.email ?? ""} ${p.company ?? ""} ${p.ref_code}`.toLowerCase();
       return blob.includes(q);
-    });
-  }, [people, search, roleFilter]);
+    };
+
+    const matchVendor = (v: VendorEntry) => {
+      if (!q) return true;
+      const blob = `${v.name} ${v.legal_name} ${v.email ?? ""} ${v.phone ?? ""} ${v.ref_code}`.toLowerCase();
+      return blob.includes(q);
+    };
+
+    // Vendors only show in "All" and "Vendors" filter
+    const showVendors = roleFilter === "all" || roleFilter === "vendor";
+    const peopleFiltered = people.filter(matchPerson);
+    const vendorsFiltered = showVendors ? vendors.filter(matchVendor) : [];
+
+    // Sort: vendors with preferred star first, then people by created order (existing).
+    return [...vendorsFiltered, ...peopleFiltered];
+  }, [people, vendors, search, roleFilter]);
 
   return (
     <>
@@ -87,9 +157,22 @@ export default function People() {
         description="A unified directory of everyone in your operation."
         actions={
           canEdit ? (
-            <Button variant="gold" onClick={() => setOpen(true)}>
-              <Plus className="h-4 w-4" /> New person
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="gold">
+                  <Plus className="h-4 w-4" /> New
+                  <ChevronDown className="h-3.5 w-3.5 ml-1" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onSelect={() => setPersonOpen(true)}>
+                  <UsersIcon className="h-4 w-4 mr-2" /> New person
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setVendorOpen(true)}>
+                  <Truck className="h-4 w-4 mr-2" /> New vendor company
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : null
         }
       />
