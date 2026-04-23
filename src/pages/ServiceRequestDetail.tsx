@@ -73,6 +73,7 @@ interface RequestRow {
 
 interface StepRow {
   id: string;
+  request_id: string;
   step_key: string;
   title: string;
   sort_order: number;
@@ -80,9 +81,20 @@ interface StepRow {
   delivery: ServiceDelivery;
   billing: ServiceBilling;
   blocks_next: boolean;
-  status: ServiceRequestStepStatus;
+  status: WorkflowStepRow["status"];
   completed_at: string | null;
   notes: string | null;
+  scheduled_date: string | null;
+  assigned_vendor_id: string | null;
+  assigned_person_id: string | null;
+  cost_estimate: number | null;
+  cost_final: number | null;
+  approval_status: ServiceRequestApprovalStatus;
+  approval_required_reason: string | null;
+  approval_threshold_amount: number | null;
+  approval_threshold_currency: string | null;
+  approval_rule_snapshot: string | null;
+  approval_decision_notes: string | null;
 }
 
 interface EventRow {
