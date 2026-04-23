@@ -1,121 +1,95 @@
 
 
-# Addendum: Sub-services (Service Workflows)
+## Workflow steps as catalog references
 
-The previous plan stands. This addendum extends the **Services** module to support multi-step services like Tenant Search & Onboarding, where one engagement contains many sequenced sub-tasks.
+Currently each workflow step is a free-text title with manually picked category/delivery/billing/duration. You want a step to **be** another catalog service — so a workflow service is literally a chain of existing catalog entries (and "Service 3 = Service 1 → Service 2" works without retyping anything).
 
----
+### What changes in the UI
 
-## The pattern
+**`WorkflowStepsEditor.tsx`** — the per-step row becomes:
 
-A "Service Request" can be either:
-
-- **Atomic** — a single job (e.g. pipe repair, AC service). What we already designed.
-- **Composite** — a parent service that contains ordered child sub-services (e.g. Tenant Search & Onboarding → Listing → Viewings → Offer & Negotiation → Contracting → Utilities setup → Move-in inspection → Handover).
-
-No new top-level entity. We use **self-referential parenting** on the existing service request table: `parent_request_id` + `sequence_order`. A composite is just a request whose children render as a checklist/timeline.
-
----
-
-## How it works
-
-### Service Catalog gains "templates"
-A catalog entry can declare itself as a **workflow template** with an ordered list of sub-steps. Each sub-step carries its own defaults: title, category, default delivery (vendor/staff), default billing (free/paid), typical duration, and dependency (sequential or parallel-ok).
-
-Example template — "Tenant Search & Onboarding" (free, included in PM agreement):
 ```text
-1. List unit on portals          — staff, free
-2. Conduct viewings               — staff, free
-3. Negotiate offer                — staff, free
-4. Draft & sign tenancy contract  — staff, free
-5. Ejari registration             — staff, paid (govt fee, pass-through)
-6. Utilities (DEWA/chiller) setup — staff, free
-7. Move-in inspection + photos    — staff, free
-8. Key handover                   — staff, free
+[↑↓]  STEP 1   [ Catalog service ▼ AC service / repair        ]   [🗑]
+                ├─ Title override (optional): [____________________]
+                ├─ Duration override (days):  [___]
+                └─ ☐ Blocks next step until done
 ```
 
-### Creating a composite request
-When staff pick a workflow-template catalog entry:
-1. Parent request is created (e.g. `SVC-2026-0042 — Tenant Search & Onboarding, Unit BLD-01-1203`).
-2. All child sub-requests are created in one transaction with `parent_request_id = parent.id` and `sequence_order = 1..N`, each inheriting defaults from the template.
-3. The parent's billing is computed: `free` if all children are free, otherwise `mixed` (shown as a breakdown).
-4. The parent's status is **derived** from children, not set directly.
+- Replace the title `<Input>` with a **`CatalogPicker`** (searchable popover combobox) that lists every active catalog entry. This is the only required field per step.
+- Drop the per-step Category / Delivery / Billing / Duration selects from the editor — those now come from the chosen catalog entry. (Show them as small read-only badges next to the picker, like `MAINTENANCE · VENDOR · PAID · ~2d`, so the user sees what they're chaining.)
+- Keep two optional overrides: **Title override** (if you want this step labeled differently in the chained workflow, e.g. "Initial AC inspection" instead of "AC service / repair") and **Duration override**.
+- Keep the **Blocks next step** switch.
+- Prevent picking a workflow-type catalog entry as a step (no nested workflows in v1) — filter them out of the picker with a one-line note.
 
-### Parent status derivation
-```text
-all children new/triaged          → parent: new
-any child in_progress             → parent: in_progress
-all children done                 → parent: done
-any child awaiting_approval       → parent badge: "Approval needed"
-any child cancelled (not all)     → parent stays in_progress, badge "Has cancellations"
+**`CatalogEntryDialog.tsx`** — validation in `save()`:
+- For workflow services, every step must have a `catalog_id`. Drop the old "describe Other category" check on steps (no longer relevant; the step has no own category).
+
+### What changes in data
+
+**`WorkflowStep` type** (`src/lib/services.ts`) — slim it down:
+
+```ts
+export interface WorkflowStep {
+  key: string;                       // stable slug
+  catalog_id: string;                // NEW — the chained service
+  title_override?: string | null;    // optional display override
+  duration_override_days?: number | null;
+  blocks_next: boolean;
+}
 ```
 
-### Approval at the right level
-Approval lives on **each paid child**, not the parent. Ejari registration needs landlord approval (paid, configurable per contract); the free steps don't. This matches reality: landlords approve specific costs, not the whole engagement.
+`workflow_steps` is still stored as JSONB on `service_catalog`, so no schema migration is needed for the catalog table itself.
 
-### Detail page for a composite
-`/services/:id` adapts its layout when `children.length > 0`:
-- Header: parent ref code, title, derived status, derived billing summary.
-- **New "Steps" tab** (default tab for composites): ordered list of child sub-requests with inline status, assignee, due date, and a click-through to the child's own detail page.
-- Existing tabs (Documents, Notes, History) aggregate across parent + children with a source label.
-- Action: "Add step" (insert ad-hoc sub-request mid-workflow, e.g. "Tenant requested AC service before move-in").
+### What changes in the DB function
 
-### Detail page for a child
-Same `/services/:id` page, but with a breadcrumb "← Part of SVC-2026-0042 Tenant Search & Onboarding" and a "Step 5 of 8" indicator.
+`create_service_request_from_catalog` already explodes `workflow_steps` into `service_request_steps`. Update the loop to **resolve each step's referenced catalog entry** and copy its defaults into the step row:
 
-### Dependencies between steps
-v1 keeps it simple: steps are **advisory-sequential** — staff see the order but can work them in any sequence. A small `blocks_next` boolean per template step lets us later enforce hard gates (e.g. "Can't start Utilities until Contract signed"). Designed in, not enforced in v1.
+```sql
+FOR v_step IN SELECT * FROM jsonb_array_elements(v_catalog.workflow_steps)
+LOOP
+  SELECT * INTO v_step_catalog
+    FROM public.service_catalog
+   WHERE id = (v_step->>'catalog_id')::uuid;
 
-### List view
-Service Requests list shows only **parents + atomic requests** by default (one row per engagement). A "Show sub-steps" toggle expands children inline. This keeps the queue readable.
+  IF v_step_catalog.id IS NULL THEN
+    RAISE EXCEPTION 'Workflow step references missing catalog entry %', v_step->>'catalog_id';
+  END IF;
 
-### Recurrence
-Workflow templates can also recur (e.g. annual lease renewal workflow). The scheduler regenerates the parent + all children fresh each cycle.
+  INSERT INTO public.service_request_steps (
+    request_id, step_key, title, sort_order, category, category_other,
+    delivery, billing, blocks_next, typical_duration_days
+  ) VALUES (
+    v_request_id,
+    COALESCE(NULLIF(v_step->>'key',''), v_step_catalog.code),
+    COALESCE(NULLIF(v_step->>'title_override',''), v_step_catalog.name),
+    v_idx,
+    v_step_catalog.category,
+    v_step_catalog.category_other,
+    v_step_catalog.default_delivery,
+    v_step_catalog.default_billing,
+    COALESCE((v_step->>'blocks_next')::boolean, false),
+    COALESCE(
+      NULLIF(v_step->>'duration_override_days','')::integer,
+      v_step_catalog.typical_duration_days
+    )
+  );
+  v_idx := v_idx + 1;
+END LOOP;
+```
 
----
+### Backwards compatibility
 
-## Schema delta vs the previous plan
+Existing catalog rows whose `workflow_steps` already have inline `category`/`default_delivery`/`default_billing` (created before this change) will stop being expandable, since the new RPC requires `catalog_id`. To keep them working without forcing a manual rewrite, the RPC falls back to the legacy inline shape when `catalog_id` is missing (uses the old INSERT path). The editor, however, only writes the new shape going forward. Any legacy step opened in the editor without a `catalog_id` will show a yellow "Legacy step — pick a catalog service to upgrade" banner with the picker pre-focused.
 
-Two added columns on `service_requests`:
-- `parent_request_id uuid null` — self-FK, null for atomic & top-level composites.
-- `sequence_order int null` — position within parent.
+### New component
 
-One added concept on `service_catalog`:
-- `workflow_steps jsonb` — ordered array of step templates (title, category, default_delivery, default_billing, blocks_next, typical_duration_days).
+**`src/components/services/CatalogPicker.tsx`** — a small Popover + Command searchable list of active, non-workflow catalog entries. Shows name, code, and category badge per row. Used by `WorkflowStepsEditor`. (This is distinct from the existing `CatalogPicker` in the new-request wizard if any; if one already exists, reuse it with a `filter={(e) => !e.is_workflow}` prop.)
 
-Derived parent status is computed in a view or a small RPC `get_request_rollup(request_id)` — no stored denorm to keep stale.
+### Files touched
 
----
-
-## Examples mapped to this design
-
-| Scenario | Shape |
-|---|---|
-| Pipe repair | Atomic request, paid, vendor, approval per contract rule. |
-| Bi-annual visit | Atomic request, free, staff, scheduled. |
-| Tenant document collection | Atomic request, free, staff, auto-generated on lease pending_signature. |
-| **Tenant Search & Onboarding** | **Composite request from workflow template**, 8 children, mostly free, Ejari child triggers approval. |
-| Lease renewal | Composite request from workflow template, recurring annually per active lease. |
-| Vendor-quoted reno project with multiple trades | Composite request, ad-hoc (no template), staff adds children manually as quotes come in. |
-
----
-
-## Build sequencing update
-
-This slots into the previous step **5 (Service Requests)** and step **6 (Scheduler)**:
-
-- Step 5 ships atomic requests first, then adds parent/child rendering and the "Steps" tab.
-- Step 4 (Service Catalog) gains the `workflow_steps` editor — drag-to-reorder list of step templates.
-- Step 6 scheduler handles both atomic recurrence and workflow recurrence with the same dedup key.
-
-No reordering of phases; each still ships as a coherent slice.
-
----
-
-## Out of scope (still)
-
-- Hard dependency enforcement between steps (designed in via `blocks_next`, not enforced in v1).
-- Gantt/timeline visualization — the Steps tab is a vertical list in v1.
-- Per-step SLAs and escalation rules.
-- Cross-workflow templates (one workflow triggering another) — handle via automation rules later.
+- `src/lib/services.ts` — slim `WorkflowStep`, update `EMPTY_STEP`.
+- `src/components/services/WorkflowStepsEditor.tsx` — replace inline editor with picker + overrides.
+- `src/components/services/CatalogPicker.tsx` — new (or extend existing).
+- `src/components/services/CatalogEntryDialog.tsx` — adjust validation.
+- New migration — replace `create_service_request_from_catalog` with the catalog-resolving version (with legacy fallback).
 
