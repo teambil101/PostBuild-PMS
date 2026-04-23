@@ -7,13 +7,12 @@ import {
   CalendarDays,
   Check,
   CheckCircle2,
-  Circle,
   Clock,
   Loader2,
   MapPin,
   Pause,
   Play,
-  SkipForward,
+  Plus,
   XCircle,
 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
@@ -24,15 +23,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { RequestStatusBadge } from "@/components/services/RequestStatusBadge";
-import { BillingBadge, CategoryBadge, DeliveryBadge } from "@/components/services/CatalogBadges";
+import { BillingBadge, DeliveryBadge } from "@/components/services/CatalogBadges";
 import { ApprovalCard } from "@/components/services/ApprovalCard";
+import { StepCard, type WorkflowStepRow } from "@/components/services/StepCard";
+import { AddStepDialog } from "@/components/services/AddStepDialog";
 import {
   PRIORITY_LABEL,
   PRIORITY_STYLES,
-  STEP_STATUS_LABEL,
   type ServiceRequestPriority,
   type ServiceRequestStatus,
-  type ServiceRequestStepStatus,
   type ServiceCategory,
   type ServiceDelivery,
   type ServiceBilling,
