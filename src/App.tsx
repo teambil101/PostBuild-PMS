@@ -26,6 +26,7 @@ import Services from "./pages/Services";
 import NewServiceRequest from "./pages/NewServiceRequest";
 import ServiceRequestDetail from "./pages/ServiceRequestDetail";
 import Financials from "./pages/Financials";
+import InvoiceDetail from "./pages/financials/InvoiceDetail";
 
 const queryClient = new QueryClient();
 
@@ -62,6 +63,7 @@ const App = () => (
             <Route path="/services/requests/new" element={<Shell><NewServiceRequest /></Shell>} />
             <Route path="/services/requests/:id" element={<Shell><ServiceRequestDetail /></Shell>} />
             <Route path="/financials" element={<Shell><Financials /></Shell>} />
+            <Route path="/financials/invoices/:id" element={<Shell><InvoiceDetail /></Shell>} />
             <Route path="/tickets" element={<Navigate to="/dashboard" replace />} />
             <Route path="/tickets/:ticketId" element={<Navigate to="/dashboard" replace />} />
             <Route path="/vendors" element={<Navigate to="/people?role=vendor" replace />} />
