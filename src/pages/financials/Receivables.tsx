@@ -107,7 +107,7 @@ export function Receivables() {
         <SummaryCard label="Invoices on file" value={totals.count} numeric />
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
         {FILTERS.map((f) => (
           <button
             key={f.key}
@@ -122,7 +122,7 @@ export function Receivables() {
             {f.label}
           </button>
         ))}
-        <div className="relative ml-auto w-64">
+        <div className="relative w-full sm:w-64 sm:ml-auto">
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search invoice # or party"
@@ -134,7 +134,8 @@ export function Receivables() {
       </div>
 
       <div className="border hairline rounded-sm bg-card overflow-hidden">
-        <table className="w-full text-sm">
+        <div className="table-scroll">
+        <table className="w-full text-sm min-w-[860px]">
           <thead className="border-b hairline bg-muted/30">
             <tr className="text-left">
               <Th>Number</Th>
@@ -186,6 +187,7 @@ export function Receivables() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

@@ -163,7 +163,7 @@ export default function Properties() {
 
         <TabsContent value="units" className="mt-5 space-y-4">
           <div className="flex flex-col md:flex-row md:items-center gap-3">
-            <div className="relative flex-1 max-w-md">
+            <div className="relative w-full md:flex-1 md:max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
                 placeholder="Search by unit, building, ref code…"
@@ -172,30 +172,32 @@ export default function Properties() {
                 className="h-10 pl-9"
               />
             </div>
-            <Select value={filterBuilding} onValueChange={setFilterBuilding}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="All buildings" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All buildings</SelectItem>
-                {buildings.map((b) => (
-                  <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="All statuses" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All statuses</SelectItem>
-                <SelectItem value="vacant">Vacant</SelectItem>
-                <SelectItem value="occupied">Occupied</SelectItem>
-                <SelectItem value="reserved">Reserved</SelectItem>
-                <SelectItem value="under_maintenance">Under maintenance</SelectItem>
-                <SelectItem value="off_market">Off market</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2 w-full md:w-auto">
+              <Select value={filterBuilding} onValueChange={setFilterBuilding}>
+                <SelectTrigger className="flex-1 md:w-[200px] md:flex-none">
+                  <SelectValue placeholder="All buildings" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All buildings</SelectItem>
+                  {buildings.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="flex-1 md:w-[180px] md:flex-none">
+                  <SelectValue placeholder="All statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All statuses</SelectItem>
+                  <SelectItem value="vacant">Vacant</SelectItem>
+                  <SelectItem value="occupied">Occupied</SelectItem>
+                  <SelectItem value="reserved">Reserved</SelectItem>
+                  <SelectItem value="under_maintenance">Under maintenance</SelectItem>
+                  <SelectItem value="off_market">Off market</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {loading ? (
@@ -319,7 +321,8 @@ function BuildingCard({ b }: { b: BuildingRow }) {
 function UnitTable({ rows }: { rows: UnitRow[] }) {
   return (
     <div className="border hairline rounded-sm overflow-hidden bg-card">
-      <table className="w-full text-sm">
+      <div className="table-scroll">
+      <table className="w-full text-sm min-w-[720px]">
         <thead className="bg-muted/40 border-b hairline">
           <tr className="text-left">
             <th className="px-4 py-3 label-eyebrow">Code</th>
@@ -364,6 +367,7 @@ function UnitTable({ rows }: { rows: UnitRow[] }) {
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

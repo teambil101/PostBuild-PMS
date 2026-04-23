@@ -125,7 +125,7 @@ export default function Contracts() {
           placeholder="Search number, title, party…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="md:w-72"
+          className="w-full md:w-72"
         />
       </div>
 
@@ -151,7 +151,8 @@ export default function Contracts() {
         />
       ) : (
         <div className="border hairline rounded-sm bg-card overflow-hidden">
-          <table className="w-full text-sm">
+          <div className="table-scroll">
+          <table className="w-full text-sm min-w-[820px]">
             <thead className="bg-muted/40 border-b hairline">
               <tr className="text-left">
                 <th className="px-4 py-3 mono text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Number</th>
@@ -202,6 +203,7 @@ export default function Contracts() {
               })}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
