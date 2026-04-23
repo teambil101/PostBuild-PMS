@@ -107,6 +107,7 @@ export interface WorkflowStep {
   key: string;
   title: string;
   category: ServiceCategory;
+  category_other?: string | null;
   default_delivery: ServiceDelivery;
   default_billing: ServiceBilling;
   typical_duration_days: number | null;
@@ -117,6 +118,7 @@ export const EMPTY_STEP: WorkflowStep = {
   key: "",
   title: "",
   category: "tenant_lifecycle",
+  category_other: null,
   default_delivery: "staff",
   default_billing: "free",
   typical_duration_days: null,

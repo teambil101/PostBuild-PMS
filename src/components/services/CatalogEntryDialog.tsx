@@ -30,6 +30,7 @@ export interface CatalogEntry {
   name: string;
   description: string | null;
   category: ServiceCategory;
+  category_other: string | null;
   default_delivery: ServiceDelivery;
   default_billing: ServiceBilling;
   typical_duration_days: number | null;
@@ -53,6 +54,7 @@ const BLANK: CatalogEntry = {
   name: "",
   description: "",
   category: "maintenance",
+  category_other: null,
   default_delivery: "vendor",
   default_billing: "paid",
   typical_duration_days: 1,
@@ -92,6 +94,19 @@ export function CatalogEntryDialog({ open, onOpenChange, entry, onSaved }: Props
       toast.error("Add at least one step, or untoggle the workflow option.");
       return;
     }
+    if (form.category === "other" && !(form.category_other ?? "").trim()) {
+      toast.error("Describe the 'Other' category.");
+      return;
+    }
+    if (form.is_workflow) {
+      const badStep = form.workflow_steps.find(
+        (s) => s.category === "other" && !(s.category_other ?? "").trim(),
+      );
+      if (badStep) {
+        toast.error(`Describe the 'Other' category for step "${badStep.title || badStep.key}".`);
+        return;
+      }
+    }
     setSaving(true);
     try {
       const payload = {
@@ -99,6 +114,8 @@ export function CatalogEntryDialog({ open, onOpenChange, entry, onSaved }: Props
         name: form.name.trim(),
         description: form.description?.trim() || null,
         category: form.category,
+        category_other:
+          form.category === "other" ? (form.category_other ?? "").trim() || null : null,
         default_delivery: form.default_delivery,
         default_billing: form.default_billing,
         typical_duration_days: form.typical_duration_days,
@@ -192,6 +209,21 @@ export function CatalogEntryDialog({ open, onOpenChange, entry, onSaved }: Props
                   ))}
                 </SelectContent>
               </Select>
+              {form.category === "other" && (
+                <div className="mt-2">
+                  <Label htmlFor="cat-other" className="text-xs text-muted-foreground">
+                    Describe category *
+                  </Label>
+                  <Input
+                    id="cat-other"
+                    value={form.category_other ?? ""}
+                    onChange={(e) => update("category_other", e.target.value)}
+                    placeholder="e.g. Concierge, Move coordination…"
+                    maxLength={80}
+                    className="mt-1"
+                  />
+                </div>
+              )}
             </div>
 
             <div className="flex items-center gap-3 p-3 border hairline rounded-sm">

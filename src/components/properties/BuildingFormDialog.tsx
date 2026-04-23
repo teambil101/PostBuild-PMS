@@ -25,6 +25,7 @@ interface Props {
 interface FormState {
   name: string;
   building_type: string;
+  building_type_other: string;
   community: string;
   location_url: string;
   city: string;
@@ -34,6 +35,7 @@ interface FormState {
 const emptyForm = (): FormState => ({
   name: "",
   building_type: "residential_tower",
+  building_type_other: "",
   community: "",
   location_url: "",
   city: "Dubai",
@@ -43,6 +45,7 @@ const emptyForm = (): FormState => ({
 const fromInitial = (i: any): FormState => ({
   name: i?.name ?? "",
   building_type: i?.building_type ?? "residential_tower",
+  building_type_other: i?.building_type_other ?? "",
   community: i?.community ?? "",
   location_url: i?.location_url ?? "",
   city: i?.city ?? "Dubai",
@@ -97,6 +100,12 @@ export function BuildingFormDialog({ open, onOpenChange, onSaved, initial }: Pro
     if (!BUILDING_TYPES.some((t) => t.value === form.building_type)) {
       e.building_type = "Select a building type.";
     }
+    if (form.building_type === "other" && form.building_type_other.trim().length === 0) {
+      e.building_type_other = "Describe the building type.";
+    }
+    if (form.building_type_other.trim().length > 80) {
+      e.building_type_other = "Max 80 characters.";
+    }
     if (form.community.trim().length > 80) {
       e.community = "Community must be 80 characters or fewer.";
     }
@@ -143,6 +152,8 @@ export function BuildingFormDialog({ open, onOpenChange, onSaved, initial }: Pro
     const payload: any = {
       name: form.name.trim(),
       building_type: form.building_type,
+      building_type_other:
+        form.building_type === "other" ? form.building_type_other.trim() || null : null,
       community: form.community.trim() || null,
       location_url: form.location_url.trim() || null,
       city: form.city.trim(),
@@ -233,6 +244,26 @@ export function BuildingFormDialog({ open, onOpenChange, onSaved, initial }: Pro
               </Select>
               {errors.building_type && <p className={errorClass}>{errors.building_type}</p>}
             </div>
+
+            {form.building_type === "other" && (
+              <div>
+                <Label htmlFor="b-type-other" className={labelClass}>
+                  Describe building type <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="b-type-other"
+                  value={form.building_type_other}
+                  onChange={(e) => set("building_type_other", e.target.value)}
+                  placeholder="e.g. Industrial complex, Boutique hotel…"
+                  maxLength={80}
+                  className={cn("mt-1.5", errors.building_type_other && "border-destructive")}
+                  aria-invalid={!!errors.building_type_other}
+                />
+                {errors.building_type_other && (
+                  <p className={errorClass}>{errors.building_type_other}</p>
+                )}
+              </div>
+            )}
 
             {/* Community */}
             <div>

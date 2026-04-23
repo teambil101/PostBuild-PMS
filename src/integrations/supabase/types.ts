@@ -55,6 +55,7 @@ export type Database = {
       buildings: {
         Row: {
           building_type: string
+          building_type_other: string | null
           city: string
           community: string | null
           country: string
@@ -68,6 +69,7 @@ export type Database = {
         }
         Insert: {
           building_type?: string
+          building_type_other?: string | null
           city: string
           community?: string | null
           country?: string
@@ -81,6 +83,7 @@ export type Database = {
         }
         Update: {
           building_type?: string
+          building_type_other?: string | null
           city?: string
           community?: string | null
           country?: string
@@ -1058,6 +1061,7 @@ export type Database = {
         Row: {
           cadence: Database["public"]["Enums"]["service_cadence"]
           category: Database["public"]["Enums"]["service_category"]
+          category_other: string | null
           code: string
           created_at: string
           created_by: string | null
@@ -1076,6 +1080,7 @@ export type Database = {
         Insert: {
           cadence?: Database["public"]["Enums"]["service_cadence"]
           category?: Database["public"]["Enums"]["service_category"]
+          category_other?: string | null
           code: string
           created_at?: string
           created_by?: string | null
@@ -1094,6 +1099,7 @@ export type Database = {
         Update: {
           cadence?: Database["public"]["Enums"]["service_cadence"]
           category?: Database["public"]["Enums"]["service_category"]
+          category_other?: string | null
           code?: string
           created_at?: string
           created_by?: string | null
@@ -1179,6 +1185,7 @@ export type Database = {
           billing: Database["public"]["Enums"]["service_billing"]
           blocks_next: boolean
           category: Database["public"]["Enums"]["service_category"]
+          category_other: string | null
           completed_at: string | null
           cost_estimate: number | null
           cost_final: number | null
@@ -1211,6 +1218,7 @@ export type Database = {
           billing?: Database["public"]["Enums"]["service_billing"]
           blocks_next?: boolean
           category: Database["public"]["Enums"]["service_category"]
+          category_other?: string | null
           completed_at?: string | null
           cost_estimate?: number | null
           cost_final?: number | null
@@ -1243,6 +1251,7 @@ export type Database = {
           billing?: Database["public"]["Enums"]["service_billing"]
           blocks_next?: boolean
           category?: Database["public"]["Enums"]["service_category"]
+          category_other?: string | null
           completed_at?: string | null
           cost_estimate?: number | null
           cost_final?: number | null
@@ -1307,6 +1316,7 @@ export type Database = {
           billing: Database["public"]["Enums"]["service_billing"]
           catalog_id: string | null
           category: Database["public"]["Enums"]["service_category"]
+          category_other: string | null
           completed_at: string | null
           cost_estimate: number | null
           cost_final: number | null
@@ -1346,6 +1356,7 @@ export type Database = {
           billing?: Database["public"]["Enums"]["service_billing"]
           catalog_id?: string | null
           category: Database["public"]["Enums"]["service_category"]
+          category_other?: string | null
           completed_at?: string | null
           cost_estimate?: number | null
           cost_final?: number | null
@@ -1385,6 +1396,7 @@ export type Database = {
           billing?: Database["public"]["Enums"]["service_billing"]
           catalog_id?: string | null
           category?: Database["public"]["Enums"]["service_category"]
+          category_other?: string | null
           completed_at?: string | null
           cost_estimate?: number | null
           cost_final?: number | null
@@ -1604,6 +1616,7 @@ export type Database = {
           notes: string | null
           person_id: string
           role: string
+          role_other: string | null
           vendor_id: string
         }
         Insert: {
@@ -1613,6 +1626,7 @@ export type Database = {
           notes?: string | null
           person_id: string
           role?: string
+          role_other?: string | null
           vendor_id: string
         }
         Update: {
@@ -1622,6 +1636,7 @@ export type Database = {
           notes?: string | null
           person_id?: string
           role?: string
+          role_other?: string | null
           vendor_id?: string
         }
         Relationships: [

@@ -40,6 +40,7 @@ interface Props {
 export function AddStepDialog({ open, onOpenChange, requestId, onAdded }: Props) {
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState<ServiceCategory>("tenant_lifecycle");
+  const [categoryOther, setCategoryOther] = useState("");
   const [delivery, setDelivery] = useState<ServiceDelivery>("staff");
   const [billing, setBilling] = useState<ServiceBilling>("free");
   const [duration, setDuration] = useState<string>("");
@@ -50,6 +51,7 @@ export function AddStepDialog({ open, onOpenChange, requestId, onAdded }: Props)
   const reset = () => {
     setTitle("");
     setCategory("tenant_lifecycle");
+    setCategoryOther("");
     setDelivery("staff");
     setBilling("free");
     setDuration("");
@@ -62,8 +64,12 @@ export function AddStepDialog({ open, onOpenChange, requestId, onAdded }: Props)
       toast.error("Title is required");
       return;
     }
+    if (category === "other" && !categoryOther.trim()) {
+      toast.error("Describe the 'Other' category");
+      return;
+    }
     setWorking(true);
-    const { error } = await supabase.rpc("add_service_request_step", {
+    const { data: newId, error } = await supabase.rpc("add_service_request_step", {
       p_request_id: requestId,
       p_title: title.trim(),
       p_category: category,
@@ -73,11 +79,23 @@ export function AddStepDialog({ open, onOpenChange, requestId, onAdded }: Props)
       p_typical_duration_days: duration ? Number(duration) : null,
       p_cost_estimate: billing === "paid" && costEstimate ? Number(costEstimate) : null,
     });
-    setWorking(false);
     if (error) {
+      setWorking(false);
       toast.error(error.message);
       return;
     }
+    if (category === "other" && newId) {
+      const { error: upErr } = await supabase
+        .from("service_request_steps")
+        .update({ category_other: categoryOther.trim() })
+        .eq("id", newId as string);
+      if (upErr) {
+        setWorking(false);
+        toast.error(upErr.message);
+        return;
+      }
+    }
+    setWorking(false);
     toast.success("Step added");
     reset();
     onOpenChange(false);
@@ -116,6 +134,15 @@ export function AddStepDialog({ open, onOpenChange, requestId, onAdded }: Props)
                   ))}
                 </SelectContent>
               </Select>
+              {category === "other" && (
+                <Input
+                  value={categoryOther}
+                  onChange={(e) => setCategoryOther(e.target.value)}
+                  placeholder="Describe category…"
+                  maxLength={80}
+                  className="mt-2"
+                />
+              )}
             </div>
             <div>
               <Label className="text-xs uppercase tracking-wider text-muted-foreground">Delivery</Label>

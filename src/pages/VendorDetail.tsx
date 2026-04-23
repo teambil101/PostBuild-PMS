@@ -92,6 +92,7 @@ interface ContactRow {
   vendor_id: string;
   person_id: string;
   role: VendorContactRole;
+  role_other: string | null;
   is_primary: boolean;
   notes: string | null;
   created_at: string;
@@ -674,7 +675,11 @@ function ContactsTab({
                       {c.people?.first_name} {c.people?.last_name}
                     </Link>
                   </td>
-                  <td className="px-4 py-3 text-xs">{VENDOR_CONTACT_ROLE_LABELS[c.role]}</td>
+                  <td className="px-4 py-3 text-xs">
+                    {c.role === "other" && c.role_other?.trim()
+                      ? c.role_other
+                      : VENDOR_CONTACT_ROLE_LABELS[c.role]}
+                  </td>
                   <td className="px-4 py-3 text-xs">
                     {c.is_primary ? (
                       <span className="text-gold inline-flex items-center gap-1"><Star className="h-3 w-3 fill-gold" /> Primary</span>
@@ -728,6 +733,7 @@ function ContactDialog({
 }) {
   const [person, setPerson] = useState<PickedPerson | null>(null);
   const [role, setRole] = useState<VendorContactRole>("primary");
+  const [roleOther, setRoleOther] = useState("");
   const [isPrimary, setIsPrimary] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -736,20 +742,27 @@ function ContactDialog({
     if (seed) {
       setPerson(null);
       setRole(seed.role);
+      setRoleOther(seed.role_other ?? "");
       setIsPrimary(seed.is_primary);
     } else {
       setPerson(null);
       setRole("primary");
+      setRoleOther("");
       setIsPrimary(false);
     }
   }, [open, seed]);
 
   const handleSubmit = async () => {
+    if (role === "other" && !roleOther.trim()) {
+      toast.error("Describe the 'Other' role.");
+      return;
+    }
     setBusy(true);
+    const roleOtherValue = role === "other" ? roleOther.trim() || null : null;
     if (seed) {
       const { error } = await supabase
         .from("vendor_contacts")
-        .update({ role, is_primary: isPrimary })
+        .update({ role, role_other: roleOtherValue, is_primary: isPrimary })
         .eq("id", seed.id);
       setBusy(false);
       if (error) { toast.error(error.message); return; }
@@ -762,6 +775,7 @@ function ContactDialog({
       vendor_id: vendorId,
       person_id: person.id,
       role,
+      role_other: roleOtherValue,
       is_primary: isPrimary,
     });
     setBusy(false);
@@ -801,6 +815,19 @@ function ContactDialog({
                 ))}
               </SelectContent>
             </Select>
+            {role === "other" && (
+              <div className="pt-2">
+                <Label htmlFor="vc-role-other">Describe role *</Label>
+                <Input
+                  id="vc-role-other"
+                  value={roleOther}
+                  onChange={(e) => setRoleOther(e.target.value)}
+                  placeholder="e.g. Site supervisor, Billing dispute…"
+                  maxLength={80}
+                  className="mt-1.5"
+                />
+              </div>
+            )}
           </div>
           <label className="flex items-center gap-2 text-sm cursor-pointer">
             <input type="checkbox" checked={isPrimary} onChange={(e) => setIsPrimary(e.target.checked)} />

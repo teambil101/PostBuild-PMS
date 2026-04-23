@@ -97,7 +97,12 @@ export function WorkflowStepsEditor({ value, onChange }: Props) {
                     <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Category</Label>
                     <Select
                       value={step.category}
-                      onValueChange={(v) => update(i, { category: v as ServiceCategory })}
+                      onValueChange={(v) =>
+                        update(i, {
+                          category: v as ServiceCategory,
+                          category_other: v === "other" ? step.category_other ?? "" : null,
+                        })
+                      }
                     >
                       <SelectTrigger className="mt-1 h-8 text-xs"><SelectValue /></SelectTrigger>
                       <SelectContent>
@@ -106,6 +111,15 @@ export function WorkflowStepsEditor({ value, onChange }: Props) {
                         ))}
                       </SelectContent>
                     </Select>
+                    {step.category === "other" && (
+                      <Input
+                        value={step.category_other ?? ""}
+                        onChange={(e) => update(i, { category_other: e.target.value })}
+                        placeholder="Describe category…"
+                        maxLength={80}
+                        className="mt-1 h-8 text-xs"
+                      />
+                    )}
                   </div>
                   <div>
                     <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Delivery</Label>
