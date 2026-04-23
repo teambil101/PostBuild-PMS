@@ -25,6 +25,7 @@ interface Props {
 interface FormState {
   name: string;
   building_type: string;
+  building_type_other: string;
   community: string;
   location_url: string;
   city: string;
@@ -34,6 +35,7 @@ interface FormState {
 const emptyForm = (): FormState => ({
   name: "",
   building_type: "residential_tower",
+  building_type_other: "",
   community: "",
   location_url: "",
   city: "Dubai",
@@ -43,6 +45,7 @@ const emptyForm = (): FormState => ({
 const fromInitial = (i: any): FormState => ({
   name: i?.name ?? "",
   building_type: i?.building_type ?? "residential_tower",
+  building_type_other: i?.building_type_other ?? "",
   community: i?.community ?? "",
   location_url: i?.location_url ?? "",
   city: i?.city ?? "Dubai",
