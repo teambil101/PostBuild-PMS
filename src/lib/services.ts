@@ -105,23 +105,34 @@ export const APPROVAL_STATUS_STYLES: Record<ServiceRequestApprovalStatus, string
 
 export interface WorkflowStep {
   key: string;
-  title: string;
-  category: ServiceCategory;
-  category_other?: string | null;
-  default_delivery: ServiceDelivery;
-  default_billing: ServiceBilling;
-  typical_duration_days: number | null;
+  /** ID of the catalog service this step references (chained workflow). */
+  catalog_id: string;
+  /** Optional: override the catalog entry's display name for this step. */
+  title_override?: string | null;
+  /** Optional: override the catalog entry's typical duration for this step. */
+  duration_override_days?: number | null;
   blocks_next: boolean;
+
+  // ---- Legacy fields (pre-chaining) — kept optional for backwards compat. ----
+  /** @deprecated Use catalog_id + title_override instead. */
+  title?: string;
+  /** @deprecated Inherited from referenced catalog entry. */
+  category?: ServiceCategory;
+  /** @deprecated Inherited from referenced catalog entry. */
+  category_other?: string | null;
+  /** @deprecated Inherited from referenced catalog entry. */
+  default_delivery?: ServiceDelivery;
+  /** @deprecated Inherited from referenced catalog entry. */
+  default_billing?: ServiceBilling;
+  /** @deprecated Use duration_override_days instead. */
+  typical_duration_days?: number | null;
 }
 
 export const EMPTY_STEP: WorkflowStep = {
   key: "",
-  title: "",
-  category: "tenant_lifecycle",
-  category_other: null,
-  default_delivery: "staff",
-  default_billing: "free",
-  typical_duration_days: null,
+  catalog_id: "",
+  title_override: null,
+  duration_override_days: null,
   blocks_next: false,
 };
 
