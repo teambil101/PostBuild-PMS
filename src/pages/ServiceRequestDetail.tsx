@@ -7,13 +7,12 @@ import {
   CalendarDays,
   Check,
   CheckCircle2,
-  Circle,
   Clock,
   Loader2,
   MapPin,
   Pause,
   Play,
-  SkipForward,
+  Plus,
   XCircle,
 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
@@ -24,15 +23,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { RequestStatusBadge } from "@/components/services/RequestStatusBadge";
-import { BillingBadge, CategoryBadge, DeliveryBadge } from "@/components/services/CatalogBadges";
+import { BillingBadge, DeliveryBadge } from "@/components/services/CatalogBadges";
 import { ApprovalCard } from "@/components/services/ApprovalCard";
+import { StepCard, type WorkflowStepRow } from "@/components/services/StepCard";
+import { AddStepDialog } from "@/components/services/AddStepDialog";
 import {
   PRIORITY_LABEL,
   PRIORITY_STYLES,
-  STEP_STATUS_LABEL,
   type ServiceRequestPriority,
   type ServiceRequestStatus,
-  type ServiceRequestStepStatus,
   type ServiceCategory,
   type ServiceDelivery,
   type ServiceBilling,
@@ -74,6 +73,7 @@ interface RequestRow {
 
 interface StepRow {
   id: string;
+  request_id: string;
   step_key: string;
   title: string;
   sort_order: number;
@@ -81,9 +81,20 @@ interface StepRow {
   delivery: ServiceDelivery;
   billing: ServiceBilling;
   blocks_next: boolean;
-  status: ServiceRequestStepStatus;
+  status: WorkflowStepRow["status"];
   completed_at: string | null;
   notes: string | null;
+  scheduled_date: string | null;
+  assigned_vendor_id: string | null;
+  assigned_person_id: string | null;
+  cost_estimate: number | null;
+  cost_final: number | null;
+  approval_status: ServiceRequestApprovalStatus;
+  approval_required_reason: string | null;
+  approval_threshold_amount: number | null;
+  approval_threshold_currency: string | null;
+  approval_rule_snapshot: string | null;
+  approval_decision_notes: string | null;
 }
 
 interface EventRow {
@@ -105,6 +116,9 @@ export default function ServiceRequestDetail() {
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
   const [internalNotes, setInternalNotes] = useState("");
+  const [addStepOpen, setAddStepOpen] = useState(false);
+  const [vendorLabels, setVendorLabels] = useState<Record<string, string>>({});
+  const [personLabels, setPersonLabels] = useState<Record<string, string>>({});
 
   const load = async () => {
     if (!id) return;
@@ -127,6 +141,33 @@ export default function ServiceRequestDetail() {
     setSteps((s.data ?? []) as any);
     setEvents((e.data ?? []) as any);
     setInternalNotes((r.data as any).internal_notes ?? "");
+
+    // Fetch labels for assigned vendors / persons
+    const stepRows: any[] = (s.data ?? []) as any[];
+    const vendorIds = Array.from(new Set(stepRows.map((x) => x.assigned_vendor_id).filter(Boolean)));
+    const personIds = Array.from(new Set(stepRows.map((x) => x.assigned_person_id).filter(Boolean)));
+    if (vendorIds.length) {
+      const { data: vData } = await supabase
+        .from("vendors")
+        .select("id, legal_name, display_name")
+        .in("id", vendorIds as string[]);
+      const map: Record<string, string> = {};
+      (vData ?? []).forEach((v: any) => { map[v.id] = v.display_name || v.legal_name; });
+      setVendorLabels(map);
+    } else {
+      setVendorLabels({});
+    }
+    if (personIds.length) {
+      const { data: pData } = await supabase
+        .from("people")
+        .select("id, first_name, last_name")
+        .in("id", personIds as string[]);
+      const map: Record<string, string> = {};
+      (pData ?? []).forEach((p: any) => { map[p.id] = `${p.first_name} ${p.last_name}`.trim(); });
+      setPersonLabels(map);
+    } else {
+      setPersonLabels({});
+    }
 
     // Resolve target label
     if (r.data.target_type === "unit" && r.data.target_id) {
@@ -174,44 +215,23 @@ export default function ServiceRequestDetail() {
     await load();
   };
 
-  const completeStep = async (stepId: string, currentStatus: ServiceRequestStepStatus) => {
+  const moveStep = async (stepId: string, direction: "up" | "down") => {
     if (!req) return;
-    const newStatus: ServiceRequestStepStatus = currentStatus === "completed" ? "pending" : "completed";
-    const updates: any = {
-      status: newStatus,
-      completed_at: newStatus === "completed" ? new Date().toISOString() : null,
-    };
-    const { error } = await supabase.from("service_request_steps").update(updates).eq("id", stepId);
+    const ordered = [...steps].sort((a, b) => a.sort_order - b.sort_order);
+    const idx = ordered.findIndex((s) => s.id === stepId);
+    if (idx < 0) return;
+    const swapWith = direction === "up" ? idx - 1 : idx + 1;
+    if (swapWith < 0 || swapWith >= ordered.length) return;
+    const reordered = [...ordered];
+    [reordered[idx], reordered[swapWith]] = [reordered[swapWith], reordered[idx]];
+    const { error } = await supabase.rpc("reorder_service_request_steps", {
+      p_request_id: req.id,
+      p_step_ids: reordered.map((s) => s.id),
+    });
     if (error) {
       toast.error(error.message);
       return;
     }
-    await supabase.from("service_request_events").insert({
-      request_id: req.id,
-      step_id: stepId,
-      event_type: "step_status_change",
-      from_value: currentStatus,
-      to_value: newStatus,
-    });
-    await load();
-  };
-
-  const skipStep = async (stepId: string) => {
-    if (!req) return;
-    const { error } = await supabase
-      .from("service_request_steps")
-      .update({ status: "skipped" })
-      .eq("id", stepId);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-    await supabase.from("service_request_events").insert({
-      request_id: req.id,
-      step_id: stepId,
-      event_type: "step_skipped",
-    });
-    toast.success("Step skipped");
     await load();
   };
 
@@ -478,82 +498,41 @@ export default function ServiceRequestDetail() {
 
             <div className="border hairline rounded-sm bg-card divide-y hairline overflow-hidden">
               {steps.map((s, idx) => {
-                const done = s.status === "completed";
-                const skipped = s.status === "skipped";
+                // Determine if any earlier blocks_next step is incomplete
+                const earlier = steps.slice(0, idx);
+                const blocker = earlier.find(
+                  (e) => e.blocks_next && e.status !== "completed" && e.status !== "skipped",
+                );
                 return (
-                  <div
+                  <StepCard
                     key={s.id}
-                    className={cn(
-                      "px-4 py-3 flex items-start gap-3",
-                      skipped && "opacity-50",
-                    )}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => completeStep(s.id, s.status)}
-                      className="mt-0.5 shrink-0"
-                      disabled={skipped}
-                    >
-                      {done ? (
-                        <CheckCircle2 className="h-5 w-5 text-status-occupied" />
-                      ) : (
-                        <Circle className="h-5 w-5 text-muted-foreground hover:text-architect transition-colors" />
-                      )}
-                    </button>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span
-                          className={cn(
-                            "text-sm",
-                            done && "text-muted-foreground line-through",
-                            !done && "text-architect",
-                          )}
-                        >
-                          {idx + 1}. {s.title}
-                        </span>
-                        {s.blocks_next && !done && (
-                          <Badge variant="outline" className="text-[9px]">Blocks next</Badge>
-                        )}
-                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                          · {STEP_STATUS_LABEL[s.status]}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <CategoryBadge value={s.category} />
-                        <DeliveryBadge value={s.delivery} />
-                        <BillingBadge value={s.billing} />
-                        {s.completed_at && (
-                          <span className="text-[10px] text-muted-foreground">
-                            · Done {format(new Date(s.completed_at), "d MMM")}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    {!done && !skipped && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => skipStep(s.id)}
-                        className="shrink-0"
-                      >
-                        <SkipForward className="h-3.5 w-3.5" />
-                        Skip
-                      </Button>
-                    )}
-                    {done && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => completeStep(s.id, s.status)}
-                        className="shrink-0 text-muted-foreground"
-                      >
-                        Undo
-                      </Button>
-                    )}
-                  </div>
+                    step={s as WorkflowStepRow}
+                    index={idx}
+                    total={steps.length}
+                    gatedByPredecessor={!!blocker}
+                    predecessorTitle={blocker?.title}
+                    vendorLabel={s.assigned_vendor_id ? vendorLabels[s.assigned_vendor_id] : null}
+                    personLabel={s.assigned_person_id ? personLabels[s.assigned_person_id] : null}
+                    onChanged={load}
+                    onMove={(dir) => moveStep(s.id, dir)}
+                  />
                 );
               })}
             </div>
+
+            <div className="flex justify-end">
+              <Button size="sm" variant="outline" onClick={() => setAddStepOpen(true)}>
+                <Plus className="h-3.5 w-3.5" />
+                Add step
+              </Button>
+            </div>
+
+            <AddStepDialog
+              open={addStepOpen}
+              onOpenChange={setAddStepOpen}
+              requestId={req.id}
+              onAdded={load}
+            />
           </TabsContent>
         )}
 

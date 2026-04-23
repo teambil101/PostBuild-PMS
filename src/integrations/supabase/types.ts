@@ -1164,12 +1164,24 @@ export type Database = {
       }
       service_request_steps: {
         Row: {
+          approval_decided_at: string | null
+          approval_decided_by: string | null
+          approval_decision_notes: string | null
+          approval_management_agreement_id: string | null
+          approval_requested_at: string | null
+          approval_required_reason: string | null
+          approval_rule_snapshot: string | null
+          approval_status: Database["public"]["Enums"]["service_request_approval_status"]
+          approval_threshold_amount: number | null
+          approval_threshold_currency: string | null
           assigned_person_id: string | null
           assigned_vendor_id: string | null
           billing: Database["public"]["Enums"]["service_billing"]
           blocks_next: boolean
           category: Database["public"]["Enums"]["service_category"]
           completed_at: string | null
+          cost_estimate: number | null
+          cost_final: number | null
           created_at: string
           delivery: Database["public"]["Enums"]["service_delivery"]
           id: string
@@ -1184,12 +1196,24 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          approval_decided_at?: string | null
+          approval_decided_by?: string | null
+          approval_decision_notes?: string | null
+          approval_management_agreement_id?: string | null
+          approval_requested_at?: string | null
+          approval_required_reason?: string | null
+          approval_rule_snapshot?: string | null
+          approval_status?: Database["public"]["Enums"]["service_request_approval_status"]
+          approval_threshold_amount?: number | null
+          approval_threshold_currency?: string | null
           assigned_person_id?: string | null
           assigned_vendor_id?: string | null
           billing?: Database["public"]["Enums"]["service_billing"]
           blocks_next?: boolean
           category: Database["public"]["Enums"]["service_category"]
           completed_at?: string | null
+          cost_estimate?: number | null
+          cost_final?: number | null
           created_at?: string
           delivery?: Database["public"]["Enums"]["service_delivery"]
           id?: string
@@ -1204,12 +1228,24 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          approval_decided_at?: string | null
+          approval_decided_by?: string | null
+          approval_decision_notes?: string | null
+          approval_management_agreement_id?: string | null
+          approval_requested_at?: string | null
+          approval_required_reason?: string | null
+          approval_rule_snapshot?: string | null
+          approval_status?: Database["public"]["Enums"]["service_request_approval_status"]
+          approval_threshold_amount?: number | null
+          approval_threshold_currency?: string | null
           assigned_person_id?: string | null
           assigned_vendor_id?: string | null
           billing?: Database["public"]["Enums"]["service_billing"]
           blocks_next?: boolean
           category?: Database["public"]["Enums"]["service_category"]
           completed_at?: string | null
+          cost_estimate?: number | null
+          cost_final?: number | null
           created_at?: string
           delivery?: Database["public"]["Enums"]["service_delivery"]
           id?: string
@@ -1224,6 +1260,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "service_request_steps_approval_management_agreement_id_fkey"
+            columns: ["approval_management_agreement_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "service_request_steps_assigned_person_id_fkey"
             columns: ["assigned_person_id"]
@@ -2007,6 +2050,19 @@ export type Database = {
       }
     }
     Functions: {
+      add_service_request_step: {
+        Args: {
+          p_billing?: Database["public"]["Enums"]["service_billing"]
+          p_blocks_next?: boolean
+          p_category: Database["public"]["Enums"]["service_category"]
+          p_cost_estimate?: number
+          p_delivery?: Database["public"]["Enums"]["service_delivery"]
+          p_request_id: string
+          p_title: string
+          p_typical_duration_days?: number
+        }
+        Returns: string
+      }
       advance_ticket_stage: {
         Args: { p_ticket_id: string }
         Returns: undefined
@@ -2052,8 +2108,16 @@ export type Database = {
         Args: { p_decision: string; p_notes?: string; p_request_id: string }
         Returns: Database["public"]["Enums"]["service_request_approval_status"]
       }
+      decide_service_request_step_approval: {
+        Args: { p_decision: string; p_notes?: string; p_step_id: string }
+        Returns: Database["public"]["Enums"]["service_request_approval_status"]
+      }
       evaluate_service_request_approval: {
         Args: { p_request_id: string }
+        Returns: Database["public"]["Enums"]["service_request_approval_status"]
+      }
+      evaluate_service_request_step_approval: {
+        Args: { p_step_id: string }
         Returns: Database["public"]["Enums"]["service_request_approval_status"]
       }
       find_applicable_management_agreement: {
@@ -2066,6 +2130,7 @@ export type Database = {
       }
       get_management_dashboard: { Args: never; Returns: Json }
       get_operations_dashboard: { Args: never; Returns: Json }
+      get_request_rollup: { Args: { p_request_id: string }; Returns: Json }
       get_ticket_workflow_summary: {
         Args: { p_ticket_id: string }
         Returns: Json
@@ -2116,8 +2181,16 @@ export type Database = {
         Args: { p_ticket_id: string }
         Returns: undefined
       }
+      reorder_service_request_steps: {
+        Args: { p_request_id: string; p_step_ids: string[] }
+        Returns: undefined
+      }
       reset_service_request_approval: {
         Args: { p_request_id: string }
+        Returns: Database["public"]["Enums"]["service_request_approval_status"]
+      }
+      reset_service_request_step_approval: {
+        Args: { p_step_id: string }
         Returns: Database["public"]["Enums"]["service_request_approval_status"]
       }
       resolve_ticket_target_label: {
