@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LogOut, Search } from "lucide-react";
+import { LogOut, Search, GripVertical } from "lucide-react";
 import { MODULES } from "@/lib/modules";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
@@ -14,7 +14,107 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
+const MODULE_ORDER_STORAGE_KEY = "tb.sidebar.moduleOrder.v1";
+
+function loadOrder(): string[] {
+  if (typeof window === "undefined") return MODULES.map((m) => m.key);
+  try {
+    const raw = window.localStorage.getItem(MODULE_ORDER_STORAGE_KEY);
+    if (!raw) return MODULES.map((m) => m.key);
+    const parsed = JSON.parse(raw) as string[];
+    const known = new Set(MODULES.map((m) => m.key));
+    const filtered = parsed.filter((k) => known.has(k));
+    // Append any new modules that weren't in saved order.
+    for (const m of MODULES) if (!filtered.includes(m.key)) filtered.push(m.key);
+    return filtered;
+  } catch {
+    return MODULES.map((m) => m.key);
+  }
+}
+
+interface SortableModuleItemProps {
+  moduleKey: string;
+  isActive: boolean;
+  pathname: string;
+}
+
+function SortableModuleItem({ moduleKey, isActive }: SortableModuleItemProps) {
+  const m = MODULES.find((x) => x.key === moduleKey);
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: moduleKey });
+
+  if (!m) return null;
+  const Icon = m.icon;
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "group relative flex items-center rounded-sm transition-colors",
+        isDragging && "opacity-60 z-10",
+      )}
+    >
+      {isActive && <span className="absolute left-0 top-1.5 bottom-1.5 w-[2px] bg-gold" />}
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        aria-label={`Reorder ${m.label}`}
+        className="flex items-center justify-center h-9 w-6 -mr-1 text-sidebar-foreground/30 hover:text-sidebar-foreground/80 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+      >
+        <GripVertical className="h-3.5 w-3.5" strokeWidth={1.5} />
+      </button>
+      <Link
+        to={m.active ? m.path : "#"}
+        onClick={(e) => !m.active && e.preventDefault()}
+        className={cn(
+          "flex flex-1 items-center gap-3 rounded-sm px-2 py-2.5 text-sm transition-colors",
+          m.active
+            ? "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            : "text-sidebar-foreground/35 cursor-not-allowed",
+          isActive && "bg-sidebar-accent text-chalk",
+        )}
+      >
+        <Icon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
+        <span className="flex-1">{m.label}</span>
+        {!m.active && (
+          <span className="text-[9px] uppercase tracking-wider text-sidebar-foreground/40">Soon</span>
+        )}
+      </Link>
+    </div>
+  );
+}
 
 interface AppShellProps {
   children: ReactNode;
@@ -23,6 +123,35 @@ interface AppShellProps {
 export function AppShell({ children }: AppShellProps) {
   const location = useLocation();
   const { user, signOut, roles } = useAuth();
+  const [order, setOrder] = useState<string[]>(() => loadOrder());
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(MODULE_ORDER_STORAGE_KEY, JSON.stringify(order));
+    } catch {
+      // ignore
+    }
+  }, [order]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setOrder((items) => {
+      const oldIndex = items.indexOf(String(active.id));
+      const newIndex = items.indexOf(String(over.id));
+      if (oldIndex === -1 || newIndex === -1) return items;
+      return arrayMove(items, oldIndex, newIndex);
+    });
+  };
+
+  const orderedModules = order
+    .map((k) => MODULES.find((m) => m.key === k))
+    .filter((m): m is (typeof MODULES)[number] => Boolean(m));
 
   const currentModule = MODULES.find((m) => {
     if (location.pathname.startsWith(m.path)) return true;
@@ -44,34 +173,31 @@ export function AppShell({ children }: AppShellProps) {
         </div>
 
         <nav className="flex-1 px-3 space-y-0.5">
-          <div className="label-eyebrow px-3 pb-2 text-sidebar-foreground/50">Modules</div>
-          {MODULES.map((m) => {
-            const isActive =
-              location.pathname.startsWith(m.path) ||
-              (m.key === "people" && location.pathname.startsWith("/leads"));
-            const Icon = m.icon;
-            return (
-              <Link
-                key={m.key}
-                to={m.active ? m.path : "#"}
-                onClick={(e) => !m.active && e.preventDefault()}
-                className={cn(
-                  "group relative flex items-center gap-3 rounded-sm px-3 py-2.5 text-sm transition-colors",
-                  m.active
-                    ? "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                    : "text-sidebar-foreground/35 cursor-not-allowed",
-                  isActive && "bg-sidebar-accent text-chalk",
-                )}
-              >
-                {isActive && <span className="absolute left-0 top-1.5 bottom-1.5 w-[2px] bg-gold" />}
-                <Icon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
-                <span className="flex-1">{m.label}</span>
-                {!m.active && (
-                  <span className="text-[9px] uppercase tracking-wider text-sidebar-foreground/40">Soon</span>
-                )}
-              </Link>
-            );
-          })}
+          <div className="label-eyebrow px-3 pb-2 text-sidebar-foreground/50 flex items-center justify-between">
+            <span>Modules</span>
+            <span className="text-[9px] normal-case tracking-normal text-sidebar-foreground/35">drag to reorder</span>
+          </div>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext items={order} strategy={verticalListSortingStrategy}>
+              {orderedModules.map((m) => {
+                const isActive =
+                  location.pathname.startsWith(m.path) ||
+                  (m.key === "people" && location.pathname.startsWith("/leads"));
+                return (
+                  <SortableModuleItem
+                    key={m.key}
+                    moduleKey={m.key}
+                    isActive={isActive}
+                    pathname={location.pathname}
+                  />
+                );
+              })}
+            </SortableContext>
+          </DndContext>
         </nav>
 
         <div className="px-6 py-5 border-t border-sidebar-border">
@@ -138,7 +264,7 @@ export function AppShell({ children }: AppShellProps) {
         {/* Mobile module bar */}
         <div className="lg:hidden border-b hairline overflow-x-auto">
           <div className="flex gap-1 px-4 py-2">
-            {MODULES.filter((m) => m.active).map((m) => {
+            {orderedModules.filter((m) => m.active).map((m) => {
               const isActive = location.pathname.startsWith(m.path);
               return (
                 <Link
