@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Filter, Plus, Search, Wrench, Workflow } from "lucide-react";
+import { Filter, Plus, Search, Wrench, Workflow, ShieldAlert } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,8 +9,11 @@ import { RequestStatusBadge } from "@/components/services/RequestStatusBadge";
 import {
   PRIORITY_LABEL,
   PRIORITY_STYLES,
+  APPROVAL_STATUS_LABEL,
+  APPROVAL_STATUS_STYLES,
   type ServiceRequestPriority,
   type ServiceRequestStatus,
+  type ServiceRequestApprovalStatus,
 } from "@/lib/services";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -27,12 +30,14 @@ interface RequestRow {
   scheduled_date: string | null;
   created_at: string;
   target_label: string;
+  approval_status: ServiceRequestApprovalStatus;
 }
 
-type StatusFilter = "all" | "open" | "active" | "completed" | "cancelled";
+type StatusFilter = "all" | "approval" | "open" | "active" | "completed" | "cancelled";
 
 const FILTERS: { key: StatusFilter; label: string }[] = [
   { key: "all", label: "All" },
+  { key: "approval", label: "Awaiting approval" },
   { key: "open", label: "Open" },
   { key: "active", label: "Active" },
   { key: "completed", label: "Completed" },
@@ -49,7 +54,7 @@ export default function ServiceRequests() {
     setLoading(true);
     const { data, error } = await supabase
       .from("service_requests")
-      .select("id,request_number,title,status,priority,is_workflow,target_type,target_id,scheduled_date,created_at")
+      .select("id,request_number,title,status,priority,is_workflow,target_type,target_id,scheduled_date,created_at,approval_status")
       .order("created_at", { ascending: false });
     if (error || !data) {
       setLoading(false);
@@ -97,6 +102,7 @@ export default function ServiceRequests() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return requests.filter((r) => {
+      if (filter === "approval" && r.approval_status !== "pending") return false;
       if (filter === "open" && r.status !== "open") return false;
       if (filter === "active" && !["scheduled", "in_progress", "blocked"].includes(r.status)) return false;
       if (filter === "completed" && r.status !== "completed") return false;
@@ -189,6 +195,17 @@ export default function ServiceRequests() {
                   <span className={cn("uppercase tracking-wider", PRIORITY_STYLES[r.priority])}>
                     · {PRIORITY_LABEL[r.priority]}
                   </span>
+                  {r.approval_status !== "not_required" && (
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1 uppercase tracking-wider px-1.5 py-0.5 rounded-sm border",
+                        APPROVAL_STATUS_STYLES[r.approval_status],
+                      )}
+                    >
+                      <ShieldAlert className="h-3 w-3" />
+                      {APPROVAL_STATUS_LABEL[r.approval_status]}
+                    </span>
+                  )}
                 </div>
               </div>
               <RequestStatusBadge status={r.status} />
