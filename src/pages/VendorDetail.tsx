@@ -675,7 +675,11 @@ function ContactsTab({
                       {c.people?.first_name} {c.people?.last_name}
                     </Link>
                   </td>
-                  <td className="px-4 py-3 text-xs">{VENDOR_CONTACT_ROLE_LABELS[c.role]}</td>
+                  <td className="px-4 py-3 text-xs">
+                    {c.role === "other" && c.role_other?.trim()
+                      ? c.role_other
+                      : VENDOR_CONTACT_ROLE_LABELS[c.role]}
+                  </td>
                   <td className="px-4 py-3 text-xs">
                     {c.is_primary ? (
                       <span className="text-gold inline-flex items-center gap-1"><Star className="h-3 w-3 fill-gold" /> Primary</span>
