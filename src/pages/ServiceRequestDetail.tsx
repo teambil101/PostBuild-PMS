@@ -14,7 +14,6 @@ import {
   Pause,
   Play,
   SkipForward,
-  Workflow,
   XCircle,
 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
