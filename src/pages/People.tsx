@@ -186,21 +186,3 @@ export default function People() {
     </>
   );
 }
-
-function TabButton({
-  active, onClick, children,
-}: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors flex items-center gap-2",
-        active
-          ? "border-architect text-architect"
-          : "border-transparent text-muted-foreground hover:text-architect",
-      )}
-    >
-      {children}
-    </button>
-  );
-}
