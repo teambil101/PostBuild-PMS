@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { Check, ChevronsUpDown, Wrench } from "lucide-react";
+import { Check, ChevronsUpDown, Plus, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { vendorDisplayName } from "@/lib/vendors";
+import { NewVendorDialog } from "@/components/vendors/NewVendorDialog";
 
 export interface PickedVendor {
   id: string;
@@ -31,22 +32,26 @@ export function VendorPicker({ value, onChange, disabled }: Props) {
   const [open, setOpen] = useState(false);
   const [vendors, setVendors] = useState<PickedVendor[]>([]);
   const [loading, setLoading] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from("vendors")
+      .select("id, vendor_number, legal_name, display_name, vendor_type, status, primary_email, primary_phone, default_call_out_fee, default_hourly_rate, currency")
+      .order("legal_name");
+    setVendors((data ?? []) as PickedVendor[]);
+    setLoading(false);
+  };
 
   useEffect(() => {
-    void (async () => {
-      setLoading(true);
-      const { data } = await supabase
-        .from("vendors")
-        .select("id, vendor_number, legal_name, display_name, vendor_type, status, primary_email, primary_phone, default_call_out_fee, default_hourly_rate, currency")
-        .order("legal_name");
-      setVendors((data ?? []) as PickedVendor[]);
-      setLoading(false);
-    })();
+    void load();
   }, []);
 
   const selectedLabel = useMemo(() => (value ? vendorDisplayName(value) : ""), [value]);
 
   return (
+    <>
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
@@ -98,9 +103,37 @@ export function VendorPicker({ value, onChange, disabled }: Props) {
                 </CommandItem>
               ))}
             </CommandGroup>
+            <CommandSeparator />
+            <CommandGroup>
+              <CommandItem
+                value="__add_new_vendor__"
+                onSelect={() => {
+                  setOpen(false);
+                  setCreateOpen(true);
+                }}
+              >
+                <Plus className="h-3.5 w-3.5 mr-2 text-architect" />
+                <span className="text-sm text-architect">New vendor…</span>
+              </CommandItem>
+            </CommandGroup>
           </CommandList>
         </Command>
       </PopoverContent>
     </Popover>
+    <NewVendorDialog
+      open={createOpen}
+      onOpenChange={setCreateOpen}
+      onSaved={async (vendorId) => {
+        setCreateOpen(false);
+        await load();
+        const { data } = await supabase
+          .from("vendors")
+          .select("id, vendor_number, legal_name, display_name, vendor_type, status, primary_email, primary_phone, default_call_out_fee, default_hourly_rate, currency")
+          .eq("id", vendorId)
+          .maybeSingle();
+        if (data) onChange(data as PickedVendor);
+      }}
+    />
+    </>
   );
 }

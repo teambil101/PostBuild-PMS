@@ -179,9 +179,9 @@ export default function ServiceRequestDetail() {
       if (u.data) setTarget(`${(u.data as any).buildings?.name ?? ""} · Unit ${u.data.unit_number}`);
     } else if (r.data.target_type === "building" && r.data.target_id) {
       const b = await supabase.from("buildings").select("name").eq("id", r.data.target_id).maybeSingle();
-      if (b.data) setTarget(b.data.name);
+      if (b.data) setTarget(`${b.data.name} (legacy: building-level)`);
     } else {
-      setTarget("Portfolio-level");
+      setTarget("Portfolio-level (legacy)");
     }
     setLoading(false);
   };

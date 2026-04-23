@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, Home } from "lucide-react";
+import { Search, Home, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { GlobalUnitFormDialog } from "@/components/properties/GlobalUnitFormDialog";
 import { cn } from "@/lib/utils";
 
 export interface PickedUnit {
@@ -24,28 +26,31 @@ export function UnitPicker({ value, onChange }: Props) {
   const [units, setUnits] = useState<PickedUnit[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from("units")
+      .select("id, unit_number, ref_code, building_id, status, asking_rent, asking_rent_currency, building:buildings(name)")
+      .order("ref_code");
+    setUnits(
+      (data ?? []).map((u: any) => ({
+        id: u.id,
+        unit_number: u.unit_number,
+        ref_code: u.ref_code,
+        building_id: u.building_id,
+        building_name: u.building?.name ?? "—",
+        status: u.status,
+        asking_rent: u.asking_rent,
+        asking_rent_currency: u.asking_rent_currency,
+      })),
+    );
+    setLoading(false);
+  };
 
   useEffect(() => {
-    (async () => {
-      setLoading(true);
-      const { data } = await supabase
-        .from("units")
-        .select("id, unit_number, ref_code, building_id, status, asking_rent, asking_rent_currency, building:buildings(name)")
-        .order("ref_code");
-      setUnits(
-        (data ?? []).map((u: any) => ({
-          id: u.id,
-          unit_number: u.unit_number,
-          ref_code: u.ref_code,
-          building_id: u.building_id,
-          building_name: u.building?.name ?? "—",
-          status: u.status,
-          asking_rent: u.asking_rent,
-          asking_rent_currency: u.asking_rent_currency,
-        })),
-      );
-      setLoading(false);
-    })();
+    void load();
   }, []);
 
   const filtered = useMemo(() => {
@@ -61,14 +66,20 @@ export function UnitPicker({ value, onChange }: Props) {
 
   return (
     <div className="space-y-3">
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-        <Input
-          placeholder="Search by building, unit number, ref code…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-9"
-        />
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Search by building, unit number, ref code…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <Button type="button" variant="outline" size="sm" onClick={() => setCreateOpen(true)}>
+          <Plus className="h-3.5 w-3.5" />
+          New unit
+        </Button>
       </div>
 
       <div className="border hairline rounded-sm bg-card max-h-[360px] overflow-y-auto">
@@ -131,6 +142,32 @@ export function UnitPicker({ value, onChange }: Props) {
           )}
         </div>
       )}
+
+      <GlobalUnitFormDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onCreated={async (unitId) => {
+          await load();
+          // Auto-select the freshly created unit
+          const { data: u } = await supabase
+            .from("units")
+            .select("id, unit_number, ref_code, building_id, status, asking_rent, asking_rent_currency, building:buildings(name)")
+            .eq("id", unitId)
+            .maybeSingle();
+          if (u) {
+            onChange({
+              id: u.id,
+              unit_number: u.unit_number,
+              ref_code: u.ref_code,
+              building_id: u.building_id,
+              building_name: (u as any).building?.name ?? "—",
+              status: u.status,
+              asking_rent: u.asking_rent,
+              asking_rent_currency: u.asking_rent_currency,
+            });
+          }
+        }}
+      />
     </div>
   );
 }

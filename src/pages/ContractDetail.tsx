@@ -608,6 +608,9 @@ export default function ContractDetail() {
                       {s.building.name}
                       <span className="mono text-[10px] text-muted-foreground ml-2">{s.building.ref_code}</span>
                       <span className="text-xs text-muted-foreground ml-2">· {s.building.city}</span>
+                      <span className="ml-2 text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm border hairline text-muted-foreground bg-muted/40">
+                        legacy: building-level
+                      </span>
                     </Link>
                   ) : s.subject_type === "unit" && s.unit ? (
                     <Link
@@ -620,7 +623,6 @@ export default function ContractDetail() {
                   ) : (
                     <div className="flex-1 text-sm text-muted-foreground">Reference removed</div>
                   )}
-                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{s.subject_type}</span>
                 </div>
               ))}
             </div>
