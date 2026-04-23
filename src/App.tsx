@@ -17,8 +17,6 @@ import ComingSoon from "./pages/ComingSoon";
 import NotFound from "./pages/NotFound.tsx";
 import Settings from "./pages/Settings";
 import Lifecycle from "./pages/Lifecycle";
-import Tickets from "./pages/Tickets";
-import TicketDetail from "./pages/TicketDetail";
 import Vendors from "./pages/Vendors";
 import VendorDetail from "./pages/VendorDetail";
 import Services from "./pages/Services";
@@ -54,8 +52,8 @@ const App = () => (
             <Route path="/contracts/:contractId" element={<Navigate to="/dashboard" replace />} />
             <Route path="/settings" element={<Shell><Settings /></Shell>} />
             <Route path="/lifecycle" element={<Shell><Lifecycle /></Shell>} />
-            <Route path="/tickets" element={<Shell><Tickets /></Shell>} />
-            <Route path="/tickets/:ticketId" element={<Shell><TicketDetail /></Shell>} />
+            <Route path="/tickets" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/tickets/:ticketId" element={<Navigate to="/dashboard" replace />} />
             <Route path="/vendors" element={<Shell><Vendors /></Shell>} />
             <Route path="/vendors/:vendorId" element={<Shell><VendorDetail /></Shell>} />
             <Route path="/services" element={<Shell><Services /></Shell>} />
