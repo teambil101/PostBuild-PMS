@@ -22,7 +22,7 @@ const OPTIONS = [
     icon: Home,
     title: "Lease",
     description: "Landlord ↔ Tenant. One unit, period, rent schedule, security deposit, Ejari.",
-    available: false,
+    available: true,
     href: "/contracts/new/lease",
   },
   {

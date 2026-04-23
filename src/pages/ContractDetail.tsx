@@ -10,8 +10,16 @@ import { ContractStatusBadge } from "@/components/contracts/ContractStatusBadge"
 import {
   APPROVAL_RULE_LABEL,
   CONTRACT_TYPE_LABEL,
+  COMMISSION_PAYER_LABEL,
+  DEPOSIT_HOLDER_LABEL,
   FEE_MODEL_LABEL,
   INCLUDED_SERVICES_CATALOG,
+  PAYMENT_METHOD_LABEL,
+  RENT_FREQUENCY_LABEL,
+  type LeaseCommissionPayer,
+  type LeaseDepositHolder,
+  type LeasePaymentMethod,
+  type LeaseRentFrequency,
   type ContractStatus,
   type ContractType,
 } from "@/lib/contracts";
@@ -79,6 +87,27 @@ interface ContractRow {
     repair_authorization_terms: string | null;
     scope_notes: string | null;
   } | null;
+  lease?: {
+    unit_id: string;
+    rent_amount: number;
+    rent_frequency: string;
+    number_of_cheques: number | null;
+    payment_method: string;
+    security_deposit: number | null;
+    security_deposit_held_by: string;
+    commission_amount: number | null;
+    commission_paid_by: string;
+    ejari_number: string | null;
+    ejari_registered_date: string | null;
+    rent_free_days: number | null;
+    grace_period_days: number | null;
+    auto_renew: boolean;
+    renewal_notice_days: number | null;
+    termination_notice_days: number | null;
+    early_termination_penalty: string | null;
+    payment_notes: string | null;
+    scope_notes: string | null;
+  } | null;
 }
 
 export default function ContractDetail() {
@@ -99,9 +128,10 @@ export default function ContractDetail() {
   const load = async () => {
     if (!id) return;
     setLoading(true);
-    const [{ data: c }, { data: ma }, { data: pa }, { data: su }, { data: ev }] = await Promise.all([
+    const [{ data: c }, { data: ma }, { data: lease }, { data: pa }, { data: su }, { data: ev }] = await Promise.all([
       supabase.from("contracts").select("*").eq("id", id).maybeSingle(),
       supabase.from("management_agreements").select("*").eq("contract_id", id).maybeSingle(),
+      supabase.from("leases").select("*").eq("contract_id", id).maybeSingle(),
       supabase
         .from("contract_parties")
         .select("id, role, is_primary, person:people(id, first_name, last_name, company, primary_email, phone)")
@@ -141,7 +171,7 @@ export default function ContractDetail() {
       unit: s.subject_type === "unit" ? uMap[s.subject_id] ?? null : null,
     }));
 
-    setContract({ ...(c as any), ma: (ma as any) ?? null });
+    setContract({ ...(c as any), ma: (ma as any) ?? null, lease: (lease as any) ?? null });
     setParties((pa as any) ?? []);
     setSubjects(subjectsResolved);
     setEvents((ev as any) ?? []);
@@ -179,6 +209,7 @@ export default function ContractDetail() {
   }
 
   const ma = contract.ma;
+  const lease = contract.lease;
 
   return (
     <>
@@ -309,6 +340,83 @@ export default function ContractDetail() {
                     <div>
                       <div className="label-eyebrow text-muted-foreground mb-1">Scope notes</div>
                       <p className="text-sm text-architect whitespace-pre-wrap">{ma.scope_notes}</p>
+                    </div>
+                  )}
+                </DetailCard>
+              )}
+            </>
+          ) : lease ? (
+            <>
+              <div className="grid md:grid-cols-2 gap-4">
+                <DetailCard title="Rent">
+                  <Row label="Amount" value={formatCurrency(lease.rent_amount, contract.currency)} />
+                  <Row
+                    label="Frequency"
+                    value={RENT_FREQUENCY_LABEL[lease.rent_frequency as LeaseRentFrequency] ?? lease.rent_frequency}
+                  />
+                  {lease.number_of_cheques && <Row label="Installments" value={`${lease.number_of_cheques} cheque(s)`} />}
+                  <Row
+                    label="Payment"
+                    value={PAYMENT_METHOD_LABEL[lease.payment_method as LeasePaymentMethod] ?? lease.payment_method}
+                  />
+                  {lease.rent_free_days ? <Row label="Rent-free" value={`${lease.rent_free_days} days`} /> : null}
+                  {lease.grace_period_days ? <Row label="Grace period" value={`${lease.grace_period_days} days`} /> : null}
+                </DetailCard>
+
+                <DetailCard title="Deposit & commission">
+                  {lease.security_deposit !== null && (
+                    <Row label="Security deposit" value={formatCurrency(lease.security_deposit, contract.currency)} />
+                  )}
+                  <Row
+                    label="Held by"
+                    value={DEPOSIT_HOLDER_LABEL[lease.security_deposit_held_by as LeaseDepositHolder] ?? lease.security_deposit_held_by}
+                  />
+                  {lease.commission_amount !== null && (
+                    <Row label="Commission" value={formatCurrency(lease.commission_amount, contract.currency)} />
+                  )}
+                  <Row
+                    label="Paid by"
+                    value={COMMISSION_PAYER_LABEL[lease.commission_paid_by as LeaseCommissionPayer] ?? lease.commission_paid_by}
+                  />
+                </DetailCard>
+
+                <DetailCard title="Ejari & compliance">
+                  {lease.ejari_number ? (
+                    <Row label="Ejari #" value={lease.ejari_number} />
+                  ) : (
+                    <Row label="Ejari" value="Not registered yet" />
+                  )}
+                  {lease.ejari_registered_date && (
+                    <Row label="Registered" value={new Date(lease.ejari_registered_date).toLocaleDateString()} />
+                  )}
+                </DetailCard>
+
+                <DetailCard title="Renewal & termination">
+                  <Row label="Auto-renew" value={lease.auto_renew ? "Yes" : "No"} />
+                  {lease.auto_renew && lease.renewal_notice_days && (
+                    <Row label="Renewal notice" value={`${lease.renewal_notice_days} days`} />
+                  )}
+                  {lease.termination_notice_days && (
+                    <Row label="Termination notice" value={`${lease.termination_notice_days} days`} />
+                  )}
+                  {lease.early_termination_penalty && (
+                    <Row label="Early exit" value={lease.early_termination_penalty} />
+                  )}
+                </DetailCard>
+              </div>
+
+              {(lease.payment_notes || lease.scope_notes) && (
+                <DetailCard title="Notes">
+                  {lease.payment_notes && (
+                    <div className="mb-3">
+                      <div className="label-eyebrow text-muted-foreground mb-1">Payment notes</div>
+                      <p className="text-sm text-architect whitespace-pre-wrap">{lease.payment_notes}</p>
+                    </div>
+                  )}
+                  {lease.scope_notes && (
+                    <div>
+                      <div className="label-eyebrow text-muted-foreground mb-1">Scope notes</div>
+                      <p className="text-sm text-architect whitespace-pre-wrap">{lease.scope_notes}</p>
                     </div>
                   )}
                 </DetailCard>
