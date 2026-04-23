@@ -1,0 +1,1 @@
+DELETE FROM public.buildings WHERE ref_code = 'BLD-TEST-RLS';
