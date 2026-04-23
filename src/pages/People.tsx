@@ -84,41 +84,17 @@ export default function People() {
       <PageHeader
         eyebrow="Module · 03"
         title="People"
-        description="A unified directory of everyone in your operation — and the sales pipeline of prospects you're trying to win."
+        description="A unified directory of everyone in your operation."
         actions={
-          canEdit && tab === "directory" ? (
+          canEdit ? (
             <Button variant="gold" onClick={() => setOpen(true)}>
               <Plus className="h-4 w-4" /> New person
-            </Button>
-          ) : canEdit && tab === "pipeline" ? (
-            <Button variant="gold" onClick={() => setLeadOpen(true)}>
-              <Plus className="h-4 w-4" /> New lead
             </Button>
           ) : null
         }
       />
 
-      <div className="border-b hairline mb-6 flex items-end gap-1">
-        <TabButton active={tab === "directory"} onClick={() => setTab("directory")}>
-          <UsersIcon className="h-3.5 w-3.5" /> Directory
-        </TabButton>
-        <TabButton active={tab === "pipeline"} onClick={() => setTab("pipeline")}>
-          <Target className="h-3.5 w-3.5" /> Pipeline
-        </TabButton>
-      </div>
-
-      {tab === "pipeline" ? (
-        <>
-          <PipelineView />
-          <NewLeadDialog
-            open={leadOpen}
-            onOpenChange={setLeadOpen}
-            onSaved={() => setLeadOpen(false)}
-          />
-        </>
-      ) : (
-        <>
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
@@ -201,8 +177,6 @@ export default function People() {
               ))}
             </div>
           )}
-        </>
-      )}
 
       <PersonFormDialog
         open={open}
