@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft, Pencil, Trash2, AlertTriangle,
-  History, Lock, Receipt,
+  History,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -13,19 +13,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { UnitFormDialog } from "@/components/properties/UnitFormDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSearchParams } from "react-router-dom";
-import { EntityTicketsTab, type TicketSection } from "@/components/tickets/EntityTicketsTab";
 import { PhotoGallery } from "@/components/attachments/PhotoGallery";
 import { DocumentList } from "@/components/attachments/DocumentList";
 import { NotesPanel } from "@/components/notes/NotesPanel";
 import { OwnersCard } from "@/components/owners/OwnersCard";
-import { LeaseWizard } from "@/components/contracts/lease/LeaseWizard";
-import { MgmtAgreementPreconditionDialog } from "@/components/contracts/lease/MgmtAgreementPreconditionDialog";
-import { ManagementAgreementWizard } from "@/components/contracts/ManagementAgreementWizard";
-import { hasActiveMgmtAgreementForUnit } from "@/lib/leases";
 import { toast } from "sonner";
-import { format, formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
 import { formatEnumLabel, sqmToSqft } from "@/lib/format";
-import { isResidentialType, isStatusLockedByLease } from "@/lib/units";
+import { isResidentialType } from "@/lib/units";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -44,7 +39,6 @@ interface Unit {
   bedrooms: number | null;
   bathrooms: number | null;
   description: string | null;
-  status_locked_by_lease_id: string | null;
   building_id: string;
 }
 
@@ -78,11 +72,6 @@ export default function UnitDetail() {
   const [confirmText, setConfirmText] = useState("");
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [hasNoOwners, setHasNoOwners] = useState(false);
-  const [preconditionOpen, setPreconditionOpen] = useState(false);
-  const [leaseOpen, setLeaseOpen] = useState(false);
-  const [mgmtOpen, setMgmtOpen] = useState(false);
-  const [overrodePrecondition, setOverrodePrecondition] = useState(false);
-  const [ticketCount, setTicketCount] = useState<number>(0);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get("tab") ?? "overview";
   const setActiveTab = (v: string) => {
@@ -90,17 +79,6 @@ export default function UnitDetail() {
     if (v === "overview") next.delete("tab");
     else next.set("tab", v);
     setSearchParams(next, { replace: true });
-  };
-
-  const startLeaseFlow = async () => {
-    if (!unit) return;
-    const ok = await hasActiveMgmtAgreementForUnit(unit.id);
-    if (ok) {
-      setOverrodePrecondition(false);
-      setLeaseOpen(true);
-    } else {
-      setPreconditionOpen(true);
-    }
   };
 
   const load = useCallback(async () => {
@@ -126,7 +104,7 @@ export default function UnitDetail() {
       navigate("/properties");
       return;
     }
-    setUnit(u.data as Unit);
+    setUnit(u.data as unknown as Unit);
     setBuilding(b.data as BuildingMini);
     setPhotoCount(ph.count ?? 0);
     setDocCount(dc.count ?? 0);
@@ -140,10 +118,6 @@ export default function UnitDetail() {
 
   const handleDelete = async () => {
     if (!unit) return;
-    if (unit.status_locked_by_lease_id) {
-      toast.error("Cannot delete a unit with an active lease. End the lease first.");
-      return;
-    }
     const { error } = await supabase.from("units").delete().eq("id", unit.id);
     if (error) {
       toast.error(error.message);
@@ -168,8 +142,6 @@ export default function UnitDetail() {
   }
   if (!unit || !building) return null;
 
-  const locked = isStatusLockedByLease(unit);
-  const occupiedNoLease = unit.status === "occupied" && !unit.status_locked_by_lease_id;
   const showResidential = isResidentialType(unit.unit_type);
   const hideFloor = building.building_type === "villa_compound";
 
@@ -198,7 +170,6 @@ export default function UnitDetail() {
 
   return (
     <>
-      {/* Breadcrumb */}
       <nav aria-label="Breadcrumb" className="label-eyebrow text-true-taupe mb-3 flex items-center gap-2">
         <Link to="/" className="hover:text-architect">Home</Link>
         <span>/</span>
@@ -214,7 +185,6 @@ export default function UnitDetail() {
         Back to {building.name}
       </Button>
 
-      {/* Header */}
       <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between border-b hairline pb-6">
         <div className="space-y-2 max-w-2xl min-w-0">
           <div className="label-eyebrow">Unit · {unit.ref_code}</div>
@@ -236,28 +206,6 @@ export default function UnitDetail() {
         )}
       </div>
 
-      {/* Lease warning banner */}
-      {occupiedNoLease && (
-        <div className="mb-6 flex items-start gap-3 border border-amber-500/40 bg-amber-500/10 rounded-sm p-4">
-          <AlertTriangle className="h-4 w-4 text-amber-700 shrink-0 mt-0.5" />
-          <div className="flex-1 text-sm text-amber-900">
-            <div className="font-medium">This unit is marked Occupied but has no lease on file.</div>
-            <div className="text-xs text-amber-800/90 mt-0.5">Add lease details so the system reflects reality.</div>
-          </div>
-          {canEdit && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="border-amber-600/50 text-amber-900 hover:bg-amber-500/15"
-              onClick={startLeaseFlow}
-            >
-              Add lease details
-            </Button>
-          )}
-        </div>
-      )}
-
-      {/* No-owner warning banner */}
       {hasNoOwners && (
         <div className="mb-6 flex items-start gap-3 border border-amber-500/40 bg-amber-500/10 rounded-sm p-4">
           <AlertTriangle className="h-4 w-4 text-amber-700 shrink-0 mt-0.5" />
@@ -270,17 +218,9 @@ export default function UnitDetail() {
         </div>
       )}
 
-      {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-warm-stone/60 border hairline rounded-sm overflow-hidden mb-10">
         <SummaryCard label="Status">
-          <div className="flex items-center gap-2">
-            <StatusBadge status={unit.status} />
-            {locked && (
-              <span title="Status is set by the active lease.">
-                <Lock className="h-3 w-3 text-true-taupe" />
-              </span>
-            )}
-          </div>
+          <StatusBadge status={unit.status} />
         </SummaryCard>
         <SummaryCard label="Size">
           <div className="font-display text-xl text-architect">{sizeDisplay.primary}</div>
@@ -317,17 +257,14 @@ export default function UnitDetail() {
         onChanged={load}
       />
 
-      {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="bg-transparent border-b hairline rounded-none w-full justify-start gap-0 h-auto p-0 flex-wrap">
           {[
             { v: "overview", l: "Overview" },
             { v: "photos", l: `Photos (${photoCount})` },
             { v: "documents", l: `Documents (${docCount})` },
-            { v: "tickets", l: `Tickets (${ticketCount})` },
             { v: "notes", l: `Notes (${noteCount})` },
             { v: "history", l: "Status history" },
-            { v: "lease", l: "Lease" },
           ].map((t) => (
             <TabsTrigger
               key={t.v}
@@ -339,7 +276,6 @@ export default function UnitDetail() {
           ))}
         </TabsList>
 
-        {/* OVERVIEW */}
         <TabsContent value="overview" className="pt-6">
           <div className="grid md:grid-cols-2 gap-6">
             <div>
@@ -366,7 +302,6 @@ export default function UnitDetail() {
           </div>
         </TabsContent>
 
-        {/* PHOTOS — gallery component lands in next pass */}
         <TabsContent value="photos" className="pt-6">
           <PhotoGallery
             entityType="unit"
@@ -376,7 +311,6 @@ export default function UnitDetail() {
           />
         </TabsContent>
 
-        {/* DOCUMENTS — list component lands in next pass */}
         <TabsContent value="documents" className="pt-6">
           <DocumentList
             entityType="unit"
@@ -386,17 +320,6 @@ export default function UnitDetail() {
           />
         </TabsContent>
 
-        {/* TICKETS */}
-        <TabsContent value="tickets" className="pt-6">
-          <UnitTicketsTabSection
-            unitId={unit.id}
-            unitLabel={`Unit ${unit.unit_number} · ${building.name}`}
-            unitNumber={unit.unit_number}
-            onActiveCountChange={setTicketCount}
-          />
-        </TabsContent>
-
-        {/* NOTES — composer + feed land in pass 3 */}
         <TabsContent value="notes" className="pt-6">
           <NotesPanel
             entityType="unit"
@@ -405,7 +328,6 @@ export default function UnitDetail() {
           />
         </TabsContent>
 
-        {/* STATUS HISTORY */}
         <TabsContent value="history" className="pt-6">
           <div className="label-eyebrow mb-4">Status history</div>
           {statusHistory.length === 0 ? (
@@ -431,25 +353,8 @@ export default function UnitDetail() {
             </div>
           )}
         </TabsContent>
-
-        {/* LEASE */}
-        <TabsContent value="lease" className="pt-6">
-          <EmptyState
-            icon={<Receipt className="h-8 w-8" strokeWidth={1.2} />}
-            title="No lease on file for this unit"
-            description="Create a lease to track rent, cheques, deposit, and tenant details."
-            action={
-              canEdit && (
-                <Button variant="gold" onClick={startLeaseFlow}>
-                  + Add lease
-                </Button>
-              )
-            }
-          />
-        </TabsContent>
       </Tabs>
 
-      {/* Edit modal */}
       <UnitFormDialog
         open={editOpen}
         onOpenChange={setEditOpen}
@@ -462,34 +367,6 @@ export default function UnitDetail() {
         }}
       />
 
-      {/* Lease entry */}
-      <MgmtAgreementPreconditionDialog
-        open={preconditionOpen}
-        onOpenChange={setPreconditionOpen}
-        onCreateMgmtAgreement={() => {
-          setPreconditionOpen(false);
-          setMgmtOpen(true);
-        }}
-        onProceedAnyway={() => {
-          setPreconditionOpen(false);
-          setOverrodePrecondition(true);
-          setLeaseOpen(true);
-        }}
-      />
-      <LeaseWizard
-        open={leaseOpen}
-        onOpenChange={setLeaseOpen}
-        initialUnitId={unit.id}
-        loggedMissingMgmt={overrodePrecondition}
-        onSaved={() => { setLeaseOpen(false); load(); }}
-      />
-      <ManagementAgreementWizard
-        open={mgmtOpen}
-        onOpenChange={setMgmtOpen}
-        onSaved={() => { setMgmtOpen(false); load(); }}
-      />
-
-      {/* Type-to-confirm delete */}
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -543,125 +420,5 @@ function DetailRow({ label, value, mono }: { label: string; value: string; mono?
       <div className="label-eyebrow">{label}</div>
       <div className={cn("text-sm text-architect text-right", mono && "mono text-xs")}>{value}</div>
     </div>
-  );
-}
-
-function UnitTicketsTabSection({
-  unitId,
-  unitLabel,
-  unitNumber,
-  onActiveCountChange,
-}: {
-  unitId: string;
-  unitLabel: string;
-  unitNumber: string;
-  onActiveCountChange: (n: number) => void;
-}) {
-  const sections: TicketSection[] = [
-    {
-      key: "direct",
-      label: "On this unit",
-      emptyText: "No tickets target this unit directly.",
-      fetch: async () => {
-        const { data } = await supabase
-          .from("tickets")
-          .select(
-            "id, ticket_number, subject, ticket_type, priority, status, assignee_id, due_date, created_at, target_entity_type, target_entity_id, is_system_generated",
-          )
-          .eq("target_entity_type", "unit")
-          .eq("target_entity_id", unitId)
-          .order("created_at", { ascending: false });
-        return (data ?? []) as any;
-      },
-    },
-    {
-      key: "leases",
-      label: "On leases for this unit",
-      emptyText: "No tickets on leases covering this unit.",
-      fetch: async () => {
-        // unit → contract_subjects → contract ids (lease type)
-        const { data: subs } = await supabase
-          .from("contract_subjects")
-          .select("contract_id, contracts:contracts(contract_number, contract_type)")
-          .eq("entity_type", "unit")
-          .eq("entity_id", unitId);
-        const leaseRows = ((subs ?? []) as any[]).filter(
-          (r) => r.contracts?.contract_type === "lease",
-        );
-        if (leaseRows.length === 0) return [];
-        const ids = leaseRows.map((r) => r.contract_id as string);
-        const numMap = new Map(
-          leaseRows.map((r) => [r.contract_id as string, r.contracts?.contract_number as string]),
-        );
-        const { data: tix } = await supabase
-          .from("tickets")
-          .select(
-            "id, ticket_number, subject, ticket_type, priority, status, assignee_id, due_date, created_at, target_entity_type, target_entity_id, is_system_generated",
-          )
-          .eq("target_entity_type", "contract")
-          .in("target_entity_id", ids)
-          .order("created_at", { ascending: false });
-        return ((tix ?? []) as any[]).map((t) => ({
-          ...t,
-          __lease_number: numMap.get(t.target_entity_id) ?? null,
-        }));
-      },
-      rowBadge: (row: any) => (row.__lease_number ? `Lease ${row.__lease_number}` : null),
-    },
-    {
-      key: "cheques",
-      label: "On cheques for this unit",
-      emptyText: "No tickets on cheques for this unit's leases.",
-      fetch: async () => {
-        // unit → leases → cheques → tickets
-        const { data: subs } = await supabase
-          .from("contract_subjects")
-          .select("contract_id, contracts:contracts(contract_number, contract_type)")
-          .eq("entity_type", "unit")
-          .eq("entity_id", unitId);
-        const leaseContractIds = ((subs ?? []) as any[])
-          .filter((r) => r.contracts?.contract_type === "lease")
-          .map((r) => r.contract_id as string);
-        if (leaseContractIds.length === 0) return [];
-        const { data: leases } = await supabase
-          .from("leases" as never)
-          .select("id, contract_id" as never)
-          .in("contract_id" as never, leaseContractIds as never);
-        const leaseIds = ((leases ?? []) as any[]).map((l) => l.id as string);
-        if (leaseIds.length === 0) return [];
-        const { data: cheques } = await supabase
-          .from("lease_cheques")
-          .select("id, sequence_number, lease_id")
-          .in("lease_id", leaseIds);
-        const chequeRows = (cheques ?? []) as { id: string; sequence_number: number; lease_id: string }[];
-        if (chequeRows.length === 0) return [];
-        const seqMap = new Map(chequeRows.map((c) => [c.id, c.sequence_number]));
-        const { data: tix } = await supabase
-          .from("tickets")
-          .select(
-            "id, ticket_number, subject, ticket_type, priority, status, assignee_id, due_date, created_at, target_entity_type, target_entity_id, is_system_generated",
-          )
-          .eq("target_entity_type", "cheque")
-          .in("target_entity_id", chequeRows.map((c) => c.id))
-          .order("created_at", { ascending: false });
-        return ((tix ?? []) as any[]).map((t) => ({
-          ...t,
-          __cheque_seq: seqMap.get(t.target_entity_id) ?? null,
-        }));
-      },
-      rowBadge: (row: any) =>
-        row.__cheque_seq != null ? `Cheque #${row.__cheque_seq}` : null,
-    },
-  ];
-
-  return (
-    <EntityTicketsTab
-      entityType="unit"
-      entityId={unitId}
-      entityLabel={unitLabel}
-      groupedView
-      sections={sections}
-      onActiveCountChange={onActiveCountChange}
-    />
   );
 }
