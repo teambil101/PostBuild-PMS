@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Plus, Wrench, Search, Pencil, Workflow, Power, PowerOff, Filter } from "lucide-react";
+import { Plus, Wrench, Search, Pencil, Workflow, Power, PowerOff, Filter, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
@@ -15,6 +15,7 @@ import {
 } from "@/lib/services";
 import { BillingBadge, CategoryBadge, DeliveryBadge } from "@/components/services/CatalogBadges";
 import { CatalogEntryDialog, type CatalogEntry } from "@/components/services/CatalogEntryDialog";
+import { DeleteCatalogEntryDialog } from "@/components/services/DeleteCatalogEntryDialog";
 import ServiceRequests from "./ServiceRequests";
 import { cn } from "@/lib/utils";
 
@@ -54,6 +55,8 @@ export default function Services() {
   const [filter, setFilter] = useState<CatalogFilter>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<CatalogEntry | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState<CatalogEntry | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -124,6 +127,11 @@ export default function Services() {
   const startCreate = () => {
     setEditing(null);
     setDialogOpen(true);
+  };
+
+  const startDelete = (entry: CatalogEntry) => {
+    setDeleting(entry);
+    setDeleteOpen(true);
   };
 
   return (
@@ -284,6 +292,16 @@ export default function Services() {
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => startDelete(entry)}
+                            aria-label="Delete"
+                            title="Delete"
+                            className="text-muted-foreground hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
                     ))}
@@ -304,6 +322,14 @@ export default function Services() {
         onOpenChange={setDialogOpen}
         entry={editing}
         onSaved={() => void load()}
+      />
+
+      <DeleteCatalogEntryDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        entry={deleting}
+        allEntries={entries}
+        onDeleted={() => void load()}
       />
     </>
   );
