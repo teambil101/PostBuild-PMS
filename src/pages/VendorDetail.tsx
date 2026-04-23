@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
-  ArrowLeft, Star, Pencil, ShieldAlert, ShieldCheck, ShieldX,
+  ArrowLeft, Star, Pencil, ShieldAlert, ShieldX,
   Trash2, Plus, ExternalLink, Globe, Phone, Mail, MapPin, History, Loader2,
+  MoreHorizontal,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
@@ -14,12 +15,8 @@ import { EmptyState } from "@/components/EmptyState";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { NewVendorDialog } from "@/components/vendors/NewVendorDialog";
-import { ServiceAgreementWizard } from "@/components/contracts/service/ServiceAgreementWizard";
-import { SchedulesTab } from "@/components/services/SchedulesTab";
 import { DocumentList } from "@/components/attachments/DocumentList";
 import { NotesPanel } from "@/components/notes/NotesPanel";
-import { EntityTicketsTab, type TicketSection, type EntityTicketRow } from "@/components/tickets/EntityTicketsTab";
-import { NewTicketDialog } from "@/components/tickets/NewTicketDialog";
 import { PersonCombobox, type PickedPerson } from "@/components/owners/PersonCombobox";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
@@ -38,15 +35,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal } from "lucide-react";
 import {
-  CONTRACT_STATUS_LABELS, CONTRACT_STATUS_STYLES, type ContractStatus,
-  SERVICE_FREQUENCY_LABELS, formatServiceFee,
-  type ServiceFeeModel, type ServiceFrequency,
-} from "@/lib/contracts";
-import { summarizePeriod } from "@/lib/contracts";
-import {
-  SPECIALTIES,
   SPECIALTY_LABELS,
   SPECIALTY_ICONS,
   VENDOR_STATUS_LABELS,
@@ -133,14 +122,7 @@ export default function VendorDetail() {
   const [tab, setTab] = useState("overview");
   const [docsCount, setDocsCount] = useState(0);
   const [notesCount, setNotesCount] = useState(0);
-  const [ticketsCount, setTicketsCount] = useState(0);
-  const [agreementsCount, setAgreementsCount] = useState(0);
-  const [schedulesCount, setSchedulesCount] = useState(0);
-  const [newSaOpen, setNewSaOpen] = useState(false);
-  const [newTicketForVendorOpen, setNewTicketForVendorOpen] = useState(false);
-  const [newTicketAboutVendorOpen, setNewTicketAboutVendorOpen] = useState(false);
 
-  // Dialogs
   const [editOpen, setEditOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
   const [contactSeed, setContactSeed] = useState<ContactRow | null>(null);
@@ -231,7 +213,6 @@ export default function VendorDetail() {
         <Link to="/vendors" className="hover:text-architect">Vendors</Link>
       </div>
 
-      {/* Header */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           <span className="label-eyebrow text-true-taupe">
@@ -253,7 +234,6 @@ export default function VendorDetail() {
         </div>
       </div>
 
-      {/* Action bar */}
       <div className="flex flex-wrap items-center gap-2 pb-6 border-b hairline">
         {canEdit && (
           <>
@@ -310,7 +290,6 @@ export default function VendorDetail() {
         </Button>
       </div>
 
-      {/* Summary cards */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         <Card label="Status">
           <span className={cn("inline-block px-1.5 py-0.5 border rounded-sm text-[10px] uppercase tracking-wider", VENDOR_STATUS_STYLES[vendor.status])}>
@@ -379,21 +358,11 @@ export default function VendorDetail() {
         </Card>
       </div>
 
-      {/* Tabs */}
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="contacts">
             Contacts {contacts.length > 0 && <span className="ml-1 text-muted-foreground">({contacts.length})</span>}
-          </TabsTrigger>
-          <TabsTrigger value="agreements">
-            Service Agreements {agreementsCount > 0 && <span className="ml-1 text-muted-foreground">({agreementsCount})</span>}
-          </TabsTrigger>
-          <TabsTrigger value="schedules">
-            Schedules {schedulesCount > 0 && <span className="ml-1 text-muted-foreground">({schedulesCount})</span>}
-          </TabsTrigger>
-          <TabsTrigger value="tickets">
-            Tickets {ticketsCount > 0 && <span className="ml-1 text-muted-foreground">({ticketsCount})</span>}
           </TabsTrigger>
           <TabsTrigger value="documents">
             Documents {docsCount > 0 && <span className="ml-1 text-muted-foreground">({docsCount})</span>}
@@ -504,32 +473,6 @@ export default function VendorDetail() {
           />
         </TabsContent>
 
-        <TabsContent value="agreements" className="mt-6">
-          <ServiceAgreementsTab
-            vendorId={vendor.id}
-            canEdit={canEdit}
-            onCountChange={setAgreementsCount}
-            onNew={() => setNewSaOpen(true)}
-          />
-        </TabsContent>
-
-        <TabsContent value="schedules" className="mt-6">
-          <SchedulesTab
-            filter={{ vendorId: vendor.id }}
-            canEdit={canEdit}
-            onCountChange={setSchedulesCount}
-          />
-        </TabsContent>
-
-        <TabsContent value="tickets" className="mt-6">
-          <VendorTicketsTabSection
-            vendor={vendor}
-            onCountChange={setTicketsCount}
-            onNewForVendor={() => setNewTicketForVendorOpen(true)}
-            onNewAboutVendor={() => setNewTicketAboutVendorOpen(true)}
-          />
-        </TabsContent>
-
         <TabsContent value="documents" className="mt-6">
           <DocumentList
             entityType="vendor"
@@ -559,13 +502,6 @@ export default function VendorDetail() {
         onSaved={() => { setEditOpen(false); load(); }}
       />
 
-      <ServiceAgreementWizard
-        open={newSaOpen}
-        onOpenChange={setNewSaOpen}
-        presetVendorId={vendor.id}
-        onSaved={() => { setNewSaOpen(false); load(); }}
-      />
-
       <ContactDialog
         open={contactOpen}
         onOpenChange={setContactOpen}
@@ -588,150 +524,9 @@ export default function VendorDetail() {
         vendor={vendor}
         onDeleted={() => navigate("/vendors")}
       />
-
-      {/* "About this vendor" — target = the vendor entity */}
-      <NewTicketDialog
-        open={newTicketAboutVendorOpen}
-        onOpenChange={setNewTicketAboutVendorOpen}
-        presetTarget={{
-          entity_type: "vendor",
-          entity_id: vendor.id,
-          entity_label: vendorDisplayName(vendor),
-        }}
-        onCreated={() => setTicketsCount((n) => n + 1)}
-        navigateOnCreate={false}
-      />
-
-      {/* "For this vendor" — vendor_id pre-filled, target picked freely */}
-      <NewTicketDialog
-        open={newTicketForVendorOpen}
-        onOpenChange={setNewTicketForVendorOpen}
-        presetVendor={{ vendor_id: vendor.id, vendor_label: vendorDisplayName(vendor) }}
-        onCreated={() => setTicketsCount((n) => n + 1)}
-        navigateOnCreate={false}
-      />
     </div>
   );
 }
-
-/* =========================================================
- * Service Agreements tab — lists SAs where vendor_id = this vendor.
- * ========================================================= */
-function ServiceAgreementsTab({
-  vendorId, canEdit, onCountChange, onNew,
-}: {
-  vendorId: string;
-  canEdit: boolean;
-  onCountChange: (n: number) => void;
-  onNew: () => void;
-}) {
-  const [rows, setRows] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      const { data } = await supabase
-        .from("service_agreements")
-        .select(
-          "id, fee_model, fee_value, hybrid_base_monthly, hybrid_per_call_or_unit, hybrid_mode, hourly_rate, materials_markup_percent, service_frequency, contract:contract_id(id, contract_number, title, status, start_date, end_date, currency)",
-        )
-        .eq("vendor_id", vendorId);
-      if (cancelled) return;
-      const list = ((data ?? []) as any[]).map((r) => ({ ...r, contract: r.contract }));
-      list.sort((a, b) => {
-        const aActive = a.contract?.status === "active" ? 0 : 1;
-        const bActive = b.contract?.status === "active" ? 0 : 1;
-        if (aActive !== bActive) return aActive - bActive;
-        return (b.contract?.start_date ?? "").localeCompare(a.contract?.start_date ?? "");
-      });
-      setRows(list);
-      onCountChange(list.filter((r) => r.contract?.status === "active").length);
-      setLoading(false);
-    })();
-    return () => { cancelled = true; };
-  }, [vendorId, onCountChange]);
-
-  if (loading) return <div className="h-32 bg-muted/40 animate-pulse rounded-sm" />;
-
-  if (rows.length === 0) {
-    return (
-      <EmptyState
-        title="No service agreements"
-        description="Set up an agreement with this vendor to define scope, fees, and SLAs."
-        action={canEdit && <Button variant="gold" size="sm" onClick={onNew}><Plus className="h-3.5 w-3.5" /> New service agreement</Button>}
-      />
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="flex justify-end">
-        {canEdit && (
-          <Button variant="gold" size="sm" onClick={onNew}>
-            <Plus className="h-3.5 w-3.5" /> New service agreement
-          </Button>
-        )}
-      </div>
-      <div className="border hairline rounded-sm bg-card overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/40 border-b hairline text-left">
-            <tr>
-              <th className="px-4 py-3 label-eyebrow">SVA #</th>
-              <th className="px-4 py-3 label-eyebrow">Title</th>
-              <th className="px-4 py-3 label-eyebrow">Status</th>
-              <th className="px-4 py-3 label-eyebrow">Fee</th>
-              <th className="px-4 py-3 label-eyebrow">Frequency</th>
-              <th className="px-4 py-3 label-eyebrow">Period</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => {
-              const c = r.contract;
-              const muted = c?.status !== "active";
-              return (
-                <tr key={r.id} className={cn("border-b hairline last:border-0 hover:bg-muted/30", muted && "opacity-60")}>
-                  <td className="px-4 py-3 mono text-xs">
-                    {c ? <Link to={`/contracts/${c.id}`} className="text-architect hover:text-gold-deep">{c.contract_number}</Link> : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-architect truncate max-w-[260px]">{c?.title ?? "—"}</td>
-                  <td className="px-4 py-3">
-                    {c && (
-                      <span className={cn("inline-block px-1.5 py-0.5 border rounded-sm text-[10px] uppercase tracking-wider", CONTRACT_STATUS_STYLES[c.status as ContractStatus])}>
-                        {CONTRACT_STATUS_LABELS[c.status as ContractStatus]}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-xs mono">
-                    {formatServiceFee(
-                      r.fee_model as ServiceFeeModel,
-                      {
-                        fee_value: r.fee_value,
-                        hybrid_base_monthly: r.hybrid_base_monthly,
-                        hybrid_per_call_or_unit: r.hybrid_per_call_or_unit,
-                        hybrid_mode: r.hybrid_mode,
-                        hourly_rate: r.hourly_rate,
-                        materials_markup_percent: r.materials_markup_percent,
-                      },
-                      c?.currency ?? "AED",
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-xs">{SERVICE_FREQUENCY_LABELS[r.service_frequency as ServiceFrequency]}</td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">{summarizePeriod(c?.start_date, c?.end_date)}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-/* =========================================================
- * Subcomponents
- * ========================================================= */
 
 function Card({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -1056,7 +851,7 @@ function BlacklistDialog({
         <DialogHeader>
           <DialogTitle>Blacklist this vendor?</DialogTitle>
           <DialogDescription>
-            Blacklisted vendors are hidden from pickers and cannot be assigned to new tickets.
+            Blacklisted vendors are hidden from pickers and cannot be assigned to new work.
             Existing assignments remain.
           </DialogDescription>
         </DialogHeader>
@@ -1165,66 +960,4 @@ function humanizeEvent(t: string): string {
     case "updated": return "Updated";
     default: return t.replace(/_/g, " ");
   }
-}
-
-function VendorTicketsTabSection({
-  vendor,
-  onCountChange,
-  onNewForVendor,
-  onNewAboutVendor,
-}: {
-  vendor: Vendor;
-  onCountChange: (n: number) => void;
-  onNewForVendor: () => void;
-  onNewAboutVendor: () => void;
-}) {
-  const sections: TicketSection[] = [
-    {
-      key: "assigned",
-      label: "Assigned tickets",
-      emptyText: "No tickets currently assigned to this vendor.",
-      fetch: async () => {
-        const { data } = await supabase
-          .from("tickets")
-          .select("id, ticket_number, subject, ticket_type, priority, status, assignee_id, due_date, created_at, target_entity_type, target_entity_id, is_system_generated")
-          .eq("vendor_id", vendor.id)
-          .order("created_at", { ascending: false });
-        return (data ?? []) as EntityTicketRow[];
-      },
-    },
-    {
-      key: "about",
-      label: "Tickets about this vendor",
-      emptyText: "No tickets target this vendor.",
-      fetch: async () => {
-        const { data } = await supabase
-          .from("tickets")
-          .select("id, ticket_number, subject, ticket_type, priority, status, assignee_id, due_date, created_at, target_entity_type, target_entity_id, is_system_generated")
-          .eq("target_entity_type", "vendor")
-          .eq("target_entity_id", vendor.id)
-          .order("created_at", { ascending: false });
-        return (data ?? []) as EntityTicketRow[];
-      },
-    },
-  ];
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        <Button variant="outline" size="sm" onClick={onNewForVendor}>
-          <Plus className="h-3.5 w-3.5" /> New ticket for this vendor
-        </Button>
-        <Button variant="gold" size="sm" onClick={onNewAboutVendor}>
-          <Plus className="h-3.5 w-3.5" /> New ticket about this vendor
-        </Button>
-      </div>
-      <EntityTicketsTab
-        entityType="vendor"
-        entityId={vendor.id}
-        entityLabel={vendorDisplayName(vendor)}
-        groupedView
-        sections={sections}
-        onActiveCountChange={onCountChange}
-      />
-    </div>
-  );
 }
