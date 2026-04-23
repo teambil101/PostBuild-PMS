@@ -476,6 +476,110 @@ export type Database = {
           },
         ]
       }
+      leases: {
+        Row: {
+          auto_renew: boolean
+          commission_amount: number | null
+          commission_paid_by: string | null
+          contract_id: string
+          created_at: string
+          early_termination_penalty: string | null
+          ejari_number: string | null
+          ejari_registered_date: string | null
+          grace_period_days: number | null
+          number_of_cheques: number | null
+          payment_method: string | null
+          payment_notes: string | null
+          renewal_notice_days: number | null
+          rent_amount: number
+          rent_free_days: number | null
+          rent_frequency: string
+          scope_notes: string | null
+          security_deposit: number | null
+          security_deposit_held_by: string | null
+          termination_notice_days: number | null
+          unit_id: string
+          updated_at: string
+        }
+        Insert: {
+          auto_renew?: boolean
+          commission_amount?: number | null
+          commission_paid_by?: string | null
+          contract_id: string
+          created_at?: string
+          early_termination_penalty?: string | null
+          ejari_number?: string | null
+          ejari_registered_date?: string | null
+          grace_period_days?: number | null
+          number_of_cheques?: number | null
+          payment_method?: string | null
+          payment_notes?: string | null
+          renewal_notice_days?: number | null
+          rent_amount: number
+          rent_free_days?: number | null
+          rent_frequency?: string
+          scope_notes?: string | null
+          security_deposit?: number | null
+          security_deposit_held_by?: string | null
+          termination_notice_days?: number | null
+          unit_id: string
+          updated_at?: string
+        }
+        Update: {
+          auto_renew?: boolean
+          commission_amount?: number | null
+          commission_paid_by?: string | null
+          contract_id?: string
+          created_at?: string
+          early_termination_penalty?: string | null
+          ejari_number?: string | null
+          ejari_registered_date?: string | null
+          grace_period_days?: number | null
+          number_of_cheques?: number | null
+          payment_method?: string | null
+          payment_notes?: string | null
+          renewal_notice_days?: number | null
+          rent_amount?: number
+          rent_free_days?: number | null
+          rent_frequency?: string
+          scope_notes?: string | null
+          security_deposit?: number | null
+          security_deposit_held_by?: string | null
+          termination_notice_days?: number | null
+          unit_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leases_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: true
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leases_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leases_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_with_data_gaps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leases_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_without_owners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       management_agreements: {
         Row: {
           approval_rule: Database["public"]["Enums"]["ma_approval_rule"]
