@@ -498,82 +498,41 @@ export default function ServiceRequestDetail() {
 
             <div className="border hairline rounded-sm bg-card divide-y hairline overflow-hidden">
               {steps.map((s, idx) => {
-                const done = s.status === "completed";
-                const skipped = s.status === "skipped";
+                // Determine if any earlier blocks_next step is incomplete
+                const earlier = steps.slice(0, idx);
+                const blocker = earlier.find(
+                  (e) => e.blocks_next && e.status !== "completed" && e.status !== "skipped",
+                );
                 return (
-                  <div
+                  <StepCard
                     key={s.id}
-                    className={cn(
-                      "px-4 py-3 flex items-start gap-3",
-                      skipped && "opacity-50",
-                    )}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => completeStep(s.id, s.status)}
-                      className="mt-0.5 shrink-0"
-                      disabled={skipped}
-                    >
-                      {done ? (
-                        <CheckCircle2 className="h-5 w-5 text-status-occupied" />
-                      ) : (
-                        <Circle className="h-5 w-5 text-muted-foreground hover:text-architect transition-colors" />
-                      )}
-                    </button>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span
-                          className={cn(
-                            "text-sm",
-                            done && "text-muted-foreground line-through",
-                            !done && "text-architect",
-                          )}
-                        >
-                          {idx + 1}. {s.title}
-                        </span>
-                        {s.blocks_next && !done && (
-                          <Badge variant="outline" className="text-[9px]">Blocks next</Badge>
-                        )}
-                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                          · {STEP_STATUS_LABEL[s.status]}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <CategoryBadge value={s.category} />
-                        <DeliveryBadge value={s.delivery} />
-                        <BillingBadge value={s.billing} />
-                        {s.completed_at && (
-                          <span className="text-[10px] text-muted-foreground">
-                            · Done {format(new Date(s.completed_at), "d MMM")}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    {!done && !skipped && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => skipStep(s.id)}
-                        className="shrink-0"
-                      >
-                        <SkipForward className="h-3.5 w-3.5" />
-                        Skip
-                      </Button>
-                    )}
-                    {done && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => completeStep(s.id, s.status)}
-                        className="shrink-0 text-muted-foreground"
-                      >
-                        Undo
-                      </Button>
-                    )}
-                  </div>
+                    step={s as WorkflowStepRow}
+                    index={idx}
+                    total={steps.length}
+                    gatedByPredecessor={!!blocker}
+                    predecessorTitle={blocker?.title}
+                    vendorLabel={s.assigned_vendor_id ? vendorLabels[s.assigned_vendor_id] : null}
+                    personLabel={s.assigned_person_id ? personLabels[s.assigned_person_id] : null}
+                    onChanged={load}
+                    onMove={(dir) => moveStep(s.id, dir)}
+                  />
                 );
               })}
             </div>
+
+            <div className="flex justify-end">
+              <Button size="sm" variant="outline" onClick={() => setAddStepOpen(true)}>
+                <Plus className="h-3.5 w-3.5" />
+                Add step
+              </Button>
+            </div>
+
+            <AddStepDialog
+              open={addStepOpen}
+              onOpenChange={setAddStepOpen}
+              requestId={req.id}
+              onAdded={load}
+            />
           </TabsContent>
         )}
 
