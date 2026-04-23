@@ -173,9 +173,8 @@ export function AppShell({ children }: AppShellProps) {
         </div>
 
         <nav className="flex-1 px-3 space-y-0.5">
-          <div className="label-eyebrow px-3 pb-2 text-sidebar-foreground/50 flex items-center justify-between">
+          <div className="label-eyebrow px-3 pb-2 text-sidebar-foreground/50">
             <span>Modules</span>
-            <span className="text-[9px] normal-case tracking-normal text-sidebar-foreground/35">drag to reorder</span>
           </div>
           <DndContext
             sensors={sensors}
