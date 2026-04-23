@@ -134,6 +134,15 @@ export function AddStepDialog({ open, onOpenChange, requestId, onAdded }: Props)
                   ))}
                 </SelectContent>
               </Select>
+              {category === "other" && (
+                <Input
+                  value={categoryOther}
+                  onChange={(e) => setCategoryOther(e.target.value)}
+                  placeholder="Describe category…"
+                  maxLength={80}
+                  className="mt-2"
+                />
+              )}
             </div>
             <div>
               <Label className="text-xs uppercase tracking-wider text-muted-foreground">Delivery</Label>
