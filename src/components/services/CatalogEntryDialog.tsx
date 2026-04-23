@@ -209,6 +209,21 @@ export function CatalogEntryDialog({ open, onOpenChange, entry, onSaved }: Props
                   ))}
                 </SelectContent>
               </Select>
+              {form.category === "other" && (
+                <div className="mt-2">
+                  <Label htmlFor="cat-other" className="text-xs text-muted-foreground">
+                    Describe category *
+                  </Label>
+                  <Input
+                    id="cat-other"
+                    value={form.category_other ?? ""}
+                    onChange={(e) => update("category_other", e.target.value)}
+                    placeholder="e.g. Concierge, Move coordination…"
+                    maxLength={80}
+                    className="mt-1"
+                  />
+                </div>
+              )}
             </div>
 
             <div className="flex items-center gap-3 p-3 border hairline rounded-sm">
