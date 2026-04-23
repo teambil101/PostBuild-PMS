@@ -1249,6 +1249,16 @@ export type Database = {
       }
       service_requests: {
         Row: {
+          approval_decided_at: string | null
+          approval_decided_by: string | null
+          approval_decision_notes: string | null
+          approval_management_agreement_id: string | null
+          approval_requested_at: string | null
+          approval_required_reason: string | null
+          approval_rule_snapshot: string | null
+          approval_status: Database["public"]["Enums"]["service_request_approval_status"]
+          approval_threshold_amount: number | null
+          approval_threshold_currency: string | null
           assigned_person_id: string | null
           assigned_vendor_id: string | null
           billing: Database["public"]["Enums"]["service_billing"]
@@ -1278,6 +1288,16 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          approval_decided_at?: string | null
+          approval_decided_by?: string | null
+          approval_decision_notes?: string | null
+          approval_management_agreement_id?: string | null
+          approval_requested_at?: string | null
+          approval_required_reason?: string | null
+          approval_rule_snapshot?: string | null
+          approval_status?: Database["public"]["Enums"]["service_request_approval_status"]
+          approval_threshold_amount?: number | null
+          approval_threshold_currency?: string | null
           assigned_person_id?: string | null
           assigned_vendor_id?: string | null
           billing?: Database["public"]["Enums"]["service_billing"]
@@ -1307,6 +1327,16 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          approval_decided_at?: string | null
+          approval_decided_by?: string | null
+          approval_decision_notes?: string | null
+          approval_management_agreement_id?: string | null
+          approval_requested_at?: string | null
+          approval_required_reason?: string | null
+          approval_rule_snapshot?: string | null
+          approval_status?: Database["public"]["Enums"]["service_request_approval_status"]
+          approval_threshold_amount?: number | null
+          approval_threshold_currency?: string | null
           assigned_person_id?: string | null
           assigned_vendor_id?: string | null
           billing?: Database["public"]["Enums"]["service_billing"]
@@ -1336,6 +1366,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "service_requests_approval_management_agreement_id_fkey"
+            columns: ["approval_management_agreement_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "service_requests_assigned_person_id_fkey"
             columns: ["assigned_person_id"]
@@ -2011,6 +2048,18 @@ export type Database = {
         Returns: string
       }
       current_user_person_id: { Args: never; Returns: string }
+      decide_service_request_approval: {
+        Args: { p_decision: string; p_notes?: string; p_request_id: string }
+        Returns: Database["public"]["Enums"]["service_request_approval_status"]
+      }
+      evaluate_service_request_approval: {
+        Args: { p_request_id: string }
+        Returns: Database["public"]["Enums"]["service_request_approval_status"]
+      }
+      find_applicable_management_agreement: {
+        Args: { p_target_id: string; p_target_type: string }
+        Returns: string
+      }
       get_applicable_repair_threshold: {
         Args: { p_entity_id: string; p_entity_type: string }
         Returns: number
@@ -2066,6 +2115,10 @@ export type Database = {
       remove_ticket_workflow: {
         Args: { p_ticket_id: string }
         Returns: undefined
+      }
+      reset_service_request_approval: {
+        Args: { p_request_id: string }
+        Returns: Database["public"]["Enums"]["service_request_approval_status"]
       }
       resolve_ticket_target_label: {
         Args: { p_entity_id: string; p_entity_type: string }
@@ -2152,6 +2205,11 @@ export type Database = {
         | "administrative"
         | "other"
       service_delivery: "vendor" | "staff" | "either"
+      service_request_approval_status:
+        | "not_required"
+        | "pending"
+        | "approved"
+        | "rejected"
       service_request_priority: "low" | "normal" | "high" | "urgent"
       service_request_status:
         | "open"
@@ -2381,6 +2439,12 @@ export const Constants = {
         "other",
       ],
       service_delivery: ["vendor", "staff", "either"],
+      service_request_approval_status: [
+        "not_required",
+        "pending",
+        "approved",
+        "rejected",
+      ],
       service_request_priority: ["low", "normal", "high", "urgent"],
       service_request_status: [
         "open",
