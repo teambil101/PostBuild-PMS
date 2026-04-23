@@ -92,6 +92,7 @@ interface ContactRow {
   vendor_id: string;
   person_id: string;
   role: VendorContactRole;
+  role_other: string | null;
   is_primary: boolean;
   notes: string | null;
   created_at: string;
