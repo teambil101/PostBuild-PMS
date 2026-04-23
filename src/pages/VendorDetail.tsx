@@ -815,6 +815,19 @@ function ContactDialog({
                 ))}
               </SelectContent>
             </Select>
+            {role === "other" && (
+              <div className="pt-2">
+                <Label htmlFor="vc-role-other">Describe role *</Label>
+                <Input
+                  id="vc-role-other"
+                  value={roleOther}
+                  onChange={(e) => setRoleOther(e.target.value)}
+                  placeholder="e.g. Site supervisor, Billing dispute…"
+                  maxLength={80}
+                  className="mt-1.5"
+                />
+              </div>
+            )}
           </div>
           <label className="flex items-center gap-2 text-sm cursor-pointer">
             <input type="checkbox" checked={isPrimary} onChange={(e) => setIsPrimary(e.target.checked)} />
