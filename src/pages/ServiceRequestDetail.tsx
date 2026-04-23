@@ -241,22 +241,7 @@ export default function ServiceRequestDetail() {
       </Button>
 
       <PageHeader
-        eyebrow={
-          <span className="flex items-center gap-2">
-            <span className="mono">{req.request_number}</span>
-            <span>·</span>
-            <CategoryBadge value={req.category} />
-            {req.is_workflow && (
-              <>
-                <span>·</span>
-                <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-architect">
-                  <Workflow className="h-3 w-3" />
-                  Workflow
-                </span>
-              </>
-            )}
-          </span>
-        }
+        eyebrow={`${req.request_number} · ${req.category.replace(/_/g, " ")}${req.is_workflow ? " · Workflow" : ""}`}
         title={req.title}
         actions={
           <div className="flex items-center gap-2 flex-wrap">
