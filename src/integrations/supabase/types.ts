@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      accounts: {
+        Row: {
+          account_type: Database["public"]["Enums"]["account_type"]
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_system: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          account_type: Database["public"]["Enums"]["account_type"]
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          account_type?: Database["public"]["Enums"]["account_type"]
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           contract_number_prefix: string
@@ -48,6 +84,225 @@ export type Database = {
             columns: ["self_person_id"]
             isOneToOne: false
             referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bank_accounts: {
+        Row: {
+          account_number_masked: string | null
+          bank_name: string | null
+          created_at: string
+          currency: string
+          gl_account_id: string | null
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          opening_balance: number
+          updated_at: string
+        }
+        Insert: {
+          account_number_masked?: string | null
+          bank_name?: string | null
+          created_at?: string
+          currency?: string
+          gl_account_id?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          opening_balance?: number
+          updated_at?: string
+        }
+        Update: {
+          account_number_masked?: string | null
+          bank_name?: string | null
+          created_at?: string
+          currency?: string
+          gl_account_id?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          opening_balance?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_accounts_gl_account_id_fkey"
+            columns: ["gl_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bill_lines: {
+        Row: {
+          account_id: string | null
+          amount: number
+          bill_id: string
+          created_at: string
+          description: string
+          id: string
+          quantity: number
+          sort_order: number
+          unit_price: number
+        }
+        Insert: {
+          account_id?: string | null
+          amount?: number
+          bill_id: string
+          created_at?: string
+          description: string
+          id?: string
+          quantity?: number
+          sort_order?: number
+          unit_price?: number
+        }
+        Update: {
+          account_id?: string | null
+          amount?: number
+          bill_id?: string
+          created_at?: string
+          description?: string
+          id?: string
+          quantity?: number
+          sort_order?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bill_lines_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bill_lines_bill_id_fkey"
+            columns: ["bill_id"]
+            isOneToOne: false
+            referencedRelation: "bills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bills: {
+        Row: {
+          amount_paid: number
+          contract_id: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          due_date: string
+          id: string
+          issue_date: string
+          notes: string | null
+          number: string
+          owner_statement_id: string | null
+          party_person_id: string | null
+          service_request_id: string | null
+          status: Database["public"]["Enums"]["bill_status"]
+          subtotal: number
+          tax: number
+          total: number
+          updated_at: string
+          vendor_id: string | null
+          voided_at: string | null
+          voided_reason: string | null
+          vsa_contract_id: string | null
+        }
+        Insert: {
+          amount_paid?: number
+          contract_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          due_date: string
+          id?: string
+          issue_date?: string
+          notes?: string | null
+          number: string
+          owner_statement_id?: string | null
+          party_person_id?: string | null
+          service_request_id?: string | null
+          status?: Database["public"]["Enums"]["bill_status"]
+          subtotal?: number
+          tax?: number
+          total?: number
+          updated_at?: string
+          vendor_id?: string | null
+          voided_at?: string | null
+          voided_reason?: string | null
+          vsa_contract_id?: string | null
+        }
+        Update: {
+          amount_paid?: number
+          contract_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          due_date?: string
+          id?: string
+          issue_date?: string
+          notes?: string | null
+          number?: string
+          owner_statement_id?: string | null
+          party_person_id?: string | null
+          service_request_id?: string | null
+          status?: Database["public"]["Enums"]["bill_status"]
+          subtotal?: number
+          tax?: number
+          total?: number
+          updated_at?: string
+          vendor_id?: string | null
+          voided_at?: string | null
+          voided_reason?: string | null
+          vsa_contract_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bills_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bills_owner_statement_fk"
+            columns: ["owner_statement_id"]
+            isOneToOne: false
+            referencedRelation: "owner_statements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bills_party_person_id_fkey"
+            columns: ["party_person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bills_service_request_id_fkey"
+            columns: ["service_request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bills_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bills_vsa_contract_id_fkey"
+            columns: ["vsa_contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
             referencedColumns: ["id"]
           },
         ]
@@ -310,6 +565,277 @@ export type Database = {
           uploaded_by?: string | null
         }
         Relationships: []
+      }
+      invoice_lines: {
+        Row: {
+          account_id: string | null
+          amount: number
+          created_at: string
+          description: string
+          id: string
+          invoice_id: string
+          quantity: number
+          sort_order: number
+          unit_price: number
+        }
+        Insert: {
+          account_id?: string | null
+          amount?: number
+          created_at?: string
+          description: string
+          id?: string
+          invoice_id: string
+          quantity?: number
+          sort_order?: number
+          unit_price?: number
+        }
+        Update: {
+          account_id?: string | null
+          amount?: number
+          created_at?: string
+          description?: string
+          id?: string
+          invoice_id?: string
+          quantity?: number
+          sort_order?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_lines_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_lines_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          amount_paid: number
+          bill_to_role: Database["public"]["Enums"]["bill_to_role"]
+          contract_id: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          due_date: string
+          id: string
+          issue_date: string
+          lease_contract_id: string | null
+          notes: string | null
+          number: string
+          party_person_id: string | null
+          service_request_id: string | null
+          status: Database["public"]["Enums"]["invoice_status"]
+          subtotal: number
+          tax: number
+          total: number
+          updated_at: string
+          voided_at: string | null
+          voided_reason: string | null
+        }
+        Insert: {
+          amount_paid?: number
+          bill_to_role?: Database["public"]["Enums"]["bill_to_role"]
+          contract_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          due_date: string
+          id?: string
+          issue_date?: string
+          lease_contract_id?: string | null
+          notes?: string | null
+          number: string
+          party_person_id?: string | null
+          service_request_id?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"]
+          subtotal?: number
+          tax?: number
+          total?: number
+          updated_at?: string
+          voided_at?: string | null
+          voided_reason?: string | null
+        }
+        Update: {
+          amount_paid?: number
+          bill_to_role?: Database["public"]["Enums"]["bill_to_role"]
+          contract_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          due_date?: string
+          id?: string
+          issue_date?: string
+          lease_contract_id?: string | null
+          notes?: string | null
+          number?: string
+          party_person_id?: string | null
+          service_request_id?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"]
+          subtotal?: number
+          tax?: number
+          total?: number
+          updated_at?: string
+          voided_at?: string | null
+          voided_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_lease_contract_id_fkey"
+            columns: ["lease_contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_party_person_id_fkey"
+            columns: ["party_person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_service_request_id_fkey"
+            columns: ["service_request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journal_entries: {
+        Row: {
+          created_at: string
+          id: string
+          is_reversal: boolean
+          memo: string | null
+          posted_at: string
+          reverses_entry_id: string | null
+          source_id: string
+          source_type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_reversal?: boolean
+          memo?: string | null
+          posted_at?: string
+          reverses_entry_id?: string | null
+          source_id: string
+          source_type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_reversal?: boolean
+          memo?: string | null
+          posted_at?: string
+          reverses_entry_id?: string | null
+          source_id?: string
+          source_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_entries_reverses_entry_id_fkey"
+            columns: ["reverses_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journal_lines: {
+        Row: {
+          account_id: string
+          created_at: string
+          credit: number
+          debit: number
+          entry_id: string
+          id: string
+          landlord_person_id: string | null
+          memo: string | null
+          party_person_id: string | null
+          party_vendor_id: string | null
+          sort_order: number
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          credit?: number
+          debit?: number
+          entry_id: string
+          id?: string
+          landlord_person_id?: string | null
+          memo?: string | null
+          party_person_id?: string | null
+          party_vendor_id?: string | null
+          sort_order?: number
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          credit?: number
+          debit?: number
+          entry_id?: string
+          id?: string
+          landlord_person_id?: string | null
+          memo?: string | null
+          party_person_id?: string | null
+          party_vendor_id?: string | null
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_lines_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_lines_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_lines_landlord_person_id_fkey"
+            columns: ["landlord_person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_lines_party_person_id_fkey"
+            columns: ["party_person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_lines_party_vendor_id_fkey"
+            columns: ["party_vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lead_events: {
         Row: {
@@ -708,6 +1234,269 @@ export type Database = {
         }
         Relationships: []
       }
+      owner_statement_lines: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string
+          id: string
+          line_type: string
+          sort_order: number
+          source_id: string | null
+          source_type: string | null
+          statement_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          description: string
+          id?: string
+          line_type: string
+          sort_order?: number
+          source_id?: string | null
+          source_type?: string | null
+          statement_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string
+          id?: string
+          line_type?: string
+          sort_order?: number
+          source_id?: string | null
+          source_type?: string | null
+          statement_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "owner_statement_lines_statement_id_fkey"
+            columns: ["statement_id"]
+            isOneToOne: false
+            referencedRelation: "owner_statements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      owner_statements: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          currency: string
+          expenses_total: number
+          gross_rent: number
+          id: string
+          issued_at: string | null
+          landlord_person_id: string | null
+          ma_contract_id: string
+          net_remittance: number
+          notes: string | null
+          number: string
+          other_adjustments: number
+          period_end: string
+          period_start: string
+          pm_fee: number
+          remittance_bill_id: string | null
+          status: Database["public"]["Enums"]["statement_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          expenses_total?: number
+          gross_rent?: number
+          id?: string
+          issued_at?: string | null
+          landlord_person_id?: string | null
+          ma_contract_id: string
+          net_remittance?: number
+          notes?: string | null
+          number: string
+          other_adjustments?: number
+          period_end: string
+          period_start: string
+          pm_fee?: number
+          remittance_bill_id?: string | null
+          status?: Database["public"]["Enums"]["statement_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          expenses_total?: number
+          gross_rent?: number
+          id?: string
+          issued_at?: string | null
+          landlord_person_id?: string | null
+          ma_contract_id?: string
+          net_remittance?: number
+          notes?: string | null
+          number?: string
+          other_adjustments?: number
+          period_end?: string
+          period_start?: string
+          pm_fee?: number
+          remittance_bill_id?: string | null
+          status?: Database["public"]["Enums"]["statement_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "owner_statements_landlord_person_id_fkey"
+            columns: ["landlord_person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owner_statements_ma_contract_id_fkey"
+            columns: ["ma_contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owner_statements_remittance_bill_id_fkey"
+            columns: ["remittance_bill_id"]
+            isOneToOne: false
+            referencedRelation: "bills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_allocations: {
+        Row: {
+          amount: number
+          bill_id: string | null
+          created_at: string
+          id: string
+          invoice_id: string | null
+          payment_id: string
+        }
+        Insert: {
+          amount: number
+          bill_id?: string | null
+          created_at?: string
+          id?: string
+          invoice_id?: string | null
+          payment_id: string
+        }
+        Update: {
+          amount?: number
+          bill_id?: string | null
+          created_at?: string
+          id?: string
+          invoice_id?: string | null
+          payment_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_allocations_bill_id_fkey"
+            columns: ["bill_id"]
+            isOneToOne: false
+            referencedRelation: "bills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          amount: number
+          bank_account_id: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          direction: Database["public"]["Enums"]["payment_direction"]
+          id: string
+          method: Database["public"]["Enums"]["payment_method"]
+          notes: string | null
+          number: string
+          paid_on: string
+          party_person_id: string | null
+          party_vendor_id: string | null
+          reference: string | null
+          updated_at: string
+          voided_at: string | null
+          voided_reason: string | null
+        }
+        Insert: {
+          amount: number
+          bank_account_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          direction: Database["public"]["Enums"]["payment_direction"]
+          id?: string
+          method?: Database["public"]["Enums"]["payment_method"]
+          notes?: string | null
+          number: string
+          paid_on?: string
+          party_person_id?: string | null
+          party_vendor_id?: string | null
+          reference?: string | null
+          updated_at?: string
+          voided_at?: string | null
+          voided_reason?: string | null
+        }
+        Update: {
+          amount?: number
+          bank_account_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          direction?: Database["public"]["Enums"]["payment_direction"]
+          id?: string
+          method?: Database["public"]["Enums"]["payment_method"]
+          notes?: string | null
+          number?: string
+          paid_on?: string
+          party_person_id?: string | null
+          party_vendor_id?: string | null
+          reference?: string | null
+          updated_at?: string
+          voided_at?: string | null
+          voided_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_party_person_id_fkey"
+            columns: ["party_person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_party_vendor_id_fkey"
+            columns: ["party_vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       people: {
         Row: {
           address: string | null
@@ -1057,6 +1846,98 @@ export type Database = {
           },
         ]
       }
+      quote_lines: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string
+          id: string
+          quantity: number
+          quote_id: string
+          sort_order: number
+          unit_price: number
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          description: string
+          id?: string
+          quantity?: number
+          quote_id: string
+          sort_order?: number
+          unit_price?: number
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string
+          id?: string
+          quantity?: number
+          quote_id?: string
+          sort_order?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_lines_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recurring_invoice_schedules: {
+        Row: {
+          amount: number
+          created_at: string
+          due_date: string
+          generated_at: string | null
+          id: string
+          installment_number: number
+          invoice_id: string | null
+          lease_contract_id: string
+          total_installments: number
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          due_date: string
+          generated_at?: string | null
+          id?: string
+          installment_number: number
+          invoice_id?: string | null
+          lease_contract_id: string
+          total_installments: number
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          due_date?: string
+          generated_at?: string | null
+          id?: string
+          installment_number?: number
+          invoice_id?: string | null
+          lease_contract_id?: string
+          total_installments?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_invoice_schedules_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_invoice_schedules_lease_contract_id_fkey"
+            columns: ["lease_contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_catalog: {
         Row: {
           cadence: Database["public"]["Enums"]["service_cadence"]
@@ -1313,6 +2194,7 @@ export type Database = {
           approval_threshold_currency: string | null
           assigned_person_id: string | null
           assigned_vendor_id: string | null
+          bill_to: Database["public"]["Enums"]["bill_to_role"]
           billing: Database["public"]["Enums"]["service_billing"]
           catalog_id: string | null
           category: Database["public"]["Enums"]["service_category"]
@@ -1353,6 +2235,7 @@ export type Database = {
           approval_threshold_currency?: string | null
           assigned_person_id?: string | null
           assigned_vendor_id?: string | null
+          bill_to?: Database["public"]["Enums"]["bill_to_role"]
           billing?: Database["public"]["Enums"]["service_billing"]
           catalog_id?: string | null
           category: Database["public"]["Enums"]["service_category"]
@@ -1393,6 +2276,7 @@ export type Database = {
           approval_threshold_currency?: string | null
           assigned_person_id?: string | null
           assigned_vendor_id?: string | null
+          bill_to?: Database["public"]["Enums"]["bill_to_role"]
           billing?: Database["public"]["Enums"]["service_billing"]
           catalog_id?: string | null
           category?: Database["public"]["Enums"]["service_category"]
@@ -1690,6 +2574,98 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "vendor_events_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendor_quotes: {
+        Row: {
+          accepted_bill_id: string | null
+          created_at: string
+          currency: string
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          notes: string | null
+          number: string
+          service_request_id: string | null
+          service_request_step_id: string | null
+          status: Database["public"]["Enums"]["quote_status"]
+          submitted_at: string
+          subtotal: number
+          tax: number
+          total: number
+          updated_at: string
+          valid_until: string | null
+          vendor_id: string
+        }
+        Insert: {
+          accepted_bill_id?: string | null
+          created_at?: string
+          currency?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          notes?: string | null
+          number: string
+          service_request_id?: string | null
+          service_request_step_id?: string | null
+          status?: Database["public"]["Enums"]["quote_status"]
+          submitted_at?: string
+          subtotal?: number
+          tax?: number
+          total?: number
+          updated_at?: string
+          valid_until?: string | null
+          vendor_id: string
+        }
+        Update: {
+          accepted_bill_id?: string | null
+          created_at?: string
+          currency?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          notes?: string | null
+          number?: string
+          service_request_id?: string | null
+          service_request_step_id?: string | null
+          status?: Database["public"]["Enums"]["quote_status"]
+          submitted_at?: string
+          subtotal?: number
+          tax?: number
+          total?: number
+          updated_at?: string
+          valid_until?: string | null
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_quotes_accepted_bill_id_fkey"
+            columns: ["accepted_bill_id"]
+            isOneToOne: false
+            referencedRelation: "bills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_quotes_service_request_id_fkey"
+            columns: ["service_request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_quotes_service_request_step_id_fkey"
+            columns: ["service_request_step_id"]
+            isOneToOne: false
+            referencedRelation: "service_request_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_quotes_vendor_id_fkey"
             columns: ["vendor_id"]
             isOneToOne: false
             referencedRelation: "vendors"
@@ -2240,7 +3216,10 @@ export type Database = {
       }
     }
     Enums: {
+      account_type: "asset" | "liability" | "equity" | "income" | "expense"
       app_role: "admin" | "staff" | "viewer"
+      bill_status: "draft" | "approved" | "partial" | "paid" | "void"
+      bill_to_role: "landlord" | "tenant"
       contract_party_role:
         | "pm_company"
         | "landlord"
@@ -2259,12 +3238,21 @@ export type Database = {
         | "management_agreement"
         | "lease"
         | "vendor_service_agreement"
+      invoice_status: "draft" | "issued" | "partial" | "paid" | "void"
       ma_approval_rule: "auto_threshold" | "always_required" | "auto_all"
       ma_fee_model:
         | "percent_of_rent"
         | "flat_annual"
         | "flat_per_unit"
         | "hybrid"
+      payment_direction: "in" | "out"
+      payment_method:
+        | "cash"
+        | "cheque"
+        | "bank_transfer"
+        | "card"
+        | "online"
+        | "other"
       person_role: "tenant" | "owner" | "prospect" | "staff" | "vendor"
       property_status:
         | "vacant"
@@ -2273,6 +3261,12 @@ export type Database = {
         | "off_market"
         | "under_maintenance"
         | "reserved"
+      quote_status:
+        | "submitted"
+        | "approved"
+        | "rejected"
+        | "converted"
+        | "expired"
       service_billing: "free" | "paid" | "pass_through"
       service_cadence:
         | "one_off"
@@ -2312,6 +3306,7 @@ export type Database = {
         | "blocked"
         | "completed"
         | "skipped"
+      statement_status: "draft" | "issued" | "paid"
       unit_type:
         | "studio"
         | "apartment"
@@ -2467,7 +3462,10 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      account_type: ["asset", "liability", "equity", "income", "expense"],
       app_role: ["admin", "staff", "viewer"],
+      bill_status: ["draft", "approved", "partial", "paid", "void"],
+      bill_to_role: ["landlord", "tenant"],
       contract_party_role: [
         "pm_company",
         "landlord",
@@ -2489,12 +3487,22 @@ export const Constants = {
         "lease",
         "vendor_service_agreement",
       ],
+      invoice_status: ["draft", "issued", "partial", "paid", "void"],
       ma_approval_rule: ["auto_threshold", "always_required", "auto_all"],
       ma_fee_model: [
         "percent_of_rent",
         "flat_annual",
         "flat_per_unit",
         "hybrid",
+      ],
+      payment_direction: ["in", "out"],
+      payment_method: [
+        "cash",
+        "cheque",
+        "bank_transfer",
+        "card",
+        "online",
+        "other",
       ],
       person_role: ["tenant", "owner", "prospect", "staff", "vendor"],
       property_status: [
@@ -2504,6 +3512,13 @@ export const Constants = {
         "off_market",
         "under_maintenance",
         "reserved",
+      ],
+      quote_status: [
+        "submitted",
+        "approved",
+        "rejected",
+        "converted",
+        "expired",
       ],
       service_billing: ["free", "paid", "pass_through"],
       service_cadence: [
@@ -2549,6 +3564,7 @@ export const Constants = {
         "completed",
         "skipped",
       ],
+      statement_status: ["draft", "issued", "paid"],
       unit_type: [
         "studio",
         "apartment",
