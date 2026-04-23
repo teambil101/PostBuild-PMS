@@ -185,44 +185,23 @@ export default function ServiceRequestDetail() {
     await load();
   };
 
-  const completeStep = async (stepId: string, currentStatus: ServiceRequestStepStatus) => {
+  const moveStep = async (stepId: string, direction: "up" | "down") => {
     if (!req) return;
-    const newStatus: ServiceRequestStepStatus = currentStatus === "completed" ? "pending" : "completed";
-    const updates: any = {
-      status: newStatus,
-      completed_at: newStatus === "completed" ? new Date().toISOString() : null,
-    };
-    const { error } = await supabase.from("service_request_steps").update(updates).eq("id", stepId);
+    const ordered = [...steps].sort((a, b) => a.sort_order - b.sort_order);
+    const idx = ordered.findIndex((s) => s.id === stepId);
+    if (idx < 0) return;
+    const swapWith = direction === "up" ? idx - 1 : idx + 1;
+    if (swapWith < 0 || swapWith >= ordered.length) return;
+    const reordered = [...ordered];
+    [reordered[idx], reordered[swapWith]] = [reordered[swapWith], reordered[idx]];
+    const { error } = await supabase.rpc("reorder_service_request_steps", {
+      p_request_id: req.id,
+      p_step_ids: reordered.map((s) => s.id),
+    });
     if (error) {
       toast.error(error.message);
       return;
     }
-    await supabase.from("service_request_events").insert({
-      request_id: req.id,
-      step_id: stepId,
-      event_type: "step_status_change",
-      from_value: currentStatus,
-      to_value: newStatus,
-    });
-    await load();
-  };
-
-  const skipStep = async (stepId: string) => {
-    if (!req) return;
-    const { error } = await supabase
-      .from("service_request_steps")
-      .update({ status: "skipped" })
-      .eq("id", stepId);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-    await supabase.from("service_request_events").insert({
-      request_id: req.id,
-      step_id: stepId,
-      event_type: "step_skipped",
-    });
-    toast.success("Step skipped");
     await load();
   };
 
