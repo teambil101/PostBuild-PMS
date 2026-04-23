@@ -267,6 +267,7 @@ export function DocumentList({ entityType, entityId, editable, onCountChange }: 
                 )}
               </tbody>
             </table>
+            </div>
           </div>
         </>
       )}

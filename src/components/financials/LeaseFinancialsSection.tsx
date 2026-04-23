@@ -205,6 +205,7 @@ export function LeaseFinancialsSection({
               })}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 

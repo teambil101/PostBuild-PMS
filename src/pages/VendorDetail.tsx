@@ -716,6 +716,7 @@ function ContactsTab({
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>

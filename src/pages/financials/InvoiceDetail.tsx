@@ -235,6 +235,7 @@ export default function InvoiceDetail() {
                 </tr>
               </tfoot>
             </table>
+            </div>
           </div>
 
           <div className="border hairline rounded-sm bg-card p-5">
