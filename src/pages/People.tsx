@@ -153,8 +153,8 @@ export default function People() {
     <>
       <PageHeader
         eyebrow="Module · 03"
-        title="People"
-        description="A unified directory of everyone in your operation."
+        title="Directory"
+        description="A unified directory of everyone in your operation — people and vendor companies."
         actions={
           canEdit ? (
             <DropdownMenu>
