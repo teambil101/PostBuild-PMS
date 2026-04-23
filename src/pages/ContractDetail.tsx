@@ -209,6 +209,7 @@ export default function ContractDetail() {
   }
 
   const ma = contract.ma;
+  const lease = contract.lease;
 
   return (
     <>
@@ -339,6 +340,83 @@ export default function ContractDetail() {
                     <div>
                       <div className="label-eyebrow text-muted-foreground mb-1">Scope notes</div>
                       <p className="text-sm text-architect whitespace-pre-wrap">{ma.scope_notes}</p>
+                    </div>
+                  )}
+                </DetailCard>
+              )}
+            </>
+          ) : lease ? (
+            <>
+              <div className="grid md:grid-cols-2 gap-4">
+                <DetailCard title="Rent">
+                  <Row label="Amount" value={formatCurrency(lease.rent_amount, contract.currency)} />
+                  <Row
+                    label="Frequency"
+                    value={RENT_FREQUENCY_LABEL[lease.rent_frequency as LeaseRentFrequency] ?? lease.rent_frequency}
+                  />
+                  {lease.number_of_cheques && <Row label="Installments" value={`${lease.number_of_cheques} cheque(s)`} />}
+                  <Row
+                    label="Payment"
+                    value={PAYMENT_METHOD_LABEL[lease.payment_method as LeasePaymentMethod] ?? lease.payment_method}
+                  />
+                  {lease.rent_free_days ? <Row label="Rent-free" value={`${lease.rent_free_days} days`} /> : null}
+                  {lease.grace_period_days ? <Row label="Grace period" value={`${lease.grace_period_days} days`} /> : null}
+                </DetailCard>
+
+                <DetailCard title="Deposit & commission">
+                  {lease.security_deposit !== null && (
+                    <Row label="Security deposit" value={formatCurrency(lease.security_deposit, contract.currency)} />
+                  )}
+                  <Row
+                    label="Held by"
+                    value={DEPOSIT_HOLDER_LABEL[lease.security_deposit_held_by as LeaseDepositHolder] ?? lease.security_deposit_held_by}
+                  />
+                  {lease.commission_amount !== null && (
+                    <Row label="Commission" value={formatCurrency(lease.commission_amount, contract.currency)} />
+                  )}
+                  <Row
+                    label="Paid by"
+                    value={COMMISSION_PAYER_LABEL[lease.commission_paid_by as LeaseCommissionPayer] ?? lease.commission_paid_by}
+                  />
+                </DetailCard>
+
+                <DetailCard title="Ejari & compliance">
+                  {lease.ejari_number ? (
+                    <Row label="Ejari #" value={lease.ejari_number} />
+                  ) : (
+                    <Row label="Ejari" value="Not registered yet" />
+                  )}
+                  {lease.ejari_registered_date && (
+                    <Row label="Registered" value={new Date(lease.ejari_registered_date).toLocaleDateString()} />
+                  )}
+                </DetailCard>
+
+                <DetailCard title="Renewal & termination">
+                  <Row label="Auto-renew" value={lease.auto_renew ? "Yes" : "No"} />
+                  {lease.auto_renew && lease.renewal_notice_days && (
+                    <Row label="Renewal notice" value={`${lease.renewal_notice_days} days`} />
+                  )}
+                  {lease.termination_notice_days && (
+                    <Row label="Termination notice" value={`${lease.termination_notice_days} days`} />
+                  )}
+                  {lease.early_termination_penalty && (
+                    <Row label="Early exit" value={lease.early_termination_penalty} />
+                  )}
+                </DetailCard>
+              </div>
+
+              {(lease.payment_notes || lease.scope_notes) && (
+                <DetailCard title="Notes">
+                  {lease.payment_notes && (
+                    <div className="mb-3">
+                      <div className="label-eyebrow text-muted-foreground mb-1">Payment notes</div>
+                      <p className="text-sm text-architect whitespace-pre-wrap">{lease.payment_notes}</p>
+                    </div>
+                  )}
+                  {lease.scope_notes && (
+                    <div>
+                      <div className="label-eyebrow text-muted-foreground mb-1">Scope notes</div>
+                      <p className="text-sm text-architect whitespace-pre-wrap">{lease.scope_notes}</p>
                     </div>
                   )}
                 </DetailCard>
