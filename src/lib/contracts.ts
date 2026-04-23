@@ -5,6 +5,8 @@ export type ContractStatus = Database["public"]["Enums"]["contract_status"];
 export type ContractPartyRole = Database["public"]["Enums"]["contract_party_role"];
 export type MaFeeModel = Database["public"]["Enums"]["ma_fee_model"];
 export type MaApprovalRule = Database["public"]["Enums"]["ma_approval_rule"];
+export type VsaRateModel = Database["public"]["Enums"]["vsa_rate_model"];
+export type VsaPaymentTerms = Database["public"]["Enums"]["vsa_payment_terms"];
 
 export const CONTRACT_TYPE_LABEL: Record<ContractType, string> = {
   management_agreement: "Management Agreement",
@@ -76,6 +78,24 @@ export const COMMISSION_PAYER_LABEL: Record<LeaseCommissionPayer, string> = {
   tenant: "Tenant",
   landlord: "Landlord",
   split: "Split 50/50",
+};
+
+export const VSA_RATE_MODEL_LABEL: Record<VsaRateModel, string> = {
+  per_call_out: "Per call-out",
+  per_hour: "Per hour",
+  fixed_per_visit: "Fixed per visit",
+  quote_required: "Quote required each time",
+  hybrid: "Hybrid (call-out + hourly)",
+};
+
+export const VSA_PAYMENT_TERMS_LABEL: Record<VsaPaymentTerms, string> = {
+  on_completion: "On completion",
+  net_7: "NET 7",
+  net_15: "NET 15",
+  net_30: "NET 30",
+  net_60: "NET 60",
+  monthly_invoice: "Monthly invoice",
+  custom: "Custom",
 };
 
 /**

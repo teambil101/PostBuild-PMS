@@ -16,12 +16,16 @@ import {
   INCLUDED_SERVICES_CATALOG,
   PAYMENT_METHOD_LABEL,
   RENT_FREQUENCY_LABEL,
+  VSA_PAYMENT_TERMS_LABEL,
+  VSA_RATE_MODEL_LABEL,
   type LeaseCommissionPayer,
   type LeaseDepositHolder,
   type LeasePaymentMethod,
   type LeaseRentFrequency,
   type ContractStatus,
   type ContractType,
+  type VsaPaymentTerms,
+  type VsaRateModel,
 } from "@/lib/contracts";
 import { formatCurrency } from "@/lib/format";
 import { EmptyState } from "@/components/EmptyState";
@@ -108,6 +112,32 @@ interface ContractRow {
     payment_notes: string | null;
     scope_notes: string | null;
   } | null;
+  vsa?: {
+    vendor_id: string;
+    covered_services: string[];
+    scope_notes: string | null;
+    is_exclusive: boolean;
+    service_area_notes: string | null;
+    rate_model: string;
+    default_call_out_fee: number | null;
+    default_hourly_rate: number | null;
+    fixed_visit_fee: number | null;
+    materials_markup_percent: number | null;
+    rate_notes: string | null;
+    payment_terms: string;
+    payment_terms_custom: string | null;
+    response_time_hours: number | null;
+    resolution_time_hours: number | null;
+    emergency_response_time_hours: number | null;
+    sla_notes: string | null;
+    repair_authorization_threshold: number | null;
+    repair_authorization_currency: string | null;
+    repair_authorization_terms: string | null;
+    auto_renew: boolean;
+    renewal_notice_days: number | null;
+    termination_notice_days: number | null;
+    vendor: { id: string; legal_name: string; display_name: string | null; vendor_number: string; primary_email: string | null; primary_phone: string | null } | null;
+  } | null;
 }
 
 export default function ContractDetail() {
@@ -128,10 +158,15 @@ export default function ContractDetail() {
   const load = async () => {
     if (!id) return;
     setLoading(true);
-    const [{ data: c }, { data: ma }, { data: lease }, { data: pa }, { data: su }, { data: ev }] = await Promise.all([
+    const [{ data: c }, { data: ma }, { data: lease }, { data: vsa }, { data: pa }, { data: su }, { data: ev }] = await Promise.all([
       supabase.from("contracts").select("*").eq("id", id).maybeSingle(),
       supabase.from("management_agreements").select("*").eq("contract_id", id).maybeSingle(),
       supabase.from("leases").select("*").eq("contract_id", id).maybeSingle(),
+      supabase
+        .from("vendor_service_agreements")
+        .select("*, vendor:vendors(id, legal_name, display_name, vendor_number, primary_email, primary_phone)")
+        .eq("contract_id", id)
+        .maybeSingle(),
       supabase
         .from("contract_parties")
         .select("id, role, is_primary, person:people(id, first_name, last_name, company, primary_email, phone)")
@@ -171,7 +206,7 @@ export default function ContractDetail() {
       unit: s.subject_type === "unit" ? uMap[s.subject_id] ?? null : null,
     }));
 
-    setContract({ ...(c as any), ma: (ma as any) ?? null, lease: (lease as any) ?? null });
+    setContract({ ...(c as any), ma: (ma as any) ?? null, lease: (lease as any) ?? null, vsa: (vsa as any) ?? null });
     setParties((pa as any) ?? []);
     setSubjects(subjectsResolved);
     setEvents((ev as any) ?? []);
@@ -210,6 +245,7 @@ export default function ContractDetail() {
 
   const ma = contract.ma;
   const lease = contract.lease;
+  const vsa = contract.vsa;
 
   return (
     <>
@@ -417,6 +453,102 @@ export default function ContractDetail() {
                     <div>
                       <div className="label-eyebrow text-muted-foreground mb-1">Scope notes</div>
                       <p className="text-sm text-architect whitespace-pre-wrap">{lease.scope_notes}</p>
+                    </div>
+                  )}
+                </DetailCard>
+              )}
+            </>
+          ) : vsa ? (
+            <>
+              <div className="grid md:grid-cols-2 gap-4">
+                <DetailCard title="Vendor">
+                  {vsa.vendor ? (
+                    <>
+                      <Row label="Name" value={vsa.vendor.display_name || vsa.vendor.legal_name} />
+                      <Row label="Number" value={vsa.vendor.vendor_number} />
+                      {vsa.vendor.primary_email && <Row label="Email" value={vsa.vendor.primary_email} />}
+                      {vsa.vendor.primary_phone && <Row label="Phone" value={vsa.vendor.primary_phone} />}
+                    </>
+                  ) : (
+                    <div className="text-xs text-muted-foreground">Vendor reference removed.</div>
+                  )}
+                  <Row label="Exclusive" value={vsa.is_exclusive ? "Yes" : "No"} />
+                  {vsa.service_area_notes && <Row label="Area" value={vsa.service_area_notes} />}
+                </DetailCard>
+
+                <DetailCard title="Rate card">
+                  <Row label="Model" value={VSA_RATE_MODEL_LABEL[vsa.rate_model as VsaRateModel] ?? vsa.rate_model} />
+                  {vsa.default_call_out_fee !== null && (
+                    <Row label="Call-out" value={formatCurrency(vsa.default_call_out_fee, contract.currency)} />
+                  )}
+                  {vsa.default_hourly_rate !== null && (
+                    <Row label="Hourly" value={formatCurrency(vsa.default_hourly_rate, contract.currency)} />
+                  )}
+                  {vsa.fixed_visit_fee !== null && (
+                    <Row label="Per visit" value={formatCurrency(vsa.fixed_visit_fee, contract.currency)} />
+                  )}
+                  {vsa.materials_markup_percent !== null && (
+                    <Row label="Materials markup" value={`${vsa.materials_markup_percent}%`} />
+                  )}
+                  {vsa.rate_notes && <Row label="Notes" value={vsa.rate_notes} />}
+                </DetailCard>
+
+                <DetailCard title="Payment & SLA">
+                  <Row
+                    label="Payment"
+                    value={
+                      vsa.payment_terms === "custom"
+                        ? vsa.payment_terms_custom ?? "Custom"
+                        : VSA_PAYMENT_TERMS_LABEL[vsa.payment_terms as VsaPaymentTerms] ?? vsa.payment_terms
+                    }
+                  />
+                  {vsa.response_time_hours !== null && <Row label="Response" value={`${vsa.response_time_hours}h`} />}
+                  {vsa.resolution_time_hours !== null && <Row label="Resolution" value={`${vsa.resolution_time_hours}h`} />}
+                  {vsa.emergency_response_time_hours !== null && (
+                    <Row label="Emergency" value={`${vsa.emergency_response_time_hours}h`} />
+                  )}
+                  {vsa.sla_notes && <Row label="SLA notes" value={vsa.sla_notes} />}
+                </DetailCard>
+
+                <DetailCard title="Authorization & renewal">
+                  {vsa.repair_authorization_threshold !== null && (
+                    <Row
+                      label="Auth threshold"
+                      value={formatCurrency(vsa.repair_authorization_threshold, vsa.repair_authorization_currency ?? contract.currency)}
+                    />
+                  )}
+                  <Row label="Auto-renew" value={vsa.auto_renew ? "Yes" : "No"} />
+                  {vsa.renewal_notice_days && <Row label="Renewal notice" value={`${vsa.renewal_notice_days} days`} />}
+                  {vsa.termination_notice_days && <Row label="Termination notice" value={`${vsa.termination_notice_days} days`} />}
+                </DetailCard>
+              </div>
+
+              <DetailCard title="Covered services">
+                {vsa.covered_services.length === 0 ? (
+                  <div className="text-xs text-muted-foreground">All catalog services (no restriction).</div>
+                ) : (
+                  <div className="flex flex-wrap gap-1.5">
+                    {vsa.covered_services.map((code) => (
+                      <span key={code} className="mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm border hairline text-architect bg-muted/40">
+                        {code}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </DetailCard>
+
+              {(vsa.scope_notes || vsa.repair_authorization_terms) && (
+                <DetailCard title="Notes">
+                  {vsa.scope_notes && (
+                    <div className="mb-3">
+                      <div className="label-eyebrow text-muted-foreground mb-1">Scope</div>
+                      <p className="text-sm text-architect whitespace-pre-wrap">{vsa.scope_notes}</p>
+                    </div>
+                  )}
+                  {vsa.repair_authorization_terms && (
+                    <div>
+                      <div className="label-eyebrow text-muted-foreground mb-1">Authorization</div>
+                      <p className="text-sm text-architect whitespace-pre-wrap">{vsa.repair_authorization_terms}</p>
                     </div>
                   )}
                 </DetailCard>

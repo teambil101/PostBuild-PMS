@@ -1602,6 +1602,108 @@ export type Database = {
           },
         ]
       }
+      vendor_service_agreements: {
+        Row: {
+          auto_renew: boolean
+          contract_id: string
+          covered_services: Json
+          created_at: string
+          default_call_out_fee: number | null
+          default_hourly_rate: number | null
+          emergency_response_time_hours: number | null
+          fixed_visit_fee: number | null
+          is_exclusive: boolean
+          materials_markup_percent: number | null
+          payment_terms: Database["public"]["Enums"]["vsa_payment_terms"]
+          payment_terms_custom: string | null
+          rate_model: Database["public"]["Enums"]["vsa_rate_model"]
+          rate_notes: string | null
+          renewal_notice_days: number | null
+          repair_authorization_currency: string | null
+          repair_authorization_terms: string | null
+          repair_authorization_threshold: number | null
+          resolution_time_hours: number | null
+          response_time_hours: number | null
+          scope_notes: string | null
+          service_area_notes: string | null
+          sla_notes: string | null
+          termination_notice_days: number | null
+          updated_at: string
+          vendor_id: string
+        }
+        Insert: {
+          auto_renew?: boolean
+          contract_id: string
+          covered_services?: Json
+          created_at?: string
+          default_call_out_fee?: number | null
+          default_hourly_rate?: number | null
+          emergency_response_time_hours?: number | null
+          fixed_visit_fee?: number | null
+          is_exclusive?: boolean
+          materials_markup_percent?: number | null
+          payment_terms?: Database["public"]["Enums"]["vsa_payment_terms"]
+          payment_terms_custom?: string | null
+          rate_model?: Database["public"]["Enums"]["vsa_rate_model"]
+          rate_notes?: string | null
+          renewal_notice_days?: number | null
+          repair_authorization_currency?: string | null
+          repair_authorization_terms?: string | null
+          repair_authorization_threshold?: number | null
+          resolution_time_hours?: number | null
+          response_time_hours?: number | null
+          scope_notes?: string | null
+          service_area_notes?: string | null
+          sla_notes?: string | null
+          termination_notice_days?: number | null
+          updated_at?: string
+          vendor_id: string
+        }
+        Update: {
+          auto_renew?: boolean
+          contract_id?: string
+          covered_services?: Json
+          created_at?: string
+          default_call_out_fee?: number | null
+          default_hourly_rate?: number | null
+          emergency_response_time_hours?: number | null
+          fixed_visit_fee?: number | null
+          is_exclusive?: boolean
+          materials_markup_percent?: number | null
+          payment_terms?: Database["public"]["Enums"]["vsa_payment_terms"]
+          payment_terms_custom?: string | null
+          rate_model?: Database["public"]["Enums"]["vsa_rate_model"]
+          rate_notes?: string | null
+          renewal_notice_days?: number | null
+          repair_authorization_currency?: string | null
+          repair_authorization_terms?: string | null
+          repair_authorization_threshold?: number | null
+          resolution_time_hours?: number | null
+          response_time_hours?: number | null
+          scope_notes?: string | null
+          service_area_notes?: string | null
+          sla_notes?: string | null
+          termination_notice_days?: number | null
+          updated_at?: string
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_service_agreements_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: true
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_service_agreements_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vendors: {
         Row: {
           address: string | null
@@ -1927,6 +2029,10 @@ export type Database = {
         Args: { p_unit_id: string; p_vendor_id: string }
         Returns: boolean
       }
+      has_active_vsa_for_vendor_and_service: {
+        Args: { p_catalog_code: string; p_vendor_id: string }
+        Returns: boolean
+      }
       has_any_role: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
@@ -2074,6 +2180,20 @@ export type Database = {
         | "townhouse"
         | "warehouse"
         | "showroom"
+      vsa_payment_terms:
+        | "on_completion"
+        | "net_7"
+        | "net_15"
+        | "net_30"
+        | "net_60"
+        | "monthly_invoice"
+        | "custom"
+      vsa_rate_model:
+        | "per_call_out"
+        | "per_hour"
+        | "fixed_per_visit"
+        | "quote_required"
+        | "hybrid"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2291,6 +2411,22 @@ export const Constants = {
         "townhouse",
         "warehouse",
         "showroom",
+      ],
+      vsa_payment_terms: [
+        "on_completion",
+        "net_7",
+        "net_15",
+        "net_30",
+        "net_60",
+        "monthly_invoice",
+        "custom",
+      ],
+      vsa_rate_model: [
+        "per_call_out",
+        "per_hour",
+        "fixed_per_visit",
+        "quote_required",
+        "hybrid",
       ],
     },
   },
