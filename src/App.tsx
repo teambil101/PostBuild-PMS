@@ -21,6 +21,7 @@ import Contracts from "./pages/Contracts";
 import ContractDetail from "./pages/ContractDetail";
 import NewManagementAgreement from "./pages/NewManagementAgreement";
 import NewLease from "./pages/NewLease";
+import NewVendorServiceAgreement from "./pages/NewVendorServiceAgreement";
 import Services from "./pages/Services";
 import NewServiceRequest from "./pages/NewServiceRequest";
 import ServiceRequestDetail from "./pages/ServiceRequestDetail";
@@ -54,6 +55,7 @@ const App = () => (
             <Route path="/contracts" element={<Shell><Contracts /></Shell>} />
             <Route path="/contracts/new/management-agreement" element={<Shell><NewManagementAgreement /></Shell>} />
             <Route path="/contracts/new/lease" element={<Shell><NewLease /></Shell>} />
+            <Route path="/contracts/new/vendor-service-agreement" element={<Shell><NewVendorServiceAgreement /></Shell>} />
             <Route path="/contracts/:id" element={<Shell><ContractDetail /></Shell>} />
             <Route path="/services" element={<Shell><Services /></Shell>} />
             <Route path="/services/requests/new" element={<Shell><NewServiceRequest /></Shell>} />

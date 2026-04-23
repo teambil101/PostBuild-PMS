@@ -29,8 +29,8 @@ const OPTIONS = [
     type: "vendor_service_agreement" as const,
     icon: Wrench,
     title: "Vendor Service Agreement",
-    description: "PM company ↔ Vendor. Rates, SLAs, scope of services. Coming next pass.",
-    available: false,
+    description: "PM company ↔ Vendor. Covered services, rate card, SLA terms and payment.",
+    available: true,
     href: "/contracts/new/vendor-service-agreement",
   },
 ];
