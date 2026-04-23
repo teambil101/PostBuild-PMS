@@ -19,8 +19,6 @@ import Settings from "./pages/Settings";
 import Lifecycle from "./pages/Lifecycle";
 import Vendors from "./pages/Vendors";
 import VendorDetail from "./pages/VendorDetail";
-import Services from "./pages/Services";
-import ServiceDetail from "./pages/ServiceDetail";
 import Leads from "./pages/Leads";
 import LeadDetail from "./pages/LeadDetail";
 
@@ -56,8 +54,8 @@ const App = () => (
             <Route path="/tickets/:ticketId" element={<Navigate to="/dashboard" replace />} />
             <Route path="/vendors" element={<Shell><Vendors /></Shell>} />
             <Route path="/vendors/:vendorId" element={<Shell><VendorDetail /></Shell>} />
-            <Route path="/services" element={<Shell><Services /></Shell>} />
-            <Route path="/services/:scheduleId" element={<Shell><ServiceDetail /></Shell>} />
+            <Route path="/services" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/services/:scheduleId" element={<Navigate to="/dashboard" replace />} />
             <Route path="/leads" element={<Shell><Leads /></Shell>} />
             <Route path="/leads/:leadId" element={<Shell><LeadDetail /></Shell>} />
             <Route path="*" element={<NotFound />} />

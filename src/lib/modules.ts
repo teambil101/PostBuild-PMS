@@ -4,7 +4,6 @@ import {
   Workflow,
   LayoutDashboard,
   Truck,
-  Wrench,
   Settings as SettingsIcon,
   type LucideIcon,
 } from "lucide-react";
@@ -23,6 +22,5 @@ export const MODULES: ModuleDef[] = [
   { key: "people", label: "People", path: "/people", icon: Users, active: true },
   { key: "lifecycle", label: "Leasing Lifecycle", path: "/lifecycle", icon: Workflow, active: true },
   { key: "vendors", label: "Vendors", path: "/vendors", icon: Truck, active: true },
-  { key: "services", label: "Services", path: "/services", icon: Wrench, active: true },
   { key: "settings", label: "Settings", path: "/settings", icon: SettingsIcon, active: true },
 ];
