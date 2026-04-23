@@ -152,6 +152,8 @@ export function BuildingFormDialog({ open, onOpenChange, onSaved, initial }: Pro
     const payload: any = {
       name: form.name.trim(),
       building_type: form.building_type,
+      building_type_other:
+        form.building_type === "other" ? form.building_type_other.trim() || null : null,
       community: form.community.trim() || null,
       location_url: form.location_url.trim() || null,
       city: form.city.trim(),
