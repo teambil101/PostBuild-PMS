@@ -22,6 +22,8 @@ import ContractDetail from "./pages/ContractDetail";
 import NewManagementAgreement from "./pages/NewManagementAgreement";
 import NewLease from "./pages/NewLease";
 import Services from "./pages/Services";
+import NewServiceRequest from "./pages/NewServiceRequest";
+import ServiceRequestDetail from "./pages/ServiceRequestDetail";
 
 const queryClient = new QueryClient();
 
@@ -54,11 +56,12 @@ const App = () => (
             <Route path="/contracts/new/lease" element={<Shell><NewLease /></Shell>} />
             <Route path="/contracts/:id" element={<Shell><ContractDetail /></Shell>} />
             <Route path="/services" element={<Shell><Services /></Shell>} />
+            <Route path="/services/requests/new" element={<Shell><NewServiceRequest /></Shell>} />
+            <Route path="/services/requests/:id" element={<Shell><ServiceRequestDetail /></Shell>} />
             <Route path="/tickets" element={<Navigate to="/dashboard" replace />} />
             <Route path="/tickets/:ticketId" element={<Navigate to="/dashboard" replace />} />
             <Route path="/vendors" element={<Navigate to="/people?role=vendor" replace />} />
             <Route path="/vendors/:vendorId" element={<Shell><VendorDetail /></Shell>} />
-            <Route path="/services/:scheduleId" element={<Navigate to="/dashboard" replace />} />
             <Route path="/leads" element={<Navigate to="/dashboard" replace />} />
             <Route path="/leads/:leadId" element={<Navigate to="/dashboard" replace />} />
             <Route path="*" element={<NotFound />} />
