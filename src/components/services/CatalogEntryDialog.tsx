@@ -94,6 +94,19 @@ export function CatalogEntryDialog({ open, onOpenChange, entry, onSaved }: Props
       toast.error("Add at least one step, or untoggle the workflow option.");
       return;
     }
+    if (form.category === "other" && !(form.category_other ?? "").trim()) {
+      toast.error("Describe the 'Other' category.");
+      return;
+    }
+    if (form.is_workflow) {
+      const badStep = form.workflow_steps.find(
+        (s) => s.category === "other" && !(s.category_other ?? "").trim(),
+      );
+      if (badStep) {
+        toast.error(`Describe the 'Other' category for step "${badStep.title || badStep.key}".`);
+        return;
+      }
+    }
     setSaving(true);
     try {
       const payload = {
@@ -101,6 +114,8 @@ export function CatalogEntryDialog({ open, onOpenChange, entry, onSaved }: Props
         name: form.name.trim(),
         description: form.description?.trim() || null,
         category: form.category,
+        category_other:
+          form.category === "other" ? (form.category_other ?? "").trim() || null : null,
         default_delivery: form.default_delivery,
         default_billing: form.default_billing,
         typical_duration_days: form.typical_duration_days,
