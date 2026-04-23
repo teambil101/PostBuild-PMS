@@ -217,12 +217,18 @@ export default function NewLease() {
         .single();
       if (cErr) throw cErr;
 
-      const parties = [
-        { contract_id: contract.id, person_id: form.landlord.id, role: "landlord" as const, is_primary: true },
-        { contract_id: contract.id, person_id: form.tenant.id, role: "tenant" as const, is_primary: true },
+      type PartyInsert = {
+        contract_id: string;
+        person_id: string;
+        role: "landlord" | "tenant" | "pm_company";
+        is_primary: boolean;
+      };
+      const parties: PartyInsert[] = [
+        { contract_id: contract.id, person_id: form.landlord.id, role: "landlord", is_primary: true },
+        { contract_id: contract.id, person_id: form.tenant.id, role: "tenant", is_primary: true },
       ];
       if (form.pmCompany) {
-        parties.push({ contract_id: contract.id, person_id: form.pmCompany.id, role: "pm_company" as const, is_primary: false });
+        parties.push({ contract_id: contract.id, person_id: form.pmCompany.id, role: "pm_company", is_primary: false });
       }
       const { error: pErr } = await supabase.from("contract_parties").insert(parties);
       if (pErr) throw pErr;
