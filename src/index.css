@@ -150,4 +150,11 @@
   .hairline {
     @apply border-warm-stone/60;
   }
+  /* Wrap data tables so they can scroll horizontally on small screens
+     without breaking the page layout. Apply to the parent <div> of any
+     <table>. Pairs with `min-w-[640px]` (or similar) on the table itself. */
+  .table-scroll {
+    @apply w-full overflow-x-auto;
+    -webkit-overflow-scrolling: touch;
+  }
 }
