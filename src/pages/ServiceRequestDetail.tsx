@@ -116,6 +116,9 @@ export default function ServiceRequestDetail() {
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
   const [internalNotes, setInternalNotes] = useState("");
+  const [addStepOpen, setAddStepOpen] = useState(false);
+  const [vendorLabels, setVendorLabels] = useState<Record<string, string>>({});
+  const [personLabels, setPersonLabels] = useState<Record<string, string>>({});
 
   const load = async () => {
     if (!id) return;
@@ -138,6 +141,33 @@ export default function ServiceRequestDetail() {
     setSteps((s.data ?? []) as any);
     setEvents((e.data ?? []) as any);
     setInternalNotes((r.data as any).internal_notes ?? "");
+
+    // Fetch labels for assigned vendors / persons
+    const stepRows: any[] = (s.data ?? []) as any[];
+    const vendorIds = Array.from(new Set(stepRows.map((x) => x.assigned_vendor_id).filter(Boolean)));
+    const personIds = Array.from(new Set(stepRows.map((x) => x.assigned_person_id).filter(Boolean)));
+    if (vendorIds.length) {
+      const { data: vData } = await supabase
+        .from("vendors")
+        .select("id, legal_name, display_name")
+        .in("id", vendorIds as string[]);
+      const map: Record<string, string> = {};
+      (vData ?? []).forEach((v: any) => { map[v.id] = v.display_name || v.legal_name; });
+      setVendorLabels(map);
+    } else {
+      setVendorLabels({});
+    }
+    if (personIds.length) {
+      const { data: pData } = await supabase
+        .from("people")
+        .select("id, first_name, last_name")
+        .in("id", personIds as string[]);
+      const map: Record<string, string> = {};
+      (pData ?? []).forEach((p: any) => { map[p.id] = `${p.first_name} ${p.last_name}`.trim(); });
+      setPersonLabels(map);
+    } else {
+      setPersonLabels({});
+    }
 
     // Resolve target label
     if (r.data.target_type === "unit" && r.data.target_id) {
