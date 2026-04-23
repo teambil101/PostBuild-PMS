@@ -245,6 +245,26 @@ export function BuildingFormDialog({ open, onOpenChange, onSaved, initial }: Pro
               {errors.building_type && <p className={errorClass}>{errors.building_type}</p>}
             </div>
 
+            {form.building_type === "other" && (
+              <div>
+                <Label htmlFor="b-type-other" className={labelClass}>
+                  Describe building type <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="b-type-other"
+                  value={form.building_type_other}
+                  onChange={(e) => set("building_type_other", e.target.value)}
+                  placeholder="e.g. Industrial complex, Boutique hotel…"
+                  maxLength={80}
+                  className={cn("mt-1.5", errors.building_type_other && "border-destructive")}
+                  aria-invalid={!!errors.building_type_other}
+                />
+                {errors.building_type_other && (
+                  <p className={errorClass}>{errors.building_type_other}</p>
+                )}
+              </div>
+            )}
+
             {/* Community */}
             <div>
               <Label htmlFor="b-community" className={labelClass}>Community</Label>
