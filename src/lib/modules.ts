@@ -1,7 +1,6 @@
 import {
   Building2,
   Users,
-  FileText,
   Workflow,
   Ticket,
   LayoutDashboard,

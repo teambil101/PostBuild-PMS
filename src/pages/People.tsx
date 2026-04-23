@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
-import { Plus, Search, Users as UsersIcon, Target } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Plus, Search, Users as UsersIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -9,8 +9,6 @@ import { EmptyState } from "@/components/EmptyState";
 import { useAuth } from "@/contexts/AuthContext";
 import { PersonFormDialog } from "@/components/people/PersonFormDialog";
 import { PersonRoleBadge } from "@/components/people/PersonRoleBadge";
-import { PipelineView } from "@/components/people/PipelineView";
-import { NewLeadDialog } from "@/components/leads/NewLeadDialog";
 import { initials } from "@/lib/format";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -41,22 +39,11 @@ const ROLE_FILTERS = [
 
 export default function People() {
   const { canEdit } = useAuth();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const tab: "directory" | "pipeline" =
-    searchParams.get("tab") === "pipeline" ? "pipeline" : "directory";
-  const setTab = (v: "directory" | "pipeline") => {
-    const next = new URLSearchParams(searchParams);
-    if (v === "directory") next.delete("tab");
-    else next.set("tab", v);
-    setSearchParams(next, { replace: true });
-  };
-
   const [people, setPeople] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [open, setOpen] = useState(false);
-  const [leadOpen, setLeadOpen] = useState(false);
 
   const load = async () => {
     setLoading(true);
