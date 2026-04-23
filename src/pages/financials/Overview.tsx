@@ -19,7 +19,7 @@ export function Overview() {
       </div>
 
       <EmptyState
-        icon={LayoutDashboard}
+        icon={<LayoutDashboard className="h-8 w-8" strokeWidth={1.4} />}
         title="Financial dashboard"
         description="Live numbers will appear once you record your first invoice or payment. Phase 2 of the financials module brings receivables online."
       />
