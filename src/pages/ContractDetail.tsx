@@ -631,6 +631,21 @@ export default function ContractDetail() {
           )}
         </TabsContent>
 
+        {lease && (
+          <TabsContent value="financials" className="mt-6">
+            <LeaseFinancialsSection
+              contractId={contract.id}
+              unitId={lease.unit_id}
+              startDate={contract.start_date}
+              rentAmount={lease.rent_amount}
+              numberOfCheques={lease.number_of_cheques}
+              currency={contract.currency}
+              tenantPersonId={parties.find((p) => p.role === "tenant")?.person?.id ?? null}
+              contractStatus={contract.status}
+            />
+          </TabsContent>
+        )}
+
         <TabsContent value="documents" className="mt-6">
           <EmptyState
             icon={<FileBox className="h-10 w-10" strokeWidth={1.2} />}
