@@ -10,8 +10,16 @@ import { ContractStatusBadge } from "@/components/contracts/ContractStatusBadge"
 import {
   APPROVAL_RULE_LABEL,
   CONTRACT_TYPE_LABEL,
+  COMMISSION_PAYER_LABEL,
+  DEPOSIT_HOLDER_LABEL,
   FEE_MODEL_LABEL,
   INCLUDED_SERVICES_CATALOG,
+  PAYMENT_METHOD_LABEL,
+  RENT_FREQUENCY_LABEL,
+  type LeaseCommissionPayer,
+  type LeaseDepositHolder,
+  type LeasePaymentMethod,
+  type LeaseRentFrequency,
   type ContractStatus,
   type ContractType,
 } from "@/lib/contracts";
@@ -79,6 +87,27 @@ interface ContractRow {
     repair_authorization_terms: string | null;
     scope_notes: string | null;
   } | null;
+  lease?: {
+    unit_id: string;
+    rent_amount: number;
+    rent_frequency: string;
+    number_of_cheques: number | null;
+    payment_method: string;
+    security_deposit: number | null;
+    security_deposit_held_by: string;
+    commission_amount: number | null;
+    commission_paid_by: string;
+    ejari_number: string | null;
+    ejari_registered_date: string | null;
+    rent_free_days: number | null;
+    grace_period_days: number | null;
+    auto_renew: boolean;
+    renewal_notice_days: number | null;
+    termination_notice_days: number | null;
+    early_termination_penalty: string | null;
+    payment_notes: string | null;
+    scope_notes: string | null;
+  } | null;
 }
 
 export default function ContractDetail() {
@@ -99,9 +128,10 @@ export default function ContractDetail() {
   const load = async () => {
     if (!id) return;
     setLoading(true);
-    const [{ data: c }, { data: ma }, { data: pa }, { data: su }, { data: ev }] = await Promise.all([
+    const [{ data: c }, { data: ma }, { data: lease }, { data: pa }, { data: su }, { data: ev }] = await Promise.all([
       supabase.from("contracts").select("*").eq("id", id).maybeSingle(),
       supabase.from("management_agreements").select("*").eq("contract_id", id).maybeSingle(),
+      supabase.from("leases").select("*").eq("contract_id", id).maybeSingle(),
       supabase
         .from("contract_parties")
         .select("id, role, is_primary, person:people(id, first_name, last_name, company, primary_email, phone)")
@@ -141,7 +171,7 @@ export default function ContractDetail() {
       unit: s.subject_type === "unit" ? uMap[s.subject_id] ?? null : null,
     }));
 
-    setContract({ ...(c as any), ma: (ma as any) ?? null });
+    setContract({ ...(c as any), ma: (ma as any) ?? null, lease: (lease as any) ?? null });
     setParties((pa as any) ?? []);
     setSubjects(subjectsResolved);
     setEvents((ev as any) ?? []);
