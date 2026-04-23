@@ -100,6 +100,12 @@ export function BuildingFormDialog({ open, onOpenChange, onSaved, initial }: Pro
     if (!BUILDING_TYPES.some((t) => t.value === form.building_type)) {
       e.building_type = "Select a building type.";
     }
+    if (form.building_type === "other" && form.building_type_other.trim().length === 0) {
+      e.building_type_other = "Describe the building type.";
+    }
+    if (form.building_type_other.trim().length > 80) {
+      e.building_type_other = "Max 80 characters.";
+    }
     if (form.community.trim().length > 80) {
       e.community = "Community must be 80 characters or fewer.";
     }
