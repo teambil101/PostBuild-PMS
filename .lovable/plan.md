@@ -1,95 +1,92 @@
 
 
-## Workflow steps as catalog references
+## Pivot to unit-centric operations + inline create in contracts
 
-Currently each workflow step is a free-text title with manually picked category/delivery/billing/duration. You want a step to **be** another catalog service — so a workflow service is literally a chain of existing catalog entries (and "Service 3 = Service 1 → Service 2" works without retyping anything).
+Two related changes:
 
-### What changes in the UI
+1. **Units become the only operational subject.** Buildings remain as containers (city, type, owners) but cannot be the target of a service request or the subject of a contract. Every job and every contract attaches to one or more units.
+2. **Contract wizards** (MA, Lease, VSA) get inline "+ Create new" affordances for **Unit**, **Tenant**, and **Vendor**, so the user never has to leave the wizard to fix missing data.
 
-**`WorkflowStepsEditor.tsx`** — the per-step row becomes:
+---
 
-```text
-[↑↓]  STEP 1   [ Catalog service ▼ AC service / repair        ]   [🗑]
-                ├─ Title override (optional): [____________________]
-                ├─ Duration override (days):  [___]
-                └─ ☐ Blocks next step until done
-```
+### Part A — Unit-centric Properties module
 
-- Replace the title `<Input>` with a **`CatalogPicker`** (searchable popover combobox) that lists every active catalog entry. This is the only required field per step.
-- Drop the per-step Category / Delivery / Billing / Duration selects from the editor — those now come from the chosen catalog entry. (Show them as small read-only badges next to the picker, like `MAINTENANCE · VENDOR · PAID · ~2d`, so the user sees what they're chaining.)
-- Keep two optional overrides: **Title override** (if you want this step labeled differently in the chained workflow, e.g. "Initial AC inspection" instead of "AC service / repair") and **Duration override**.
-- Keep the **Blocks next step** switch.
-- Prevent picking a workflow-type catalog entry as a step (no nested workflows in v1) — filter them out of the picker with a one-line note.
+**Properties landing (`/properties`) becomes a unit list.**
 
-**`CatalogEntryDialog.tsx`** — validation in `save()`:
-- For workflow services, every step must have a `catalog_id`. Drop the old "describe Other category" check on steps (no longer relevant; the step has no own category).
+- Default view: a flat, searchable, filterable list of **all units** across the portfolio. Columns: ref code, unit (building name · unit number), type, status, beds/baths, size, asking rent.
+- Filters: building, status, type, vacancy.
+- Two view toggles: **Units** (default) and **Buildings** (the existing grid/list, demoted to a secondary tab).
+- Primary CTA: **+ New unit** (opens unit dialog with a building selector inside; "+ New building" link inline for the rare case there's no building yet).
+- Secondary CTA in the Buildings tab: **+ New building**.
 
-### What changes in data
+**Building detail (`/properties/:id`) stays as today** — it's the editor for the building shell and shows the units inside it, but it's no longer where you start day-to-day work.
 
-**`WorkflowStep` type** (`src/lib/services.ts`) — slim it down:
+**Unit detail (`/properties/:buildingId/units/:unitId`)** unchanged structurally, but breadcrumbs updated to lead back to the unit list rather than the building.
 
-```ts
-export interface WorkflowStep {
-  key: string;                       // stable slug
-  catalog_id: string;                // NEW — the chained service
-  title_override?: string | null;    // optional display override
-  duration_override_days?: number | null;
-  blocks_next: boolean;
-}
-```
+**Sidebar / Dashboard wording:** "Properties" stays as the module label, but the dashboard card description changes from "Buildings, units, ownership" to "Units, buildings, ownership."
 
-`workflow_steps` is still stored as JSONB on `service_catalog`, so no schema migration is needed for the catalog table itself.
+---
 
-### What changes in the DB function
+### Part B — Eliminate building-level service work
 
-`create_service_request_from_catalog` already explodes `workflow_steps` into `service_request_steps`. Update the loop to **resolve each step's referenced catalog entry** and copy its defaults into the step row:
+**Service requests target only units.**
 
-```sql
-FOR v_step IN SELECT * FROM jsonb_array_elements(v_catalog.workflow_steps)
-LOOP
-  SELECT * INTO v_step_catalog
-    FROM public.service_catalog
-   WHERE id = (v_step->>'catalog_id')::uuid;
+- `TargetPicker.tsx`: drop the "A building" and "Portfolio-level" tiles. Single mode: pick a unit. (We keep `target_type` in the schema for legacy rows but the UI only writes `'unit'`.)
+- `NewServiceRequest.tsx` wizard: remove the target-type step's branch logic; the unit picker is shown directly with a search box.
+- `ServiceRequestDetail.tsx`: target rendering simplified to just "Building · Unit N".
+- Common-area work (lobby, lift) is handled by attaching the request to a designated representative unit (e.g. "Common Areas" unit) — documented as a soft convention; not enforced in code. Existing legacy building-level requests still render but show a small "legacy building target" tag.
 
-  IF v_step_catalog.id IS NULL THEN
-    RAISE EXCEPTION 'Workflow step references missing catalog entry %', v_step->>'catalog_id';
-  END IF;
+**Service catalog** stays as-is — workflow/recurring catalog entries don't change.
 
-  INSERT INTO public.service_request_steps (
-    request_id, step_key, title, sort_order, category, category_other,
-    delivery, billing, blocks_next, typical_duration_days
-  ) VALUES (
-    v_request_id,
-    COALESCE(NULLIF(v_step->>'key',''), v_step_catalog.code),
-    COALESCE(NULLIF(v_step->>'title_override',''), v_step_catalog.name),
-    v_idx,
-    v_step_catalog.category,
-    v_step_catalog.category_other,
-    v_step_catalog.default_delivery,
-    v_step_catalog.default_billing,
-    COALESCE((v_step->>'blocks_next')::boolean, false),
-    COALESCE(
-      NULLIF(v_step->>'duration_override_days','')::integer,
-      v_step_catalog.typical_duration_days
-    )
-  );
-  v_idx := v_idx + 1;
-END LOOP;
-```
+---
 
-### Backwards compatibility
+### Part C — Contracts: units only as subjects
 
-Existing catalog rows whose `workflow_steps` already have inline `category`/`default_delivery`/`default_billing` (created before this change) will stop being expandable, since the new RPC requires `catalog_id`. To keep them working without forcing a manual rewrite, the RPC falls back to the legacy inline shape when `catalog_id` is missing (uses the old INSERT path). The editor, however, only writes the new shape going forward. Any legacy step opened in the editor without a `catalog_id` will show a yellow "Legacy step — pick a catalog service to upgrade" banner with the picker pre-focused.
+**Management Agreement wizard (`NewManagementAgreement.tsx`)**
 
-### New component
+- Replace `PropertyPicker` (current building+unit hierarchy) with a new `UnitMultiPicker` that lists units grouped by building, with a "Select all units in this building" shortcut (writes individual unit subjects, not a building subject).
+- Every saved subject is `subject_type='unit'`. Building subjects are no longer written.
+- Add inline "+ New unit" affordance inside the picker (opens `UnitFormDialog` — requires picking/creating a building first).
 
-**`src/components/services/CatalogPicker.tsx`** — a small Popover + Command searchable list of active, non-workflow catalog entries. Shows name, code, and category badge per row. Used by `WorkflowStepsEditor`. (This is distinct from the existing `CatalogPicker` in the new-request wizard if any; if one already exists, reuse it with a `filter={(e) => !e.is_workflow}` prop.)
+**Lease wizard** (`NewLease.tsx`) — already unit-only. Add inline "+ New unit" and "+ New tenant" actions.
+
+**VSA wizard** (`NewVendorServiceAgreement.tsx`) — already vendor-scoped (no property subjects). Add inline "+ New vendor" action in `VendorPicker`.
+
+**Contract detail (`ContractDetail.tsx`)** — subject rendering simplified to unit rows only; legacy building subjects still display with a "(legacy: building-level)" tag.
+
+---
+
+### Part D — Inline create in pickers
+
+Three pickers gain a "+ Create new" item, mirroring how `PersonCombobox` already does it:
+
+| Picker | New affordance | Opens |
+|---|---|---|
+| `UnitPicker` (lease wizard) | `+ New unit` | `UnitFormDialog` (with a building sub-selector) |
+| New `UnitMultiPicker` (MA wizard) | `+ New unit` | same as above |
+| `PersonCombobox` (tenant role in lease wizard) | already has `+ Add new person` — keep it | `PersonQuickAddDialog` |
+| `VendorPicker` (VSA wizard) | `+ New vendor` | `NewVendorDialog` (existing) |
+
+When a new entity is created inline, it's auto-selected in the picker and the wizard step's validation re-runs.
+
+---
 
 ### Files touched
 
-- `src/lib/services.ts` — slim `WorkflowStep`, update `EMPTY_STEP`.
-- `src/components/services/WorkflowStepsEditor.tsx` — replace inline editor with picker + overrides.
-- `src/components/services/CatalogPicker.tsx` — new (or extend existing).
-- `src/components/services/CatalogEntryDialog.tsx` — adjust validation.
-- New migration — replace `create_service_request_from_catalog` with the catalog-resolving version (with legacy fallback).
+**New**
+- `src/components/contracts/UnitMultiPicker.tsx` — replaces `PropertyPicker` for MA wizard. Supports inline "+ New unit".
+
+**Edited**
+- `src/pages/Properties.tsx` — flip default to unit list; keep buildings as a secondary tab.
+- `src/components/properties/UnitFormDialog.tsx` — accept optional `buildingId` (when called from a global "new unit" flow, expose a building selector with inline "+ New building" → opens `BuildingFormDialog`).
+- `src/components/contracts/UnitPicker.tsx` — add "+ New unit" trigger (opens `UnitFormDialog`).
+- `src/components/contracts/VendorPicker.tsx` — add "+ New vendor" trigger (opens `NewVendorDialog`).
+- `src/components/services/TargetPicker.tsx` — drop building/portfolio tiles; unit-only.
+- `src/pages/NewServiceRequest.tsx` — simplify target step.
+- `src/pages/NewManagementAgreement.tsx` — swap `PropertyPicker` → `UnitMultiPicker`; write only unit subjects.
+- `src/pages/ContractDetail.tsx` — simplify subject rendering, tag legacy building rows.
+- `src/pages/ServiceRequestDetail.tsx` — simplify target rendering, tag legacy building rows.
+- `src/pages/Dashboard.tsx` — dashboard wording.
+
+**No DB migration** — schema already supports unit subjects/targets; legacy building rows are left in place and rendered with a "(legacy)" tag.
 
