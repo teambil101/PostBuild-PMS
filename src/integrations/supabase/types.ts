@@ -94,6 +94,175 @@ export type Database = {
         }
         Relationships: []
       }
+      contract_events: {
+        Row: {
+          actor_id: string | null
+          contract_id: string
+          created_at: string
+          description: string | null
+          event_type: string
+          from_value: string | null
+          id: string
+          to_value: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          contract_id: string
+          created_at?: string
+          description?: string | null
+          event_type: string
+          from_value?: string | null
+          id?: string
+          to_value?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          contract_id?: string
+          created_at?: string
+          description?: string | null
+          event_type?: string
+          from_value?: string | null
+          id?: string
+          to_value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_events_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contract_parties: {
+        Row: {
+          contract_id: string
+          created_at: string
+          id: string
+          is_primary: boolean
+          notes: string | null
+          person_id: string
+          role: Database["public"]["Enums"]["contract_party_role"]
+        }
+        Insert: {
+          contract_id: string
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          notes?: string | null
+          person_id: string
+          role: Database["public"]["Enums"]["contract_party_role"]
+        }
+        Update: {
+          contract_id?: string
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          notes?: string | null
+          person_id?: string
+          role?: Database["public"]["Enums"]["contract_party_role"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_parties_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_parties_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contract_subjects: {
+        Row: {
+          contract_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          subject_id: string
+          subject_type: string
+        }
+        Insert: {
+          contract_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          subject_id: string
+          subject_type: string
+        }
+        Update: {
+          contract_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          subject_id?: string
+          subject_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_subjects_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contracts: {
+        Row: {
+          contract_number: string
+          contract_type: Database["public"]["Enums"]["contract_type"]
+          created_at: string
+          created_by: string | null
+          currency: string
+          end_date: string | null
+          id: string
+          notes: string | null
+          signed_date: string | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["contract_status"]
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          contract_number: string
+          contract_type: Database["public"]["Enums"]["contract_type"]
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          end_date?: string | null
+          id?: string
+          notes?: string | null
+          signed_date?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["contract_status"]
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          contract_number?: string
+          contract_type?: Database["public"]["Enums"]["contract_type"]
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          end_date?: string | null
+          id?: string
+          notes?: string | null
+          signed_date?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["contract_status"]
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       documents: {
         Row: {
           created_at: string
@@ -303,6 +472,80 @@ export type Database = {
             columns: ["primary_contact_id"]
             isOneToOne: false
             referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      management_agreements: {
+        Row: {
+          approval_rule: Database["public"]["Enums"]["ma_approval_rule"]
+          approval_threshold_amount: number | null
+          approval_threshold_currency: string | null
+          auto_renew: boolean
+          contract_id: string
+          created_at: string
+          fee_flat_annual: number | null
+          fee_flat_per_unit: number | null
+          fee_model: Database["public"]["Enums"]["ma_fee_model"]
+          fee_notes: string | null
+          fee_percent: number | null
+          included_services: Json
+          lease_up_fee_model: string | null
+          lease_up_fee_value: number | null
+          renewal_notice_days: number | null
+          repair_authorization_terms: string | null
+          scope_notes: string | null
+          termination_notice_days: number | null
+          updated_at: string
+        }
+        Insert: {
+          approval_rule?: Database["public"]["Enums"]["ma_approval_rule"]
+          approval_threshold_amount?: number | null
+          approval_threshold_currency?: string | null
+          auto_renew?: boolean
+          contract_id: string
+          created_at?: string
+          fee_flat_annual?: number | null
+          fee_flat_per_unit?: number | null
+          fee_model?: Database["public"]["Enums"]["ma_fee_model"]
+          fee_notes?: string | null
+          fee_percent?: number | null
+          included_services?: Json
+          lease_up_fee_model?: string | null
+          lease_up_fee_value?: number | null
+          renewal_notice_days?: number | null
+          repair_authorization_terms?: string | null
+          scope_notes?: string | null
+          termination_notice_days?: number | null
+          updated_at?: string
+        }
+        Update: {
+          approval_rule?: Database["public"]["Enums"]["ma_approval_rule"]
+          approval_threshold_amount?: number | null
+          approval_threshold_currency?: string | null
+          auto_renew?: boolean
+          contract_id?: string
+          created_at?: string
+          fee_flat_annual?: number | null
+          fee_flat_per_unit?: number | null
+          fee_model?: Database["public"]["Enums"]["ma_fee_model"]
+          fee_notes?: string | null
+          fee_percent?: number | null
+          included_services?: Json
+          lease_up_fee_model?: string | null
+          lease_up_fee_value?: number | null
+          renewal_notice_days?: number | null
+          repair_authorization_terms?: string | null
+          scope_notes?: string | null
+          termination_notice_days?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "management_agreements_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: true
+            referencedRelation: "contracts"
             referencedColumns: ["id"]
           },
         ]
@@ -1317,6 +1560,30 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "staff" | "viewer"
+      contract_party_role:
+        | "pm_company"
+        | "landlord"
+        | "tenant"
+        | "broker"
+        | "guarantor"
+        | "vendor"
+      contract_status:
+        | "draft"
+        | "pending_signature"
+        | "active"
+        | "expired"
+        | "terminated"
+        | "cancelled"
+      contract_type:
+        | "management_agreement"
+        | "lease"
+        | "vendor_service_agreement"
+      ma_approval_rule: "auto_threshold" | "always_required" | "auto_all"
+      ma_fee_model:
+        | "percent_of_rent"
+        | "flat_annual"
+        | "flat_per_unit"
+        | "hybrid"
       person_role: "tenant" | "owner" | "prospect" | "staff" | "vendor"
       property_status:
         | "vacant"
@@ -1467,6 +1734,34 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "staff", "viewer"],
+      contract_party_role: [
+        "pm_company",
+        "landlord",
+        "tenant",
+        "broker",
+        "guarantor",
+        "vendor",
+      ],
+      contract_status: [
+        "draft",
+        "pending_signature",
+        "active",
+        "expired",
+        "terminated",
+        "cancelled",
+      ],
+      contract_type: [
+        "management_agreement",
+        "lease",
+        "vendor_service_agreement",
+      ],
+      ma_approval_rule: ["auto_threshold", "always_required", "auto_all"],
+      ma_fee_model: [
+        "percent_of_rent",
+        "flat_annual",
+        "flat_per_unit",
+        "hybrid",
+      ],
       person_role: ["tenant", "owner", "prospect", "staff", "vendor"],
       property_status: [
         "vacant",
