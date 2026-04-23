@@ -292,6 +292,16 @@ export default function Services() {
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => startDelete(entry)}
+                            aria-label="Delete"
+                            title="Delete"
+                            className="text-muted-foreground hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
                     ))}
@@ -312,6 +322,14 @@ export default function Services() {
         onOpenChange={setDialogOpen}
         entry={editing}
         onSaved={() => void load()}
+      />
+
+      <DeleteCatalogEntryDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        entry={deleting}
+        allEntries={entries}
+        onDeleted={() => void load()}
       />
     </>
   );

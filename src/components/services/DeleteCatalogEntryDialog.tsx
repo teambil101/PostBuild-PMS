@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import type { CatalogEntry } from "./CatalogEntryDialog";
+import type { ServiceRequestStatus } from "@/lib/services";
 import { cn } from "@/lib/utils";
 
 interface ActiveRequestRef {
@@ -38,7 +39,7 @@ interface Props {
   onDeleted: () => void;
 }
 
-const ACTIVE_STATUSES = ["open", "scheduled", "in_progress", "blocked"] as const;
+const ACTIVE_STATUSES: ServiceRequestStatus[] = ["open", "scheduled", "in_progress", "blocked"];
 
 export function DeleteCatalogEntryDialog({ open, onOpenChange, entry, allEntries, onDeleted }: Props) {
   const [loading, setLoading] = useState(false);
@@ -62,7 +63,7 @@ export function DeleteCatalogEntryDialog({ open, onOpenChange, entry, allEntries
         .from("service_requests")
         .select("id, request_number, title, status")
         .eq("catalog_id", entry.id)
-        .in("status", ACTIVE_STATUSES as unknown as string[])
+        .in("status", ACTIVE_STATUSES)
         .order("created_at", { ascending: false })
         .limit(200);
       setActiveRequests((reqRows ?? []) as ActiveRequestRef[]);
@@ -120,7 +121,7 @@ export function DeleteCatalogEntryDialog({ open, onOpenChange, entry, allEntries
           .from("service_requests")
           .update({ catalog_id: replacementId })
           .eq("catalog_id", entry.id)
-          .in("status", ACTIVE_STATUSES as unknown as string[]);
+          .in("status", ACTIVE_STATUSES);
         if (reqErr) throw reqErr;
       }
 
