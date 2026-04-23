@@ -733,6 +733,7 @@ function ContactDialog({
 }) {
   const [person, setPerson] = useState<PickedPerson | null>(null);
   const [role, setRole] = useState<VendorContactRole>("primary");
+  const [roleOther, setRoleOther] = useState("");
   const [isPrimary, setIsPrimary] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -741,20 +742,27 @@ function ContactDialog({
     if (seed) {
       setPerson(null);
       setRole(seed.role);
+      setRoleOther(seed.role_other ?? "");
       setIsPrimary(seed.is_primary);
     } else {
       setPerson(null);
       setRole("primary");
+      setRoleOther("");
       setIsPrimary(false);
     }
   }, [open, seed]);
 
   const handleSubmit = async () => {
+    if (role === "other" && !roleOther.trim()) {
+      toast.error("Describe the 'Other' role.");
+      return;
+    }
     setBusy(true);
+    const roleOtherValue = role === "other" ? roleOther.trim() || null : null;
     if (seed) {
       const { error } = await supabase
         .from("vendor_contacts")
-        .update({ role, is_primary: isPrimary })
+        .update({ role, role_other: roleOtherValue, is_primary: isPrimary })
         .eq("id", seed.id);
       setBusy(false);
       if (error) { toast.error(error.message); return; }
@@ -767,6 +775,7 @@ function ContactDialog({
       vendor_id: vendorId,
       person_id: person.id,
       role,
+      role_other: roleOtherValue,
       is_primary: isPrimary,
     });
     setBusy(false);
