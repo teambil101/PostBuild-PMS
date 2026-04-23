@@ -14,7 +14,7 @@ export default function Dashboard() {
   });
 
   const cards = [
-    { to: "/properties", icon: Building2, label: "Properties", desc: "Buildings, units, ownership." },
+    { to: "/properties", icon: Building2, label: "Properties", desc: "Units, buildings, ownership." },
     { to: "/people", icon: Users, label: "Directory", desc: "Landlords, tenants, vendors, staff." },
     { to: "/vendors", icon: Truck, label: "Vendors", desc: "Service providers and contractors." },
   ];
