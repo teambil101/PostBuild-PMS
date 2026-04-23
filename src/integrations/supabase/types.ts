@@ -1054,6 +1054,63 @@ export type Database = {
           },
         ]
       }
+      service_catalog: {
+        Row: {
+          cadence: Database["public"]["Enums"]["service_cadence"]
+          category: Database["public"]["Enums"]["service_category"]
+          code: string
+          created_at: string
+          created_by: string | null
+          default_billing: Database["public"]["Enums"]["service_billing"]
+          default_delivery: Database["public"]["Enums"]["service_delivery"]
+          description: string | null
+          id: string
+          is_active: boolean
+          is_workflow: boolean
+          name: string
+          recurrence_interval_days: number | null
+          typical_duration_days: number | null
+          updated_at: string
+          workflow_steps: Json
+        }
+        Insert: {
+          cadence?: Database["public"]["Enums"]["service_cadence"]
+          category?: Database["public"]["Enums"]["service_category"]
+          code: string
+          created_at?: string
+          created_by?: string | null
+          default_billing?: Database["public"]["Enums"]["service_billing"]
+          default_delivery?: Database["public"]["Enums"]["service_delivery"]
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_workflow?: boolean
+          name: string
+          recurrence_interval_days?: number | null
+          typical_duration_days?: number | null
+          updated_at?: string
+          workflow_steps?: Json
+        }
+        Update: {
+          cadence?: Database["public"]["Enums"]["service_cadence"]
+          category?: Database["public"]["Enums"]["service_category"]
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          default_billing?: Database["public"]["Enums"]["service_billing"]
+          default_delivery?: Database["public"]["Enums"]["service_delivery"]
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_workflow?: boolean
+          name?: string
+          recurrence_interval_days?: number | null
+          typical_duration_days?: number | null
+          updated_at?: string
+          workflow_steps?: Json
+        }
+        Relationships: []
+      }
       unit_status_history: {
         Row: {
           changed_at: string
@@ -1696,6 +1753,26 @@ export type Database = {
         | "off_market"
         | "under_maintenance"
         | "reserved"
+      service_billing: "free" | "paid" | "pass_through"
+      service_cadence:
+        | "one_off"
+        | "weekly"
+        | "monthly"
+        | "quarterly"
+        | "biannual"
+        | "annual"
+        | "custom"
+      service_category:
+        | "maintenance"
+        | "inspection"
+        | "tenant_lifecycle"
+        | "leasing"
+        | "compliance"
+        | "cleaning"
+        | "utilities"
+        | "administrative"
+        | "other"
+      service_delivery: "vendor" | "staff" | "either"
       unit_type:
         | "studio"
         | "apartment"
@@ -1875,6 +1952,28 @@ export const Constants = {
         "under_maintenance",
         "reserved",
       ],
+      service_billing: ["free", "paid", "pass_through"],
+      service_cadence: [
+        "one_off",
+        "weekly",
+        "monthly",
+        "quarterly",
+        "biannual",
+        "annual",
+        "custom",
+      ],
+      service_category: [
+        "maintenance",
+        "inspection",
+        "tenant_lifecycle",
+        "leasing",
+        "compliance",
+        "cleaning",
+        "utilities",
+        "administrative",
+        "other",
+      ],
+      service_delivery: ["vendor", "staff", "either"],
       unit_type: [
         "studio",
         "apartment",
