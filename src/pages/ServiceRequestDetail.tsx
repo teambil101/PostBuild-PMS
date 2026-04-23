@@ -25,6 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { RequestStatusBadge } from "@/components/services/RequestStatusBadge";
 import { BillingBadge, CategoryBadge, DeliveryBadge } from "@/components/services/CatalogBadges";
+import { ApprovalCard } from "@/components/services/ApprovalCard";
 import {
   PRIORITY_LABEL,
   PRIORITY_STYLES,
@@ -35,6 +36,7 @@ import {
   type ServiceCategory,
   type ServiceDelivery,
   type ServiceBilling,
+  type ServiceRequestApprovalStatus,
 } from "@/lib/services";
 import { cn } from "@/lib/utils";
 
@@ -59,6 +61,15 @@ interface RequestRow {
   description: string | null;
   internal_notes: string | null;
   created_at: string;
+  approval_status: ServiceRequestApprovalStatus;
+  approval_required_reason: string | null;
+  approval_threshold_amount: number | null;
+  approval_threshold_currency: string | null;
+  approval_rule_snapshot: string | null;
+  approval_management_agreement_id: string | null;
+  approval_requested_at: string | null;
+  approval_decided_at: string | null;
+  approval_decision_notes: string | null;
 }
 
 interface StepRow {
