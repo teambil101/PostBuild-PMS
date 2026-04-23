@@ -220,7 +220,7 @@ export default function People() {
               }
               action={
                 !search && roleFilter === "all" && canEdit && (
-                  <Button variant="gold" onClick={() => setOpen(true)}>
+                  <Button variant="gold" onClick={() => setPersonOpen(true)}>
                     <Plus className="h-4 w-4" /> Add a person
                   </Button>
                 )
@@ -228,44 +228,93 @@ export default function People() {
             />
           ) : (
             <div className="border hairline rounded-sm divide-y divide-warm-stone/60 bg-card">
-              {filtered.map((p) => (
-                <Link
-                  key={p.id}
-                  to={`/people/${p.id}`}
-                  className="flex items-center gap-4 px-5 py-4 hover:bg-muted/30 transition-colors"
-                >
-                  <div className="h-10 w-10 shrink-0 bg-architect text-chalk flex items-center justify-center rounded-sm text-sm font-medium">
-                    {initials(p.first_name, p.last_name)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-3">
-                      <div className="font-display text-lg text-architect truncate">
-                        {p.first_name} {p.last_name}
-                      </div>
-                      <span className="ref-code">{p.ref_code}</span>
-                    </div>
-                    <div className="text-xs text-muted-foreground truncate">
-                      {[p.email, p.company, p.city].filter(Boolean).join(" · ") || "—"}
-                    </div>
-                  </div>
-                  <div className="hidden md:flex items-center gap-1.5 flex-wrap shrink-0 max-w-[260px] justify-end">
-                    {p.roles?.map((r) => <PersonRoleBadge key={r} role={r as any} />)}
-                    {p.owns_count && p.owns_count > 0 ? (
-                      <span className="inline-block px-2 py-0.5 rounded-sm border border-gold/40 bg-gold/15 text-smoked-bronze text-[10px] uppercase tracking-wider font-medium">
-                        Owner ({p.owns_count})
-                      </span>
-                    ) : null}
-                  </div>
-                </Link>
-              ))}
+              {filtered.map((entry) => entry.kind === "vendor"
+                ? <VendorRow key={`v-${entry.id}`} entry={entry} />
+                : <PersonRow key={`p-${entry.id}`} entry={entry} />
+              )}
             </div>
           )}
 
       <PersonFormDialog
-        open={open}
-        onOpenChange={setOpen}
-        onSaved={() => { setOpen(false); load(); }}
+        open={personOpen}
+        onOpenChange={setPersonOpen}
+        onSaved={() => { setPersonOpen(false); load(); }}
+      />
+      <NewVendorDialog
+        open={vendorOpen}
+        onOpenChange={setVendorOpen}
+        onSaved={() => { setVendorOpen(false); load(); }}
       />
     </>
+  );
+}
+
+function PersonRow({ entry: p }: { entry: PersonEntry }) {
+  return (
+    <Link
+      to={`/people/${p.id}`}
+      className="flex items-center gap-4 px-5 py-4 hover:bg-muted/30 transition-colors"
+    >
+      <div className="h-10 w-10 shrink-0 bg-architect text-chalk flex items-center justify-center rounded-sm text-sm font-medium">
+        {initials(p.first_name, p.last_name)}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-baseline gap-3">
+          <div className="font-display text-lg text-architect truncate">
+            {p.first_name} {p.last_name}
+          </div>
+          <span className="ref-code">{p.ref_code}</span>
+        </div>
+        <div className="text-xs text-muted-foreground truncate">
+          {[p.email, p.company, p.city].filter(Boolean).join(" · ") || "—"}
+        </div>
+      </div>
+      <div className="hidden md:flex items-center gap-1.5 flex-wrap shrink-0 max-w-[260px] justify-end">
+        {p.roles?.map((r) => <PersonRoleBadge key={r} role={r as any} />)}
+        {p.owns_count && p.owns_count > 0 ? (
+          <span className="inline-block px-2 py-0.5 rounded-sm border border-gold/40 bg-gold/15 text-smoked-bronze text-[10px] uppercase tracking-wider font-medium">
+            Owner ({p.owns_count})
+          </span>
+        ) : null}
+      </div>
+    </Link>
+  );
+}
+
+function VendorRow({ entry: v }: { entry: VendorEntry }) {
+  const specs = parseSpecialties(v.specialties);
+  const specSummary = specs.slice(0, 2).map((s) => SPECIALTY_LABELS[s]).join(" · ");
+  const overflow = Math.max(0, specs.length - 2);
+  return (
+    <Link
+      to={`/vendors/${v.id}`}
+      className="flex items-center gap-4 px-5 py-4 hover:bg-muted/30 transition-colors"
+    >
+      <div className="h-10 w-10 shrink-0 bg-smoked-bronze/15 text-smoked-bronze flex items-center justify-center rounded-sm">
+        <Truck className="h-4 w-4" strokeWidth={1.5} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-baseline gap-3">
+          <div className="font-display text-lg text-architect truncate inline-flex items-center gap-1.5">
+            {v.is_preferred && <Star className="h-3.5 w-3.5 fill-gold text-gold" />}
+            {v.name}
+          </div>
+          <span className="ref-code">{v.ref_code}</span>
+        </div>
+        <div className="text-xs text-muted-foreground truncate">
+          {[specSummary + (overflow ? ` +${overflow}` : ""), v.email, v.phone].filter(Boolean).join(" · ") || "—"}
+        </div>
+      </div>
+      <div className="hidden md:flex items-center gap-1.5 flex-wrap shrink-0 max-w-[260px] justify-end">
+        <span className="inline-block px-2 py-0.5 rounded-sm border border-smoked-bronze/40 bg-smoked-bronze/10 text-smoked-bronze text-[10px] uppercase tracking-wider font-medium">
+          Vendor company
+        </span>
+        {!v.is_active && (
+          <span className="inline-block px-2 py-0.5 rounded-sm border border-warm-stone bg-warm-stone/30 text-muted-foreground text-[10px] uppercase tracking-wider font-medium">
+            {v.status}
+          </span>
+        )}
+      </div>
+    </Link>
   );
 }
