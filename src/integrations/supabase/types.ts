@@ -1111,6 +1111,261 @@ export type Database = {
         }
         Relationships: []
       }
+      service_request_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          description: string | null
+          event_type: string
+          from_value: string | null
+          id: string
+          request_id: string
+          step_id: string | null
+          to_value: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          description?: string | null
+          event_type: string
+          from_value?: string | null
+          id?: string
+          request_id: string
+          step_id?: string | null
+          to_value?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          description?: string | null
+          event_type?: string
+          from_value?: string | null
+          id?: string
+          request_id?: string
+          step_id?: string | null
+          to_value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_request_events_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_request_events_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "service_request_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_request_steps: {
+        Row: {
+          assigned_person_id: string | null
+          assigned_vendor_id: string | null
+          billing: Database["public"]["Enums"]["service_billing"]
+          blocks_next: boolean
+          category: Database["public"]["Enums"]["service_category"]
+          completed_at: string | null
+          created_at: string
+          delivery: Database["public"]["Enums"]["service_delivery"]
+          id: string
+          notes: string | null
+          request_id: string
+          scheduled_date: string | null
+          sort_order: number
+          status: Database["public"]["Enums"]["service_request_step_status"]
+          step_key: string
+          title: string
+          typical_duration_days: number | null
+          updated_at: string
+        }
+        Insert: {
+          assigned_person_id?: string | null
+          assigned_vendor_id?: string | null
+          billing?: Database["public"]["Enums"]["service_billing"]
+          blocks_next?: boolean
+          category: Database["public"]["Enums"]["service_category"]
+          completed_at?: string | null
+          created_at?: string
+          delivery?: Database["public"]["Enums"]["service_delivery"]
+          id?: string
+          notes?: string | null
+          request_id: string
+          scheduled_date?: string | null
+          sort_order?: number
+          status?: Database["public"]["Enums"]["service_request_step_status"]
+          step_key: string
+          title: string
+          typical_duration_days?: number | null
+          updated_at?: string
+        }
+        Update: {
+          assigned_person_id?: string | null
+          assigned_vendor_id?: string | null
+          billing?: Database["public"]["Enums"]["service_billing"]
+          blocks_next?: boolean
+          category?: Database["public"]["Enums"]["service_category"]
+          completed_at?: string | null
+          created_at?: string
+          delivery?: Database["public"]["Enums"]["service_delivery"]
+          id?: string
+          notes?: string | null
+          request_id?: string
+          scheduled_date?: string | null
+          sort_order?: number
+          status?: Database["public"]["Enums"]["service_request_step_status"]
+          step_key?: string
+          title?: string
+          typical_duration_days?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_request_steps_assigned_person_id_fkey"
+            columns: ["assigned_person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_request_steps_assigned_vendor_id_fkey"
+            columns: ["assigned_vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_request_steps_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_requests: {
+        Row: {
+          assigned_person_id: string | null
+          assigned_vendor_id: string | null
+          billing: Database["public"]["Enums"]["service_billing"]
+          catalog_id: string | null
+          category: Database["public"]["Enums"]["service_category"]
+          completed_at: string | null
+          cost_estimate: number | null
+          cost_final: number | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          delivery: Database["public"]["Enums"]["service_delivery"]
+          description: string | null
+          id: string
+          internal_notes: string | null
+          is_workflow: boolean
+          priority: Database["public"]["Enums"]["service_request_priority"]
+          request_number: string
+          requested_by_person_id: string | null
+          scheduled_date: string | null
+          source: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["service_request_status"]
+          target_id: string | null
+          target_type: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_person_id?: string | null
+          assigned_vendor_id?: string | null
+          billing?: Database["public"]["Enums"]["service_billing"]
+          catalog_id?: string | null
+          category: Database["public"]["Enums"]["service_category"]
+          completed_at?: string | null
+          cost_estimate?: number | null
+          cost_final?: number | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          delivery?: Database["public"]["Enums"]["service_delivery"]
+          description?: string | null
+          id?: string
+          internal_notes?: string | null
+          is_workflow?: boolean
+          priority?: Database["public"]["Enums"]["service_request_priority"]
+          request_number: string
+          requested_by_person_id?: string | null
+          scheduled_date?: string | null
+          source?: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["service_request_status"]
+          target_id?: string | null
+          target_type: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_person_id?: string | null
+          assigned_vendor_id?: string | null
+          billing?: Database["public"]["Enums"]["service_billing"]
+          catalog_id?: string | null
+          category?: Database["public"]["Enums"]["service_category"]
+          completed_at?: string | null
+          cost_estimate?: number | null
+          cost_final?: number | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          delivery?: Database["public"]["Enums"]["service_delivery"]
+          description?: string | null
+          id?: string
+          internal_notes?: string | null
+          is_workflow?: boolean
+          priority?: Database["public"]["Enums"]["service_request_priority"]
+          request_number?: string
+          requested_by_person_id?: string | null
+          scheduled_date?: string | null
+          source?: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["service_request_status"]
+          target_id?: string | null
+          target_type?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_requests_assigned_person_id_fkey"
+            columns: ["assigned_person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_requests_assigned_vendor_id_fkey"
+            columns: ["assigned_vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_requests_catalog_id_fkey"
+            columns: ["catalog_id"]
+            isOneToOne: false
+            referencedRelation: "service_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_requests_requested_by_person_id_fkey"
+            columns: ["requested_by_person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       unit_status_history: {
         Row: {
           changed_at: string
@@ -1635,6 +1890,24 @@ export type Database = {
         }
         Returns: undefined
       }
+      create_service_request_from_catalog: {
+        Args: {
+          p_assigned_person_id?: string
+          p_assigned_vendor_id?: string
+          p_catalog_id: string
+          p_cost_estimate?: number
+          p_description?: string
+          p_internal_notes?: string
+          p_override_title?: string
+          p_priority?: Database["public"]["Enums"]["service_request_priority"]
+          p_requested_by_person_id?: string
+          p_scheduled_date?: string
+          p_source?: string
+          p_target_id: string
+          p_target_type: string
+        }
+        Returns: string
+      }
       current_user_person_id: { Args: never; Returns: string }
       get_applicable_repair_threshold: {
         Args: { p_entity_id: string; p_entity_type: string }
@@ -1773,6 +2046,20 @@ export type Database = {
         | "administrative"
         | "other"
       service_delivery: "vendor" | "staff" | "either"
+      service_request_priority: "low" | "normal" | "high" | "urgent"
+      service_request_status:
+        | "open"
+        | "scheduled"
+        | "in_progress"
+        | "blocked"
+        | "completed"
+        | "cancelled"
+      service_request_step_status:
+        | "pending"
+        | "in_progress"
+        | "blocked"
+        | "completed"
+        | "skipped"
       unit_type:
         | "studio"
         | "apartment"
@@ -1974,6 +2261,22 @@ export const Constants = {
         "other",
       ],
       service_delivery: ["vendor", "staff", "either"],
+      service_request_priority: ["low", "normal", "high", "urgent"],
+      service_request_status: [
+        "open",
+        "scheduled",
+        "in_progress",
+        "blocked",
+        "completed",
+        "cancelled",
+      ],
+      service_request_step_status: [
+        "pending",
+        "in_progress",
+        "blocked",
+        "completed",
+        "skipped",
+      ],
       unit_type: [
         "studio",
         "apartment",
