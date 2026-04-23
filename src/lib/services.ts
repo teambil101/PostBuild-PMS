@@ -7,6 +7,7 @@ export type ServiceCadence = Database["public"]["Enums"]["service_cadence"];
 export type ServiceRequestStatus = Database["public"]["Enums"]["service_request_status"];
 export type ServiceRequestPriority = Database["public"]["Enums"]["service_request_priority"];
 export type ServiceRequestStepStatus = Database["public"]["Enums"]["service_request_step_status"];
+export type ServiceRequestApprovalStatus = Database["public"]["Enums"]["service_request_approval_status"];
 
 export const CATEGORY_LABEL: Record<ServiceCategory, string> = {
   maintenance: "Maintenance",
@@ -86,6 +87,20 @@ export const STEP_STATUS_LABEL: Record<ServiceRequestStepStatus, string> = {
   blocked: "Blocked",
   completed: "Completed",
   skipped: "Skipped",
+};
+
+export const APPROVAL_STATUS_LABEL: Record<ServiceRequestApprovalStatus, string> = {
+  not_required: "No approval needed",
+  pending: "Awaiting approval",
+  approved: "Approved",
+  rejected: "Rejected",
+};
+
+export const APPROVAL_STATUS_STYLES: Record<ServiceRequestApprovalStatus, string> = {
+  not_required: "bg-muted text-muted-foreground border-warm-stone/60",
+  pending: "bg-amber-500/10 text-amber-700 border-amber-500/30",
+  approved: "bg-status-occupied/10 text-status-occupied border-status-occupied/30",
+  rejected: "bg-destructive/10 text-destructive border-destructive/30",
 };
 
 export interface WorkflowStep {
