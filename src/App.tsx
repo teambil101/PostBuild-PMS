@@ -16,7 +16,6 @@ import PersonDetail from "./pages/PersonDetail";
 import ComingSoon from "./pages/ComingSoon";
 import NotFound from "./pages/NotFound.tsx";
 import Settings from "./pages/Settings";
-import Vendors from "./pages/Vendors";
 import VendorDetail from "./pages/VendorDetail";
 
 const queryClient = new QueryClient();
@@ -49,7 +48,7 @@ const App = () => (
             <Route path="/contracts/:contractId" element={<Navigate to="/dashboard" replace />} />
             <Route path="/tickets" element={<Navigate to="/dashboard" replace />} />
             <Route path="/tickets/:ticketId" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/vendors" element={<Shell><Vendors /></Shell>} />
+            <Route path="/vendors" element={<Navigate to="/people?role=vendor" replace />} />
             <Route path="/vendors/:vendorId" element={<Shell><VendorDetail /></Shell>} />
             <Route path="/services" element={<Navigate to="/dashboard" replace />} />
             <Route path="/services/:scheduleId" element={<Navigate to="/dashboard" replace />} />

@@ -157,6 +157,8 @@ export function AppShell({ children }: AppShellProps) {
     if (location.pathname.startsWith(m.path)) return true;
     // /leads/* (legacy) belongs to People now
     if (m.key === "people" && location.pathname.startsWith("/leads")) return true;
+    // /vendors/* (legacy standalone module) now lives inside Directory
+    if (m.key === "people" && location.pathname.startsWith("/vendors")) return true;
     return false;
   });
   const role = roles[0] ?? "viewer";
@@ -185,7 +187,7 @@ export function AppShell({ children }: AppShellProps) {
               {orderedModules.map((m) => {
                 const isActive =
                   location.pathname.startsWith(m.path) ||
-                  (m.key === "people" && location.pathname.startsWith("/leads"));
+                  (m.key === "people" && (location.pathname.startsWith("/leads") || location.pathname.startsWith("/vendors")));
                 return (
                   <SortableModuleItem
                     key={m.key}
