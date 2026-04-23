@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { ArrowLeft, ArrowRight, Loader2, Save } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
@@ -25,6 +25,8 @@ const STEPS = [
 
 export default function NewServiceRequest() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const prefilledDate = searchParams.get("scheduled_date") ?? "";
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
 
@@ -33,7 +35,7 @@ export default function NewServiceRequest() {
   const [targetId, setTargetId] = useState<string | null>(null);
 
   const [priority, setPriority] = useState<ServiceRequestPriority>("normal");
-  const [scheduledDate, setScheduledDate] = useState<string>("");
+  const [scheduledDate, setScheduledDate] = useState<string>(prefilledDate);
   const [description, setDescription] = useState("");
   const [costEstimate, setCostEstimate] = useState<string>("");
 

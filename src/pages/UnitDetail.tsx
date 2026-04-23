@@ -17,6 +17,7 @@ import { PhotoGallery } from "@/components/attachments/PhotoGallery";
 import { DocumentList } from "@/components/attachments/DocumentList";
 import { NotesPanel } from "@/components/notes/NotesPanel";
 import { OwnersCard } from "@/components/owners/OwnersCard";
+import { ServiceCalendar } from "@/components/services/ServiceCalendar";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { formatEnumLabel, sqmToSqft } from "@/lib/format";
@@ -265,6 +266,7 @@ export default function UnitDetail() {
             { v: "documents", l: `Documents (${docCount})` },
             { v: "notes", l: `Notes (${noteCount})` },
             { v: "history", l: "Status history" },
+            { v: "schedule", l: "Schedule" },
           ].map((t) => (
             <TabsTrigger
               key={t.v}
@@ -352,6 +354,15 @@ export default function UnitDetail() {
               ))}
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="schedule" className="pt-6">
+          <ServiceCalendar
+            scope={{ type: "unit", unitId: unit.id }}
+            showFilters={false}
+            showLeaseOverlay
+            defaultView="month"
+          />
         </TabsContent>
       </Tabs>
 
