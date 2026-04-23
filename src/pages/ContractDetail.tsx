@@ -183,13 +183,7 @@ export default function ContractDetail() {
   return (
     <>
       <PageHeader
-        eyebrow={
-          <span className="flex items-center gap-2">
-            <span className="mono text-xs">{contract.contract_number}</span>
-            <span>·</span>
-            <span>{CONTRACT_TYPE_LABEL[contract.contract_type]}</span>
-          </span> as any
-        }
+        eyebrow={`${contract.contract_number} · ${CONTRACT_TYPE_LABEL[contract.contract_type]}`}
         title={contract.title || CONTRACT_TYPE_LABEL[contract.contract_type]}
         actions={
           <div className="flex items-center gap-2">

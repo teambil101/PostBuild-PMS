@@ -17,6 +17,10 @@ import ComingSoon from "./pages/ComingSoon";
 import NotFound from "./pages/NotFound.tsx";
 import Settings from "./pages/Settings";
 import VendorDetail from "./pages/VendorDetail";
+import Contracts from "./pages/Contracts";
+import ContractDetail from "./pages/ContractDetail";
+import NewManagementAgreement from "./pages/NewManagementAgreement";
+import Services from "./pages/Services";
 
 const queryClient = new QueryClient();
 
@@ -44,13 +48,14 @@ const App = () => (
             <Route path="/people/:id" element={<Shell><PersonDetail /></Shell>} />
             <Route path="/settings" element={<Shell><Settings /></Shell>} />
             <Route path="/lifecycle" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/contracts" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/contracts/:contractId" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/contracts" element={<Shell><Contracts /></Shell>} />
+            <Route path="/contracts/new/management-agreement" element={<Shell><NewManagementAgreement /></Shell>} />
+            <Route path="/contracts/:id" element={<Shell><ContractDetail /></Shell>} />
+            <Route path="/services" element={<Shell><Services /></Shell>} />
             <Route path="/tickets" element={<Navigate to="/dashboard" replace />} />
             <Route path="/tickets/:ticketId" element={<Navigate to="/dashboard" replace />} />
             <Route path="/vendors" element={<Navigate to="/people?role=vendor" replace />} />
             <Route path="/vendors/:vendorId" element={<Shell><VendorDetail /></Shell>} />
-            <Route path="/services" element={<Navigate to="/dashboard" replace />} />
             <Route path="/services/:scheduleId" element={<Navigate to="/dashboard" replace />} />
             <Route path="/leads" element={<Navigate to="/dashboard" replace />} />
             <Route path="/leads/:leadId" element={<Navigate to="/dashboard" replace />} />
