@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { PersonCombobox, type PickedPerson } from "@/components/owners/PersonCombobox";
-import { PropertyPicker, type PickedSubject } from "@/components/contracts/PropertyPicker";
+import { UnitMultiPicker, type PickedUnitSubject } from "@/components/contracts/UnitMultiPicker";
 import {
   APPROVAL_RULE_LABEL,
   FEE_MODEL_LABEL,
@@ -36,7 +36,7 @@ interface FormState {
   title: string;
   landlord: PickedPerson | null;
   pmCompany: PickedPerson | null;
-  subjects: PickedSubject[];
+  subjects: PickedUnitSubject[];
   startDate: string;
   endDate: string;
   signedDate: string;
@@ -334,12 +334,12 @@ export default function NewManagementAgreement() {
         {step.key === "properties" && (
           <>
             <div>
-              <Label>Properties covered by this agreement</Label>
+              <Label>Units covered by this agreement</Label>
               <p className="text-xs text-muted-foreground mt-1">
-                Pick the buildings or specific units this PM agreement governs. Selecting a building covers all its units.
+                Pick the specific units this PM agreement governs. Use "Select all" on a building to cover every unit inside it.
               </p>
             </div>
-            <PropertyPicker value={form.subjects} onChange={(v) => update("subjects", v)} />
+            <UnitMultiPicker value={form.subjects} onChange={(v) => update("subjects", v)} />
           </>
         )}
 
