@@ -25,6 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { RequestStatusBadge } from "@/components/services/RequestStatusBadge";
 import { BillingBadge, CategoryBadge, DeliveryBadge } from "@/components/services/CatalogBadges";
+import { ApprovalCard } from "@/components/services/ApprovalCard";
 import {
   PRIORITY_LABEL,
   PRIORITY_STYLES,
@@ -35,6 +36,7 @@ import {
   type ServiceCategory,
   type ServiceDelivery,
   type ServiceBilling,
+  type ServiceRequestApprovalStatus,
 } from "@/lib/services";
 import { cn } from "@/lib/utils";
 
@@ -59,6 +61,15 @@ interface RequestRow {
   description: string | null;
   internal_notes: string | null;
   created_at: string;
+  approval_status: ServiceRequestApprovalStatus;
+  approval_required_reason: string | null;
+  approval_threshold_amount: number | null;
+  approval_threshold_currency: string | null;
+  approval_rule_snapshot: string | null;
+  approval_management_agreement_id: string | null;
+  approval_requested_at: string | null;
+  approval_decided_at: string | null;
+  approval_decision_notes: string | null;
 }
 
 interface StepRow {
@@ -229,6 +240,13 @@ export default function ServiceRequestDetail() {
   const totalSteps = steps.length;
   const progress = totalSteps ? Math.round((completedSteps / totalSteps) * 100) : 0;
   const allStepsDone = totalSteps > 0 && completedSteps === totalSteps;
+  const blockedByApproval = req.approval_status === "pending" || req.approval_status === "rejected";
+  const approvalBlockTitle =
+    req.approval_status === "pending"
+      ? "Awaiting landlord approval"
+      : req.approval_status === "rejected"
+        ? "Approval was rejected — re-request to proceed"
+        : "";
 
   return (
     <>
@@ -252,18 +270,48 @@ export default function ServiceRequestDetail() {
         }
       />
 
+      {req.approval_status !== "not_required" && (
+        <div className="mb-6">
+          <ApprovalCard
+            requestId={req.id}
+            status={req.approval_status}
+            reason={req.approval_required_reason}
+            ruleSnapshot={req.approval_rule_snapshot}
+            thresholdAmount={req.approval_threshold_amount}
+            thresholdCurrency={req.approval_threshold_currency}
+            managementAgreementId={req.approval_management_agreement_id}
+            requestedAt={req.approval_requested_at}
+            decidedAt={req.approval_decided_at}
+            decisionNotes={req.approval_decision_notes}
+            onChanged={load}
+          />
+        </div>
+      )}
+
       {/* Status transition bar */}
       <Card className="hairline mb-6">
         <CardContent className="pt-4 pb-4 flex items-center gap-2 flex-wrap">
           <span className="text-[11px] uppercase tracking-wider text-muted-foreground mr-1">Actions:</span>
           {req.status === "open" && (
-            <Button size="sm" variant="outline" onClick={() => transition("scheduled", "Scheduled")} disabled={working}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => transition("scheduled", "Scheduled")}
+              disabled={working || blockedByApproval}
+              title={blockedByApproval ? approvalBlockTitle : ""}
+            >
               <CalendarDays className="h-3.5 w-3.5" />
               Mark scheduled
             </Button>
           )}
           {(req.status === "open" || req.status === "scheduled") && (
-            <Button size="sm" variant="outline" onClick={() => transition("in_progress", "Started work")} disabled={working}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => transition("in_progress", "Started work")}
+              disabled={working || blockedByApproval}
+              title={blockedByApproval ? approvalBlockTitle : ""}
+            >
               <Play className="h-3.5 w-3.5" />
               Start work
             </Button>
