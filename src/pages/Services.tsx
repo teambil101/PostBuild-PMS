@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Plus, Wrench, Search, Pencil, Workflow, Power, PowerOff, Filter, Trash2 } from "lucide-react";
+import { Plus, Wrench, Search, Pencil, Workflow, Power, PowerOff, Filter, Trash2, CalendarDays } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
@@ -17,6 +17,7 @@ import { BillingBadge, CategoryBadge, DeliveryBadge } from "@/components/service
 import { CatalogEntryDialog, type CatalogEntry } from "@/components/services/CatalogEntryDialog";
 import { DeleteCatalogEntryDialog } from "@/components/services/DeleteCatalogEntryDialog";
 import ServiceRequests from "./ServiceRequests";
+import { ServiceCalendar } from "@/components/services/ServiceCalendar";
 import { cn } from "@/lib/utils";
 
 type CatalogFilter = "all" | "active" | "inactive" | "workflow" | "atomic";
@@ -31,7 +32,8 @@ const FILTERS: { key: CatalogFilter; label: string }[] = [
 
 export default function Services() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const tabParam = searchParams.get("tab") === "requests" ? "requests" : "catalog";
+  const tabRaw = searchParams.get("tab");
+  const tabParam = tabRaw === "requests" || tabRaw === "calendar" ? tabRaw : "catalog";
   const [tab, setTab] = useState<string>(tabParam);
 
   const [entries, setEntries] = useState<CatalogEntry[]>([]);
@@ -48,7 +50,7 @@ export default function Services() {
 
   const onTabChange = (v: string) => {
     setTab(v);
-    setSearchParams(v === "requests" ? { tab: "requests" } : {});
+    setSearchParams(v === "catalog" ? {} : { tab: v });
   };
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -148,6 +150,13 @@ export default function Services() {
                 New request
               </Link>
             </Button>
+          ) : tab === "calendar" ? (
+            <Button asChild>
+              <Link to="/services/requests/new">
+                <Plus className="h-4 w-4" />
+                New request
+              </Link>
+            </Button>
           ) : (
             <Button onClick={startCreate}>
               <Plus className="h-4 w-4" />
@@ -162,6 +171,10 @@ export default function Services() {
           <TabsTrigger value="catalog">Catalog ({entries.length})</TabsTrigger>
           <TabsTrigger value="requests">
             Requests{requestCount !== null ? ` (${requestCount})` : ""}
+          </TabsTrigger>
+          <TabsTrigger value="calendar">
+            <CalendarDays className="h-3.5 w-3.5 mr-1" />
+            Calendar
           </TabsTrigger>
         </TabsList>
 
@@ -314,6 +327,10 @@ export default function Services() {
 
         <TabsContent value="requests" className="mt-6">
           <ServiceRequests />
+        </TabsContent>
+
+        <TabsContent value="calendar" className="mt-6">
+          <ServiceCalendar scope={{ type: "all" }} showFilters defaultView="month" />
         </TabsContent>
       </Tabs>
 
