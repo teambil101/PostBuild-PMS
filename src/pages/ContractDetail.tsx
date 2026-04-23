@@ -458,6 +458,102 @@ export default function ContractDetail() {
                 </DetailCard>
               )}
             </>
+          ) : vsa ? (
+            <>
+              <div className="grid md:grid-cols-2 gap-4">
+                <DetailCard title="Vendor">
+                  {vsa.vendor ? (
+                    <>
+                      <Row label="Name" value={vsa.vendor.display_name || vsa.vendor.legal_name} />
+                      <Row label="Number" value={vsa.vendor.vendor_number} />
+                      {vsa.vendor.primary_email && <Row label="Email" value={vsa.vendor.primary_email} />}
+                      {vsa.vendor.primary_phone && <Row label="Phone" value={vsa.vendor.primary_phone} />}
+                    </>
+                  ) : (
+                    <div className="text-xs text-muted-foreground">Vendor reference removed.</div>
+                  )}
+                  <Row label="Exclusive" value={vsa.is_exclusive ? "Yes" : "No"} />
+                  {vsa.service_area_notes && <Row label="Area" value={vsa.service_area_notes} />}
+                </DetailCard>
+
+                <DetailCard title="Rate card">
+                  <Row label="Model" value={VSA_RATE_MODEL_LABEL[vsa.rate_model as VsaRateModel] ?? vsa.rate_model} />
+                  {vsa.default_call_out_fee !== null && (
+                    <Row label="Call-out" value={formatCurrency(vsa.default_call_out_fee, contract.currency)} />
+                  )}
+                  {vsa.default_hourly_rate !== null && (
+                    <Row label="Hourly" value={formatCurrency(vsa.default_hourly_rate, contract.currency)} />
+                  )}
+                  {vsa.fixed_visit_fee !== null && (
+                    <Row label="Per visit" value={formatCurrency(vsa.fixed_visit_fee, contract.currency)} />
+                  )}
+                  {vsa.materials_markup_percent !== null && (
+                    <Row label="Materials markup" value={`${vsa.materials_markup_percent}%`} />
+                  )}
+                  {vsa.rate_notes && <Row label="Notes" value={vsa.rate_notes} />}
+                </DetailCard>
+
+                <DetailCard title="Payment & SLA">
+                  <Row
+                    label="Payment"
+                    value={
+                      vsa.payment_terms === "custom"
+                        ? vsa.payment_terms_custom ?? "Custom"
+                        : VSA_PAYMENT_TERMS_LABEL[vsa.payment_terms as VsaPaymentTerms] ?? vsa.payment_terms
+                    }
+                  />
+                  {vsa.response_time_hours !== null && <Row label="Response" value={`${vsa.response_time_hours}h`} />}
+                  {vsa.resolution_time_hours !== null && <Row label="Resolution" value={`${vsa.resolution_time_hours}h`} />}
+                  {vsa.emergency_response_time_hours !== null && (
+                    <Row label="Emergency" value={`${vsa.emergency_response_time_hours}h`} />
+                  )}
+                  {vsa.sla_notes && <Row label="SLA notes" value={vsa.sla_notes} />}
+                </DetailCard>
+
+                <DetailCard title="Authorization & renewal">
+                  {vsa.repair_authorization_threshold !== null && (
+                    <Row
+                      label="Auth threshold"
+                      value={formatCurrency(vsa.repair_authorization_threshold, vsa.repair_authorization_currency ?? contract.currency)}
+                    />
+                  )}
+                  <Row label="Auto-renew" value={vsa.auto_renew ? "Yes" : "No"} />
+                  {vsa.renewal_notice_days && <Row label="Renewal notice" value={`${vsa.renewal_notice_days} days`} />}
+                  {vsa.termination_notice_days && <Row label="Termination notice" value={`${vsa.termination_notice_days} days`} />}
+                </DetailCard>
+              </div>
+
+              <DetailCard title="Covered services">
+                {vsa.covered_services.length === 0 ? (
+                  <div className="text-xs text-muted-foreground">All catalog services (no restriction).</div>
+                ) : (
+                  <div className="flex flex-wrap gap-1.5">
+                    {vsa.covered_services.map((code) => (
+                      <span key={code} className="mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm border hairline text-architect bg-muted/40">
+                        {code}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </DetailCard>
+
+              {(vsa.scope_notes || vsa.repair_authorization_terms) && (
+                <DetailCard title="Notes">
+                  {vsa.scope_notes && (
+                    <div className="mb-3">
+                      <div className="label-eyebrow text-muted-foreground mb-1">Scope</div>
+                      <p className="text-sm text-architect whitespace-pre-wrap">{vsa.scope_notes}</p>
+                    </div>
+                  )}
+                  {vsa.repair_authorization_terms && (
+                    <div>
+                      <div className="label-eyebrow text-muted-foreground mb-1">Authorization</div>
+                      <p className="text-sm text-architect whitespace-pre-wrap">{vsa.repair_authorization_terms}</p>
+                    </div>
+                  )}
+                </DetailCard>
+              )}
+            </>
           ) : (
             <DetailCard title="Overview">
               <div className="text-sm text-muted-foreground">Subtype details not available.</div>
