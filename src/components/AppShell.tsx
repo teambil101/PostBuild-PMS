@@ -211,9 +211,14 @@ export function AppShell({ children }: AppShellProps) {
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top bar */}
-        <header className="h-16 border-b hairline bg-background flex items-center justify-between px-6 lg:px-10">
-          <div className="flex items-center gap-3 min-w-0">
-            <Link to="/" className="lg:hidden font-display text-xl text-architect">True Build</Link>
+        <header className="h-14 lg:h-16 border-b hairline bg-background flex items-center justify-between gap-2 px-4 lg:px-10 sticky top-0 z-30">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <Link to="/" className="lg:hidden font-display text-lg text-architect shrink-0">True Build</Link>
+            {currentModule && (
+              <span className="lg:hidden mono text-[10px] uppercase tracking-wider text-muted-foreground truncate">
+                · {currentModule.label}
+              </span>
+            )}
             <div className="hidden lg:flex items-center gap-2 mono text-[11px] uppercase tracking-wider text-muted-foreground">
               <Link to="/" className="hover:text-architect">Home</Link>
               {currentModule && (
@@ -225,7 +230,7 @@ export function AppShell({ children }: AppShellProps) {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 lg:gap-3 shrink-0">
             <div className="relative hidden md:block">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
@@ -236,8 +241,8 @@ export function AppShell({ children }: AppShellProps) {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 rounded-sm border border-warm-stone/60 px-2.5 py-1.5 hover:bg-muted/50 transition-colors">
-                  <div className="h-7 w-7 bg-architect text-chalk flex items-center justify-center rounded-sm text-xs font-medium">
+                <button className="flex items-center gap-2 rounded-sm border border-warm-stone/60 px-1.5 py-1 lg:px-2.5 lg:py-1.5 hover:bg-muted/50 transition-colors">
+                  <div className="h-7 w-7 bg-architect text-chalk flex items-center justify-center rounded-sm text-xs font-medium shrink-0">
                     {initials(user?.email?.[0], user?.email?.[1])}
                   </div>
                   <span className="hidden md:block text-sm text-architect max-w-[140px] truncate">
@@ -263,8 +268,8 @@ export function AppShell({ children }: AppShellProps) {
         </header>
 
         {/* Mobile module bar */}
-        <div className="lg:hidden border-b hairline overflow-x-auto">
-          <div className="flex gap-1 px-4 py-2">
+        <div className="lg:hidden border-b hairline overflow-x-auto sticky top-14 z-20 bg-background">
+          <div className="flex gap-1 px-3 py-2 w-max">
             {orderedModules.filter((m) => m.active).map((m) => {
               const isActive = location.pathname.startsWith(m.path);
               return (
@@ -272,7 +277,7 @@ export function AppShell({ children }: AppShellProps) {
                   key={m.key}
                   to={m.path}
                   className={cn(
-                    "shrink-0 px-3 py-1.5 text-xs uppercase tracking-wider rounded-sm",
+                    "shrink-0 px-3 py-1.5 text-[11px] uppercase tracking-wider rounded-sm whitespace-nowrap",
                     isActive ? "bg-architect text-chalk" : "text-muted-foreground hover:text-architect",
                   )}
                 >
@@ -287,7 +292,7 @@ export function AppShell({ children }: AppShellProps) {
         <main className="flex-1 overflow-x-hidden">
           <div
             className={cn(
-              "mx-auto px-6 lg:px-10 py-8 lg:py-12 animate-fade-in",
+              "mx-auto px-4 sm:px-6 lg:px-10 py-6 sm:py-8 lg:py-12 animate-fade-in",
               // Lifecycle funnel and people pipeline use the wide layout
               location.pathname.startsWith("/lifecycle") ||
                 location.pathname.startsWith("/people")
