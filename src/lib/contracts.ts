@@ -49,6 +49,35 @@ export const APPROVAL_RULE_LABEL: Record<MaApprovalRule, string> = {
   auto_all: "Auto-approve all paid work",
 };
 
+export type LeaseRentFrequency = "annual" | "monthly" | "quarterly";
+export type LeasePaymentMethod = "cheque" | "bank_transfer" | "cash" | "card";
+export type LeaseDepositHolder = "pm_company" | "landlord";
+export type LeaseCommissionPayer = "tenant" | "landlord" | "split";
+
+export const RENT_FREQUENCY_LABEL: Record<LeaseRentFrequency, string> = {
+  annual: "Annual",
+  monthly: "Monthly",
+  quarterly: "Quarterly",
+};
+
+export const PAYMENT_METHOD_LABEL: Record<LeasePaymentMethod, string> = {
+  cheque: "Cheque",
+  bank_transfer: "Bank transfer",
+  cash: "Cash",
+  card: "Card",
+};
+
+export const DEPOSIT_HOLDER_LABEL: Record<LeaseDepositHolder, string> = {
+  pm_company: "PM company",
+  landlord: "Landlord",
+};
+
+export const COMMISSION_PAYER_LABEL: Record<LeaseCommissionPayer, string> = {
+  tenant: "Tenant",
+  landlord: "Landlord",
+  split: "Split 50/50",
+};
+
 /**
  * Default catalog of free services that can be included in a Management Agreement.
  * Mirrors common PM scope items. Stored as a checklist on `included_services`.
