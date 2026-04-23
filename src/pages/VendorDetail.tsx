@@ -656,7 +656,8 @@ function ContactsTab({
         />
       ) : (
         <div className="border hairline rounded-sm overflow-hidden bg-card">
-          <table className="w-full text-sm">
+          <div className="table-scroll">
+          <table className="w-full text-sm min-w-[760px]">
             <thead className="bg-muted/40 border-b hairline text-left">
               <tr>
                 <th className="px-4 py-3 label-eyebrow">Name</th>
@@ -715,6 +716,7 @@ function ContactsTab({
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>

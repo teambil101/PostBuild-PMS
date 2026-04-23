@@ -187,7 +187,8 @@ export default function InvoiceDetail() {
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <div className="border hairline rounded-sm bg-card overflow-hidden">
-            <table className="w-full text-sm">
+            <div className="table-scroll">
+            <table className="w-full text-sm min-w-[560px]">
               <thead className="border-b hairline bg-muted/30">
                 <tr className="text-left">
                   <th className="px-4 py-2.5 label-eyebrow text-muted-foreground font-normal">Description</th>
@@ -234,6 +235,7 @@ export default function InvoiceDetail() {
                 </tr>
               </tfoot>
             </table>
+            </div>
           </div>
 
           <div className="border hairline rounded-sm bg-card p-5">
