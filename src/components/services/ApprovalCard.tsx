@@ -45,8 +45,6 @@ export function ApprovalCard({
   const [notes, setNotes] = useState("");
   const [working, setWorking] = useState(false);
 
-  if (status === "not_required") return null;
-
   const decide = async (decision: "approved" | "rejected") => {
     setWorking(true);
     const { error } = await supabase.rpc("decide_service_request_approval", {
@@ -77,6 +75,8 @@ export function ApprovalCard({
     toast.success("Approval re-requested");
     await onChanged();
   };
+
+  if (status === "not_required") return null;
 
   const Icon =
     status === "pending" ? ShieldAlert : status === "approved" ? ShieldCheck : ShieldX;
