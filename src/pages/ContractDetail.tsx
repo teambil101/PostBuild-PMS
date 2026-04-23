@@ -16,12 +16,16 @@ import {
   INCLUDED_SERVICES_CATALOG,
   PAYMENT_METHOD_LABEL,
   RENT_FREQUENCY_LABEL,
+  VSA_PAYMENT_TERMS_LABEL,
+  VSA_RATE_MODEL_LABEL,
   type LeaseCommissionPayer,
   type LeaseDepositHolder,
   type LeasePaymentMethod,
   type LeaseRentFrequency,
   type ContractStatus,
   type ContractType,
+  type VsaPaymentTerms,
+  type VsaRateModel,
 } from "@/lib/contracts";
 import { formatCurrency } from "@/lib/format";
 import { EmptyState } from "@/components/EmptyState";
@@ -108,6 +112,32 @@ interface ContractRow {
     payment_notes: string | null;
     scope_notes: string | null;
   } | null;
+  vsa?: {
+    vendor_id: string;
+    covered_services: string[];
+    scope_notes: string | null;
+    is_exclusive: boolean;
+    service_area_notes: string | null;
+    rate_model: string;
+    default_call_out_fee: number | null;
+    default_hourly_rate: number | null;
+    fixed_visit_fee: number | null;
+    materials_markup_percent: number | null;
+    rate_notes: string | null;
+    payment_terms: string;
+    payment_terms_custom: string | null;
+    response_time_hours: number | null;
+    resolution_time_hours: number | null;
+    emergency_response_time_hours: number | null;
+    sla_notes: string | null;
+    repair_authorization_threshold: number | null;
+    repair_authorization_currency: string | null;
+    repair_authorization_terms: string | null;
+    auto_renew: boolean;
+    renewal_notice_days: number | null;
+    termination_notice_days: number | null;
+    vendor: { id: string; legal_name: string; display_name: string | null; vendor_number: string; primary_email: string | null; primary_phone: string | null } | null;
+  } | null;
 }
 
 export default function ContractDetail() {
@@ -128,10 +158,15 @@ export default function ContractDetail() {
   const load = async () => {
     if (!id) return;
     setLoading(true);
-    const [{ data: c }, { data: ma }, { data: lease }, { data: pa }, { data: su }, { data: ev }] = await Promise.all([
+    const [{ data: c }, { data: ma }, { data: lease }, { data: vsa }, { data: pa }, { data: su }, { data: ev }] = await Promise.all([
       supabase.from("contracts").select("*").eq("id", id).maybeSingle(),
       supabase.from("management_agreements").select("*").eq("contract_id", id).maybeSingle(),
       supabase.from("leases").select("*").eq("contract_id", id).maybeSingle(),
+      supabase
+        .from("vendor_service_agreements")
+        .select("*, vendor:vendors(id, legal_name, display_name, vendor_number, primary_email, primary_phone)")
+        .eq("contract_id", id)
+        .maybeSingle(),
       supabase
         .from("contract_parties")
         .select("id, role, is_primary, person:people(id, first_name, last_name, company, primary_email, phone)")
@@ -171,7 +206,7 @@ export default function ContractDetail() {
       unit: s.subject_type === "unit" ? uMap[s.subject_id] ?? null : null,
     }));
 
-    setContract({ ...(c as any), ma: (ma as any) ?? null, lease: (lease as any) ?? null });
+    setContract({ ...(c as any), ma: (ma as any) ?? null, lease: (lease as any) ?? null, vsa: (vsa as any) ?? null });
     setParties((pa as any) ?? []);
     setSubjects(subjectsResolved);
     setEvents((ev as any) ?? []);
@@ -210,6 +245,7 @@ export default function ContractDetail() {
 
   const ma = contract.ma;
   const lease = contract.lease;
+  const vsa = contract.vsa;
 
   return (
     <>
