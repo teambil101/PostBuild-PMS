@@ -122,11 +122,13 @@ export default function ServiceRequestDetail() {
   const [addStepOpen, setAddStepOpen] = useState(false);
   const [vendorLabels, setVendorLabels] = useState<Record<string, string>>({});
   const [personLabels, setPersonLabels] = useState<Record<string, string>>({});
+  const [feedback, setFeedback] = useState<{ id: string; rating: number; comment: string | null; submitted_at: string } | null>(null);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   const load = async () => {
     if (!id) return;
     setLoading(true);
-    const [r, s, e] = await Promise.all([
+    const [r, s, e, f] = await Promise.all([
       supabase.from("service_requests").select("*").eq("id", id).maybeSingle(),
       supabase.from("service_request_steps").select("*").eq("request_id", id).order("sort_order"),
       supabase
@@ -134,6 +136,11 @@ export default function ServiceRequestDetail() {
         .select("*")
         .eq("request_id", id)
         .order("created_at", { ascending: false }),
+      supabase
+        .from("service_feedback")
+        .select("id, rating, comment, submitted_at")
+        .eq("service_request_id", id)
+        .maybeSingle(),
     ]);
     if (!r.data) {
       toast.error("Request not found");
@@ -143,6 +150,7 @@ export default function ServiceRequestDetail() {
     setReq(r.data as any);
     setSteps((s.data ?? []) as any);
     setEvents((e.data ?? []) as any);
+    setFeedback((f.data as any) ?? null);
     setInternalNotes((r.data as any).internal_notes ?? "");
 
     // Fetch labels for assigned vendors / persons
