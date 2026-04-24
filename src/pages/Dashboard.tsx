@@ -1,10 +1,47 @@
-import { Link } from "react-router-dom";
-import { ArrowRight, Building2, Users, Truck } from "lucide-react";
+import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
+import { StaffVendorsTab } from "@/components/dashboard/StaffVendorsTab";
+
+const STORAGE_KEY = "dashboardTab";
+const VALID = ["staff_vendors", "properties", "directory", "vendors"] as const;
+type DashTab = (typeof VALID)[number];
+
+function loadTab(): DashTab {
+  if (typeof window === "undefined") return "staff_vendors";
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (raw && (VALID as readonly string[]).includes(raw)) return raw as DashTab;
+  } catch {
+    /* ignore */
+  }
+  return "staff_vendors";
+}
+
+function ComingSoonPanel({ label }: { label: string }) {
+  return (
+    <div className="border hairline rounded-sm bg-muted/20 p-12 text-center">
+      <div className="font-display text-xl text-architect mb-2">{label} dashboard</div>
+      <p className="text-sm text-muted-foreground max-w-md mx-auto">
+        Coming soon. We'll add KPIs and insights specific to {label.toLowerCase()} once the
+        Staff &amp; Vendors view is settled.
+      </p>
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const [tab, setTab] = useState<DashTab>(() => loadTab());
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, tab);
+    } catch {
+      /* ignore */
+    }
+  }, [tab]);
 
   const today = new Date().toLocaleDateString("en-US", {
     weekday: "long",
@@ -13,39 +50,35 @@ export default function Dashboard() {
     year: "numeric",
   });
 
-  const cards = [
-    { to: "/properties", icon: Building2, label: "Properties", desc: "Units, buildings, ownership." },
-    { to: "/people", icon: Users, label: "Directory", desc: "Landlords, tenants, vendors, staff." },
-    { to: "/vendors", icon: Truck, label: "Vendors", desc: "Service providers and contractors." },
-  ];
-
   return (
     <>
       <PageHeader
         eyebrow={today}
         title={`Welcome${user?.email ? `, ${user.email.split("@")[0]}` : ""}`}
-        description="A clean slate. The work and contracts modules will return once the directory and properties feel right."
+        description="Operational view of who is doing the work, how well, and at what cost."
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {cards.map((c) => {
-          const Icon = c.icon;
-          return (
-            <Link
-              key={c.to}
-              to={c.to}
-              className="group border hairline rounded-sm bg-card p-6 hover:bg-muted/30 transition-colors"
-            >
-              <Icon className="h-6 w-6 text-true-taupe mb-4" strokeWidth={1.4} />
-              <div className="font-display text-xl text-architect mb-1">{c.label}</div>
-              <div className="text-sm text-muted-foreground mb-3">{c.desc}</div>
-              <div className="flex items-center gap-1 text-xs text-gold opacity-0 group-hover:opacity-100 transition-opacity">
-                Open <ArrowRight className="h-3 w-3" />
-              </div>
-            </Link>
-          );
-        })}
-      </div>
+      <Tabs value={tab} onValueChange={(v) => setTab(v as DashTab)}>
+        <TabsList className="flex w-full overflow-x-auto h-auto p-1 justify-start">
+          <TabsTrigger value="staff_vendors">Staff &amp; Vendors</TabsTrigger>
+          <TabsTrigger value="properties">Properties</TabsTrigger>
+          <TabsTrigger value="directory">Directory</TabsTrigger>
+          <TabsTrigger value="vendors">Vendors</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="staff_vendors" className="mt-6">
+          <StaffVendorsTab />
+        </TabsContent>
+        <TabsContent value="properties" className="mt-6">
+          <ComingSoonPanel label="Properties" />
+        </TabsContent>
+        <TabsContent value="directory" className="mt-6">
+          <ComingSoonPanel label="Directory" />
+        </TabsContent>
+        <TabsContent value="vendors" className="mt-6">
+          <ComingSoonPanel label="Vendors" />
+        </TabsContent>
+      </Tabs>
     </>
   );
 }
