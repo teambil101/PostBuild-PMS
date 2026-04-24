@@ -219,65 +219,6 @@ export function StaffVendorsTab() {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <KpiCard
-            label="Avg completion time"
-            value={fmtDays(perf.avgCompletionDays.value || null)}
-            deltaPct={perf.avgCompletionDays.deltaPct}
-            invertDelta
-            hint="Started → completed"
-          />
-          <KpiCard
-            label="On-time rate"
-            value={fmtPct(perf.onTimeRate.value)}
-            deltaPct={perf.onTimeRate.deltaPct}
-            hint="Completed by scheduled date"
-          />
-          <KpiCard
-            label="Active jobs"
-            value={String(perf.activeJobs)}
-            hint={`${perf.slaBreaches} past scheduled date`}
-            tone={perf.slaBreaches > 0 ? "warning" : "default"}
-          />
-          <KpiCard
-            label="Cost vs estimate"
-            value={fmtPct(perf.costVariancePct.value)}
-            deltaPct={perf.costVariancePct.deltaPct}
-            invertDelta
-            hint={
-              perf.costVariancePct.value > 0
-                ? "Over estimate on average"
-                : perf.costVariancePct.value < 0
-                ? "Under estimate on average"
-                : "On budget"
-            }
-            tone={perf.costVariancePct.value > 0.15 ? "warning" : "default"}
-          />
-          <KpiCard
-            label="Avg rating"
-            value={fmtRating(qual.avgRating.value || null)}
-            deltaPct={qual.avgRating.deltaPct}
-            hint={qual.feedbackCount.value === 0 ? "No feedback yet" : `${qual.feedbackCount.value} ratings`}
-          />
-          <KpiCard
-            label="Feedback collected"
-            value={String(qual.feedbackCount.value)}
-            deltaPct={qual.feedbackCount.deltaPct}
-          />
-          <KpiCard
-            label="Feedback coverage"
-            value={fmtPct(qual.coverage.value)}
-            deltaPct={qual.coverage.deltaPct}
-            hint="Of completed jobs"
-            tone={qual.coverage.value < 0.3 && qual.feedbackCount.value > 0 ? "warning" : "default"}
-          />
-          <KpiCard
-            label="Awaiting feedback"
-            value={String(qual.awaitingFeedback.length)}
-            hint="Recent completions, not yet rated"
-          />
-        </div>
-
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
           <Leaderboard
             title="Fastest staff"
