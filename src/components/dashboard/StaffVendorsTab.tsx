@@ -210,7 +210,220 @@ export function StaffVendorsTab() {
         <PeriodSelector value={period} onChange={setPeriod} />
       </div>
 
-      {/* ============== SECTION A: FINANCIALS ============== */}
+      {/* ============== SECTION A: VENDOR & STAFF PERFORMANCE (incl. quality) ============== */}
+      <section className="space-y-4">
+        <div>
+          <h2 className="font-display text-xl text-architect">Vendor & staff performance</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Speed, on-time delivery, throughput, budget discipline, and customer-rated quality.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <KpiCard
+            label="Avg completion time"
+            value={fmtDays(perf.avgCompletionDays.value || null)}
+            deltaPct={perf.avgCompletionDays.deltaPct}
+            invertDelta
+            hint="Started → completed"
+          />
+          <KpiCard
+            label="On-time rate"
+            value={fmtPct(perf.onTimeRate.value)}
+            deltaPct={perf.onTimeRate.deltaPct}
+            hint="Completed by scheduled date"
+          />
+          <KpiCard
+            label="Active jobs"
+            value={String(perf.activeJobs)}
+            hint={`${perf.slaBreaches} past scheduled date`}
+            tone={perf.slaBreaches > 0 ? "warning" : "default"}
+          />
+          <KpiCard
+            label="Cost vs estimate"
+            value={fmtPct(perf.costVariancePct.value)}
+            deltaPct={perf.costVariancePct.deltaPct}
+            invertDelta
+            hint={
+              perf.costVariancePct.value > 0
+                ? "Over estimate on average"
+                : perf.costVariancePct.value < 0
+                ? "Under estimate on average"
+                : "On budget"
+            }
+            tone={perf.costVariancePct.value > 0.15 ? "warning" : "default"}
+          />
+          <KpiCard
+            label="Avg rating"
+            value={fmtRating(qual.avgRating.value || null)}
+            deltaPct={qual.avgRating.deltaPct}
+            hint={qual.feedbackCount.value === 0 ? "No feedback yet" : `${qual.feedbackCount.value} ratings`}
+          />
+          <KpiCard
+            label="Feedback collected"
+            value={String(qual.feedbackCount.value)}
+            deltaPct={qual.feedbackCount.deltaPct}
+          />
+          <KpiCard
+            label="Feedback coverage"
+            value={fmtPct(qual.coverage.value)}
+            deltaPct={qual.coverage.deltaPct}
+            hint="Of completed jobs"
+            tone={qual.coverage.value < 0.3 && qual.feedbackCount.value > 0 ? "warning" : "default"}
+          />
+          <KpiCard
+            label="Awaiting feedback"
+            value={String(qual.awaitingFeedback.length)}
+            hint="Recent completions, not yet rated"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          <Leaderboard
+            title="Fastest staff"
+            description="Lowest average completion time."
+            rows={fastestStaff.map<LeaderRow>((a) => ({
+              id: a.id,
+              name: a.name,
+              href: assigneeHref(a),
+              primary: fmtDays(a.avgCompletionDays),
+              secondary: `${a.jobCount} jobs`,
+            }))}
+            thresholdNote={`Requires at least ${MIN_JOBS} completed jobs.`}
+          />
+          <Leaderboard
+            title="Fastest vendors"
+            description="Lowest average completion time."
+            rows={fastestVendors.map<LeaderRow>((a) => ({
+              id: a.id,
+              name: a.name,
+              href: assigneeHref(a),
+              primary: fmtDays(a.avgCompletionDays),
+              secondary: `${a.jobCount} jobs`,
+            }))}
+            thresholdNote={`Requires at least ${MIN_JOBS} completed jobs.`}
+          />
+          <Leaderboard
+            title="Best on-time delivery"
+            description="Completed by the scheduled date."
+            rows={bestOnTime.map<LeaderRow>((a) => ({
+              id: a.id,
+              name: `${a.name} · ${a.kind === "vendor" ? "Vendor" : "Staff"}`,
+              href: assigneeHref(a),
+              primary: fmtPct(a.onTimeRate),
+              secondary: `${a.jobCount} jobs`,
+            }))}
+            thresholdNote={`Requires at least ${MIN_JOBS} jobs with a scheduled date.`}
+          />
+          <Leaderboard
+            title="Needs attention"
+            description="Worst on-time delivery — coach or replace."
+            rows={worstOnTime.map<LeaderRow>((a) => ({
+              id: a.id,
+              name: `${a.name} · ${a.kind === "vendor" ? "Vendor" : "Staff"}`,
+              href: assigneeHref(a),
+              primary: fmtPct(a.onTimeRate),
+              secondary: `${a.jobCount} jobs`,
+              warn: (a.onTimeRate ?? 1) < 0.6,
+            }))}
+            thresholdNote={`Requires at least ${MIN_JOBS} jobs with a scheduled date.`}
+          />
+        </div>
+
+        {/* Quality leaderboards / awaiting feedback list */}
+        {qual.feedbackCount.value === 0 ? (
+          <div className="border hairline rounded-sm bg-muted/20 p-6 text-center">
+            <MessageSquare className="h-6 w-6 text-true-taupe mx-auto mb-2" strokeWidth={1.4} />
+            <div className="font-display text-base text-architect">No customer feedback yet</div>
+            <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
+              Open any completed service request and use{" "}
+              <span className="text-architect">Record customer feedback</span> to capture a 1–5 star
+              rating and a comment. Quality KPIs will populate as feedback comes in.
+            </p>
+            {qual.awaitingFeedback.length > 0 && (
+              <div className="mt-4 inline-flex flex-col gap-1.5 text-left">
+                {qual.awaitingFeedback.slice(0, 3).map((r) => (
+                  <Link
+                    key={r.id}
+                    to={`/services/requests/${r.id}`}
+                    className="text-xs text-architect hover:underline inline-flex items-center gap-1.5"
+                  >
+                    <ChevronRight className="h-3 w-3" />
+                    {r.request_number} · {r.title}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            <Leaderboard
+              title="Top-rated staff"
+              description="Highest average customer rating."
+              rows={topRatedStaff.map<LeaderRow>((a) => ({
+                id: a.id,
+                name: a.name,
+                href: assigneeHref(a),
+                primary: fmtRating(a.avgRating),
+                secondary: `${a.ratingCount} ratings`,
+              }))}
+              thresholdNote={`Requires at least ${MIN_RATINGS} ratings.`}
+            />
+            <Leaderboard
+              title="Top-rated vendors"
+              description="Highest average customer rating."
+              rows={topRatedVendors.map<LeaderRow>((a) => ({
+                id: a.id,
+                name: a.name,
+                href: assigneeHref(a),
+                primary: fmtRating(a.avgRating),
+                secondary: `${a.ratingCount} ratings`,
+              }))}
+              thresholdNote={`Requires at least ${MIN_RATINGS} ratings.`}
+            />
+            <Leaderboard
+              title="Lowest-rated"
+              description="Quality issues — investigate."
+              rows={lowestRated.map<LeaderRow>((a) => ({
+                id: a.id,
+                name: `${a.name} · ${a.kind === "vendor" ? "Vendor" : "Staff"}`,
+                href: assigneeHref(a),
+                primary: fmtRating(a.avgRating),
+                secondary: `${a.ratingCount} ratings`,
+                warn: (a.avgRating ?? 5) < 3,
+              }))}
+              thresholdNote={`Requires at least ${MIN_RATINGS} ratings.`}
+            />
+            <div className="border hairline rounded-sm bg-card p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <AlertTriangle className="h-4 w-4 text-amber-700" strokeWidth={1.5} />
+                <div className="font-display text-base text-architect">Awaiting feedback</div>
+              </div>
+              {qual.awaitingFeedback.length === 0 ? (
+                <div className="py-6 text-center text-xs text-muted-foreground italic">
+                  All recent completed jobs have feedback recorded. Great work.
+                </div>
+              ) : (
+                <ul className="space-y-1.5">
+                  {qual.awaitingFeedback.map((r) => (
+                    <li key={r.id} className="flex items-center gap-2 text-sm py-1.5 border-b hairline last:border-b-0">
+                      <Link
+                        to={`/services/requests/${r.id}`}
+                        className="flex-1 min-w-0 text-architect hover:underline truncate"
+                      >
+                        <span className="mono text-[11px] text-muted-foreground mr-1.5">{r.request_number}</span>
+                        {r.title}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* ============== SECTION B: FINANCIALS ============== */}
       <section className="space-y-4">
         <div>
           <h2 className="font-display text-xl text-architect">Financials</h2>
@@ -302,231 +515,6 @@ export function StaffVendorsTab() {
             }))}
           />
         </div>
-      </section>
-
-      {/* ============== SECTION B: PERFORMANCE ============== */}
-      <section className="space-y-4">
-        <div>
-          <h2 className="font-display text-xl text-architect">Performance</h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Speed, on-time delivery, throughput, and budget discipline.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <KpiCard
-            label="Avg completion time"
-            value={fmtDays(perf.avgCompletionDays.value || null)}
-            deltaPct={perf.avgCompletionDays.deltaPct}
-            invertDelta
-            hint="Started → completed"
-          />
-          <KpiCard
-            label="On-time rate"
-            value={fmtPct(perf.onTimeRate.value)}
-            deltaPct={perf.onTimeRate.deltaPct}
-            hint="Completed by scheduled date"
-          />
-          <KpiCard
-            label="Active jobs"
-            value={String(perf.activeJobs)}
-            hint={`${perf.slaBreaches} past scheduled date`}
-            tone={perf.slaBreaches > 0 ? "warning" : "default"}
-          />
-          <KpiCard
-            label="Cost vs estimate"
-            value={fmtPct(perf.costVariancePct.value)}
-            deltaPct={perf.costVariancePct.deltaPct}
-            invertDelta
-            hint={
-              perf.costVariancePct.value > 0
-                ? "Over estimate on average"
-                : perf.costVariancePct.value < 0
-                ? "Under estimate on average"
-                : "On budget"
-            }
-            tone={perf.costVariancePct.value > 0.15 ? "warning" : "default"}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          <Leaderboard
-            title="Fastest staff"
-            description="Lowest average completion time."
-            rows={fastestStaff.map<LeaderRow>((a) => ({
-              id: a.id,
-              name: a.name,
-              href: assigneeHref(a),
-              primary: fmtDays(a.avgCompletionDays),
-              secondary: `${a.jobCount} jobs`,
-            }))}
-            thresholdNote={`Requires at least ${MIN_JOBS} completed jobs.`}
-          />
-          <Leaderboard
-            title="Fastest vendors"
-            description="Lowest average completion time."
-            rows={fastestVendors.map<LeaderRow>((a) => ({
-              id: a.id,
-              name: a.name,
-              href: assigneeHref(a),
-              primary: fmtDays(a.avgCompletionDays),
-              secondary: `${a.jobCount} jobs`,
-            }))}
-            thresholdNote={`Requires at least ${MIN_JOBS} completed jobs.`}
-          />
-          <Leaderboard
-            title="Best on-time delivery"
-            description="Completed by the scheduled date."
-            rows={bestOnTime.map<LeaderRow>((a) => ({
-              id: a.id,
-              name: `${a.name} · ${a.kind === "vendor" ? "Vendor" : "Staff"}`,
-              href: assigneeHref(a),
-              primary: fmtPct(a.onTimeRate),
-              secondary: `${a.jobCount} jobs`,
-            }))}
-            thresholdNote={`Requires at least ${MIN_JOBS} jobs with a scheduled date.`}
-          />
-          <Leaderboard
-            title="Needs attention"
-            description="Worst on-time delivery — coach or replace."
-            rows={worstOnTime.map<LeaderRow>((a) => ({
-              id: a.id,
-              name: `${a.name} · ${a.kind === "vendor" ? "Vendor" : "Staff"}`,
-              href: assigneeHref(a),
-              primary: fmtPct(a.onTimeRate),
-              secondary: `${a.jobCount} jobs`,
-              warn: (a.onTimeRate ?? 1) < 0.6,
-            }))}
-            thresholdNote={`Requires at least ${MIN_JOBS} jobs with a scheduled date.`}
-          />
-        </div>
-      </section>
-
-      {/* ============== SECTION C: QUALITY ============== */}
-      <section className="space-y-4">
-        <div>
-          <h2 className="font-display text-xl text-architect">Service quality</h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Customer feedback collected after each completed job.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <KpiCard
-            label="Avg rating"
-            value={fmtRating(qual.avgRating.value || null)}
-            deltaPct={qual.avgRating.deltaPct}
-            hint={qual.feedbackCount.value === 0 ? "No feedback yet" : `${qual.feedbackCount.value} ratings`}
-          />
-          <KpiCard
-            label="Feedback collected"
-            value={String(qual.feedbackCount.value)}
-            deltaPct={qual.feedbackCount.deltaPct}
-          />
-          <KpiCard
-            label="Coverage"
-            value={fmtPct(qual.coverage.value)}
-            deltaPct={qual.coverage.deltaPct}
-            hint="Of completed jobs"
-            tone={qual.coverage.value < 0.3 && qual.feedbackCount.value > 0 ? "warning" : "default"}
-          />
-          <KpiCard
-            label="Awaiting feedback"
-            value={String(qual.awaitingFeedback.length)}
-            hint="Recent completions, not yet rated"
-          />
-        </div>
-
-        {qual.feedbackCount.value === 0 ? (
-          <div className="border hairline rounded-sm bg-muted/20 p-6 text-center">
-            <MessageSquare className="h-6 w-6 text-true-taupe mx-auto mb-2" strokeWidth={1.4} />
-            <div className="font-display text-base text-architect">No customer feedback yet</div>
-            <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
-              Open any completed service request and use{" "}
-              <span className="text-architect">Record customer feedback</span> to capture a 1–5 star
-              rating and a comment. Quality KPIs will populate as feedback comes in.
-            </p>
-            {qual.awaitingFeedback.length > 0 && (
-              <div className="mt-4 inline-flex flex-col gap-1.5 text-left">
-                {qual.awaitingFeedback.slice(0, 3).map((r) => (
-                  <Link
-                    key={r.id}
-                    to={`/services/requests/${r.id}`}
-                    className="text-xs text-architect hover:underline inline-flex items-center gap-1.5"
-                  >
-                    <ChevronRight className="h-3 w-3" />
-                    {r.request_number} · {r.title}
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-            <Leaderboard
-              title="Top-rated staff"
-              description="Highest average customer rating."
-              rows={topRatedStaff.map<LeaderRow>((a) => ({
-                id: a.id,
-                name: a.name,
-                href: assigneeHref(a),
-                primary: fmtRating(a.avgRating),
-                secondary: `${a.ratingCount} ratings`,
-              }))}
-              thresholdNote={`Requires at least ${MIN_RATINGS} ratings.`}
-            />
-            <Leaderboard
-              title="Top-rated vendors"
-              description="Highest average customer rating."
-              rows={topRatedVendors.map<LeaderRow>((a) => ({
-                id: a.id,
-                name: a.name,
-                href: assigneeHref(a),
-                primary: fmtRating(a.avgRating),
-                secondary: `${a.ratingCount} ratings`,
-              }))}
-              thresholdNote={`Requires at least ${MIN_RATINGS} ratings.`}
-            />
-            <Leaderboard
-              title="Lowest-rated"
-              description="Quality issues — investigate."
-              rows={lowestRated.map<LeaderRow>((a) => ({
-                id: a.id,
-                name: `${a.name} · ${a.kind === "vendor" ? "Vendor" : "Staff"}`,
-                href: assigneeHref(a),
-                primary: fmtRating(a.avgRating),
-                secondary: `${a.ratingCount} ratings`,
-                warn: (a.avgRating ?? 5) < 3,
-              }))}
-              thresholdNote={`Requires at least ${MIN_RATINGS} ratings.`}
-            />
-            <div className="border hairline rounded-sm bg-card p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <AlertTriangle className="h-4 w-4 text-amber-700" strokeWidth={1.5} />
-                <div className="font-display text-base text-architect">Awaiting feedback</div>
-              </div>
-              {qual.awaitingFeedback.length === 0 ? (
-                <div className="py-6 text-center text-xs text-muted-foreground italic">
-                  All recent completed jobs have feedback recorded. Great work.
-                </div>
-              ) : (
-                <ul className="space-y-1.5">
-                  {qual.awaitingFeedback.map((r) => (
-                    <li key={r.id} className="flex items-center gap-2 text-sm py-1.5 border-b hairline last:border-b-0">
-                      <Link
-                        to={`/services/requests/${r.id}`}
-                        className="flex-1 min-w-0 text-architect hover:underline truncate"
-                      >
-                        <span className="mono text-[11px] text-muted-foreground mr-1.5">{r.request_number}</span>
-                        {r.title}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </div>
-        )}
       </section>
 
       {/* ============== SECTION D: ACTIVITY ============== */}
