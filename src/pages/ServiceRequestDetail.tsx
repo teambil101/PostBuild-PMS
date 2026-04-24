@@ -13,6 +13,8 @@ import {
   Pause,
   Play,
   Plus,
+  Star,
+  MessageSquare,
   XCircle,
 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
@@ -27,6 +29,7 @@ import { BillingBadge, DeliveryBadge } from "@/components/services/CatalogBadges
 import { ApprovalCard } from "@/components/services/ApprovalCard";
 import { StepCard, type WorkflowStepRow } from "@/components/services/StepCard";
 import { AddStepDialog } from "@/components/services/AddStepDialog";
+import { RecordFeedbackDialog } from "@/components/services/RecordFeedbackDialog";
 import {
   PRIORITY_LABEL,
   PRIORITY_STYLES,
