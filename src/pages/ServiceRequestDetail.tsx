@@ -13,6 +13,8 @@ import {
   Pause,
   Play,
   Plus,
+  Star,
+  MessageSquare,
   XCircle,
 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
@@ -27,6 +29,7 @@ import { BillingBadge, DeliveryBadge } from "@/components/services/CatalogBadges
 import { ApprovalCard } from "@/components/services/ApprovalCard";
 import { StepCard, type WorkflowStepRow } from "@/components/services/StepCard";
 import { AddStepDialog } from "@/components/services/AddStepDialog";
+import { RecordFeedbackDialog } from "@/components/services/RecordFeedbackDialog";
 import {
   PRIORITY_LABEL,
   PRIORITY_STYLES,
@@ -119,11 +122,13 @@ export default function ServiceRequestDetail() {
   const [addStepOpen, setAddStepOpen] = useState(false);
   const [vendorLabels, setVendorLabels] = useState<Record<string, string>>({});
   const [personLabels, setPersonLabels] = useState<Record<string, string>>({});
+  const [feedback, setFeedback] = useState<{ id: string; rating: number; comment: string | null; submitted_at: string } | null>(null);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   const load = async () => {
     if (!id) return;
     setLoading(true);
-    const [r, s, e] = await Promise.all([
+    const [r, s, e, f] = await Promise.all([
       supabase.from("service_requests").select("*").eq("id", id).maybeSingle(),
       supabase.from("service_request_steps").select("*").eq("request_id", id).order("sort_order"),
       supabase
@@ -131,6 +136,11 @@ export default function ServiceRequestDetail() {
         .select("*")
         .eq("request_id", id)
         .order("created_at", { ascending: false }),
+      supabase
+        .from("service_feedback")
+        .select("id, rating, comment, submitted_at")
+        .eq("service_request_id", id)
+        .maybeSingle(),
     ]);
     if (!r.data) {
       toast.error("Request not found");
@@ -140,6 +150,7 @@ export default function ServiceRequestDetail() {
     setReq(r.data as any);
     setSteps((s.data ?? []) as any);
     setEvents((e.data ?? []) as any);
+    setFeedback((f.data as any) ?? null);
     setInternalNotes((r.data as any).internal_notes ?? "");
 
     // Fetch labels for assigned vendors / persons
@@ -365,8 +376,59 @@ export default function ServiceRequestDetail() {
               Cancel
             </Button>
           )}
+          {req.status === "completed" && (
+            <Button
+              size="sm"
+              variant={feedback ? "outline" : "default"}
+              onClick={() => setFeedbackOpen(true)}
+              className="ml-auto"
+            >
+              <MessageSquare className="h-3.5 w-3.5" />
+              {feedback ? "Update feedback" : "Record customer feedback"}
+            </Button>
+          )}
         </CardContent>
       </Card>
+
+      {feedback && (
+        <Card className="hairline mb-6 bg-muted/20">
+          <CardContent className="pt-4 pb-4 flex items-start gap-3">
+            <div className="flex items-center gap-0.5">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <Star
+                  key={n}
+                  className={cn(
+                    "h-4 w-4",
+                    n <= feedback.rating ? "fill-gold text-gold" : "text-muted-foreground/30",
+                  )}
+                  strokeWidth={1.5}
+                />
+              ))}
+              <span className="ml-2 mono text-xs text-architect tabular-nums">
+                {feedback.rating}/5
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              {feedback.comment ? (
+                <p className="text-sm text-architect whitespace-pre-wrap">{feedback.comment}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground italic">No comment recorded.</p>
+              )}
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1">
+                Customer feedback · {format(new Date(feedback.submitted_at), "d MMM yyyy")}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <RecordFeedbackDialog
+        open={feedbackOpen}
+        onOpenChange={setFeedbackOpen}
+        serviceRequestId={req.id}
+        existing={feedback}
+        onSaved={load}
+      />
 
       <Tabs defaultValue="overview">
         <TabsList>
