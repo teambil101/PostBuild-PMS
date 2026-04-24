@@ -1998,6 +1998,60 @@ export type Database = {
         }
         Relationships: []
       }
+      service_feedback: {
+        Row: {
+          assigned_person_id: string | null
+          assigned_vendor_id: string | null
+          comment: string | null
+          created_at: string
+          id: string
+          rating: number
+          service_request_id: string
+          submitted_at: string
+          submitted_by_person_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          assigned_person_id?: string | null
+          assigned_vendor_id?: string | null
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating: number
+          service_request_id: string
+          submitted_at?: string
+          submitted_by_person_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assigned_person_id?: string | null
+          assigned_vendor_id?: string | null
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating?: number
+          service_request_id?: string
+          submitted_at?: string
+          submitted_by_person_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_feedback_service_request_id_fkey"
+            columns: ["service_request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_feedback_submitted_by_person_id_fkey"
+            columns: ["submitted_by_person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_request_events: {
         Row: {
           actor_id: string | null
