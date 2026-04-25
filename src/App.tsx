@@ -32,8 +32,6 @@ import Financials from "./pages/Financials";
 import InvoiceDetail from "./pages/financials/InvoiceDetail";
 import PublicQuoteSubmit from "./pages/PublicQuoteSubmit";
 import PublicTenantDecision from "./pages/PublicTenantDecision";
-import AcceptInvite from "./pages/AcceptInvite";
-import Invitations from "./pages/Invitations";
 import MarketplaceInbox from "./pages/MarketplaceInbox";
 import { RequireNotBroker } from "@/components/RequireNotBroker";
 import OwnerHome from "./pages/owner/OwnerHome";
@@ -99,7 +97,6 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/q/:token" element={<PublicQuoteSubmit />} />
             <Route path="/t/:token" element={<PublicTenantDecision />} />
-            <Route path="/invite/:token" element={<AcceptInvite />} />
             <Route path="/" element={<IndexRoute />} />
             {/* Public marketing pages */}
             <Route path="/for-owners" element={<ForOwners />} />
@@ -124,7 +121,6 @@ const App = () => (
             <Route path="/services/requests/:id" element={<Shell><ServiceRequestDetail /></Shell>} />
             <Route path="/financials" element={<Shell><Financials /></Shell>} />
             <Route path="/financials/invoices/:id" element={<Shell><InvoiceDetail /></Shell>} />
-            <Route path="/invitations" element={<Shell><Invitations /></Shell>} />
             {/* Owner portal */}
             <Route path="/owner" element={<OwnerOnly><OwnerHome /></OwnerOnly>} />
             <Route path="/owner/properties" element={<OwnerOnly><OwnerProperties /></OwnerOnly>} />
