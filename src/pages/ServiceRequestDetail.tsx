@@ -190,6 +190,8 @@ export default function ServiceRequestDetail() {
 
     // Resolve winning quote, if any
     const wqId = (r.data as any).winning_quote_id as string | null;
+    const reqVendorIds: string[] = [];
+    if ((r.data as any).assigned_vendor_id) reqVendorIds.push((r.data as any).assigned_vendor_id);
     if (wqId) {
       const { data: wq } = await supabase
         .from("service_request_quotes")
@@ -197,6 +199,7 @@ export default function ServiceRequestDetail() {
         .eq("id", wqId)
         .maybeSingle();
       setWinningQuote(wq as any);
+      if (wq && (wq as any).vendor_id) reqVendorIds.push((wq as any).vendor_id);
     } else {
       setWinningQuote(null);
     }
@@ -209,7 +212,15 @@ export default function ServiceRequestDetail() {
       const { data: vData } = await supabase
         .from("vendors")
         .select("id, legal_name, display_name")
-        .in("id", vendorIds as string[]);
+        .in("id", Array.from(new Set([...(vendorIds as string[]), ...reqVendorIds])));
+      const map: Record<string, string> = {};
+      (vData ?? []).forEach((v: any) => { map[v.id] = v.display_name || v.legal_name; });
+      setVendorLabels(map);
+    } else if (reqVendorIds.length) {
+      const { data: vData } = await supabase
+        .from("vendors")
+        .select("id, legal_name, display_name")
+        .in("id", reqVendorIds);
       const map: Record<string, string> = {};
       (vData ?? []).forEach((v: any) => { map[v.id] = v.display_name || v.legal_name; });
       setVendorLabels(map);
