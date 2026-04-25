@@ -545,6 +545,28 @@ export default function ServiceRequestDetail() {
             />
           )}
 
+          <TenantCoordinationCard
+            requestId={req.id}
+            tenantToken={req.tenant_token}
+            approvalRequired={req.tenant_approval_required}
+            approvalStatus={req.tenant_approval_status}
+            approvalReason={req.tenant_approval_reason}
+            approvalRequestedAt={req.tenant_approval_requested_at}
+            approvalDecidedAt={req.tenant_approval_decided_at}
+            approvalNotes={req.tenant_approval_notes}
+            proposedScheduledDate={req.proposed_scheduled_date}
+            scheduleStatus={req.tenant_schedule_status}
+            tenantProposedDate={req.tenant_proposed_date}
+            scheduleNotes={req.tenant_schedule_notes}
+            counterRound={req.schedule_counter_round}
+            scheduledDate={req.scheduled_date}
+            billing={req.billing}
+            billTo={req.bill_to}
+            costEstimate={req.cost_estimate}
+            currency={req.currency}
+            onChanged={load}
+          />
+
           <Card className="hairline">
             <CardHeader>
               <CardTitle className="text-sm">Internal notes</CardTitle>
