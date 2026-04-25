@@ -195,6 +195,12 @@ If you approve, the next concrete step is **Phase 1 only** (tenancy foundation).
   - `/invitations` operator-side invite manager (creates link to copy/send)
   - `SmartShell` picks `OwnerShell` vs `AppShell` based on active workspace `kind`
   - Re-added the `address` column to `buildings` that had been dropped in an earlier migration
-- ⏳ **Phase 3** — Services Marketplace: promote catalog to marketplace, add `fulfilling_workspace_id`, build operator marketplace inbox, allow owners to see internal-workspace catalog.
+- ✅ **Phase 3** — Services Marketplace:
+  - `service_catalog.is_marketplace` flag (all True Build HQ items auto-flagged)
+  - `service_requests.fulfilling_workspace_id` for cross-workspace routing
+  - RLS opens marketplace catalog to all authenticated users; service requests visible to either workspace
+  - `create_marketplace_service_request` RPC creates the request in the requester workspace and routes to the catalog publisher
+  - **Operator marketplace inbox** at `/services/marketplace` — incoming requests from external workspaces
+  - Owner portal "Request Services" now reads marketplace items and submits via the new RPC
 - ⏳ **Phase 4** — Broker Portal: branded operator workspace, teammate roles, "Outsource to True Build".
 - ⏳ **Phase 5** — Polish & growth.
