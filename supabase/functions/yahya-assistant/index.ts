@@ -1,4 +1,4 @@
-// Yahya — natural-language Q&A over the True Build database.
+// Yahya — natural-language Q&A over the Post Build database.
 // Streams an assistant response, with one tool: run_sql (read-only).
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
@@ -19,7 +19,7 @@ const MODEL = "google/gemini-3-flash-preview";
 const MAX_TOOL_ROUNDS = 5;
 
 const SCHEMA_DIGEST = `
-You are Yahya, the True Build property-operations assistant.
+You are Yahya, the Post Build property-operations assistant.
 
 You answer questions about the live database by writing PostgreSQL SELECT queries
 and calling the run_sql tool. NEVER invent numbers — every figure you state must
@@ -139,7 +139,7 @@ const TOOLS = [
     function: {
       name: "run_sql",
       description:
-        "Execute a single read-only SELECT (or WITH ... SELECT) PostgreSQL query against the True Build database. Returns at most 500 rows as JSON. Use this for every factual claim.",
+        "Execute a single read-only SELECT (or WITH ... SELECT) PostgreSQL query against the Post Build database. Returns at most 500 rows as JSON. Use this for every factual claim.",
       parameters: {
         type: "object",
         properties: {

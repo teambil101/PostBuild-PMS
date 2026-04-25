@@ -34,7 +34,7 @@ export function OwnerShell({ children }: { children: ReactNode }) {
       <aside className="hidden lg:flex w-[240px] shrink-0 flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border">
         <div className="px-6 pt-7 pb-8">
           <Link to="/owner" className="block">
-            <div className="font-display text-2xl text-chalk leading-none">True Build</div>
+            <div className="font-display text-2xl text-chalk leading-none">Post Build</div>
             <div className="label-eyebrow mt-1.5 text-sidebar-foreground/60">Owner Portal</div>
           </Link>
         </div>
@@ -75,7 +75,7 @@ export function OwnerShell({ children }: { children: ReactNode }) {
       <div className="flex-1 flex flex-col min-w-0">
         <header className="h-14 lg:h-16 border-b hairline bg-background flex items-center justify-between gap-2 px-4 lg:px-10 sticky top-0 z-30">
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <Link to="/owner" className="lg:hidden font-display text-lg text-architect shrink-0">True Build</Link>
+            <Link to="/owner" className="lg:hidden font-display text-lg text-architect shrink-0">Post Build</Link>
             <span className="hidden lg:flex mono text-[11px] uppercase tracking-wider text-muted-foreground">
               Owner Portal
             </span>
