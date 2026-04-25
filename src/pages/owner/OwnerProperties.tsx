@@ -22,7 +22,7 @@ import { toast } from "sonner";
 interface Building {
   id: string;
   name: string;
-  street: string | null;
+  address: string | null;
   city: string;
   country: string;
 }
@@ -38,10 +38,10 @@ export default function OwnerProperties() {
     if (!activeWorkspace) return;
     const { data } = await supabase
       .from("buildings")
-      .select("id, name, street, city, country")
+      .select("id, name, address, city, country")
       .eq("workspace_id", activeWorkspace.id)
       .order("created_at", { ascending: false });
-    setBuildings((data ?? []) as Building[]);
+    setBuildings(((data ?? []) as unknown) as Building[]);
   };
 
   useEffect(() => {
@@ -101,7 +101,7 @@ export default function OwnerProperties() {
                 <Building2 className="h-5 w-5 text-architect/60 mb-3" strokeWidth={1.5} />
                 <div className="font-display text-lg text-architect">{b.name}</div>
                 <div className="text-sm text-muted-foreground mt-1">
-                  {b.street ? `${b.street}, ` : ""}
+                  {b.address ? `${b.address}, ` : ""}
                   {b.city}
                 </div>
               </Card>
