@@ -31,6 +31,7 @@ import { StepCard, type WorkflowStepRow } from "@/components/services/StepCard";
 import { AddStepDialog } from "@/components/services/AddStepDialog";
 import { RecordFeedbackDialog } from "@/components/services/RecordFeedbackDialog";
 import { QuotesCard } from "@/components/services/QuotesCard";
+import { TenantCoordinationCard } from "@/components/services/TenantCoordinationCard";
 import {
   PRIORITY_LABEL,
   PRIORITY_STYLES,
@@ -75,6 +76,19 @@ interface RequestRow {
   approval_requested_at: string | null;
   approval_decided_at: string | null;
   approval_decision_notes: string | null;
+  bill_to: string;
+  tenant_token: string | null;
+  tenant_approval_required: boolean;
+  tenant_approval_status: "not_required" | "pending" | "approved" | "rejected";
+  tenant_approval_reason: string | null;
+  tenant_approval_requested_at: string | null;
+  tenant_approval_decided_at: string | null;
+  tenant_approval_notes: string | null;
+  proposed_scheduled_date: string | null;
+  tenant_schedule_status: "none" | "proposed" | "confirmed" | "rescheduled";
+  tenant_proposed_date: string | null;
+  tenant_schedule_notes: string | null;
+  schedule_counter_round: number;
 }
 
 interface StepRow {
