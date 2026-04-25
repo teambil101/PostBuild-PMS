@@ -113,6 +113,11 @@ export interface WorkflowStep {
   duration_override_days?: number | null;
   blocks_next: boolean;
 
+  /** Optional default assignee for this step (staff/internal person). */
+  assigned_person_id?: string | null;
+  /** Optional default assignee for this step (vendor). */
+  assigned_vendor_id?: string | null;
+
   // ---- Legacy fields (pre-chaining) — kept optional for backwards compat. ----
   /** @deprecated Use catalog_id + title_override instead. */
   title?: string;
@@ -134,6 +139,8 @@ export const EMPTY_STEP: WorkflowStep = {
   title_override: null,
   duration_override_days: null,
   blocks_next: false,
+  assigned_person_id: null,
+  assigned_vendor_id: null,
 };
 
 export function slugify(s: string): string {

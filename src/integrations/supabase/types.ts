@@ -1946,6 +1946,8 @@ export type Database = {
           code: string
           created_at: string
           created_by: string | null
+          default_assignee_person_id: string | null
+          default_assignee_vendor_id: string | null
           default_billing: Database["public"]["Enums"]["service_billing"]
           default_delivery: Database["public"]["Enums"]["service_delivery"]
           description: string | null
@@ -1965,6 +1967,8 @@ export type Database = {
           code: string
           created_at?: string
           created_by?: string | null
+          default_assignee_person_id?: string | null
+          default_assignee_vendor_id?: string | null
           default_billing?: Database["public"]["Enums"]["service_billing"]
           default_delivery?: Database["public"]["Enums"]["service_delivery"]
           description?: string | null
@@ -1984,6 +1988,8 @@ export type Database = {
           code?: string
           created_at?: string
           created_by?: string | null
+          default_assignee_person_id?: string | null
+          default_assignee_vendor_id?: string | null
           default_billing?: Database["public"]["Enums"]["service_billing"]
           default_delivery?: Database["public"]["Enums"]["service_delivery"]
           description?: string | null
@@ -1996,7 +2002,22 @@ export type Database = {
           updated_at?: string
           workflow_steps?: Json
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "service_catalog_default_assignee_person_id_fkey"
+            columns: ["default_assignee_person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_catalog_default_assignee_vendor_id_fkey"
+            columns: ["default_assignee_vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       service_feedback: {
         Row: {
