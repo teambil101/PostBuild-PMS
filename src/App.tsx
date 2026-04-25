@@ -28,6 +28,7 @@ import ServiceRequestDetail from "./pages/ServiceRequestDetail";
 import Financials from "./pages/Financials";
 import InvoiceDetail from "./pages/financials/InvoiceDetail";
 import PublicQuoteSubmit from "./pages/PublicQuoteSubmit";
+import PublicTenantDecision from "./pages/PublicTenantDecision";
 
 const queryClient = new QueryClient();
 
@@ -47,6 +48,7 @@ const App = () => (
           <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route path="/q/:token" element={<PublicQuoteSubmit />} />
+            <Route path="/t/:token" element={<PublicTenantDecision />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Shell><Dashboard /></Shell>} />
             <Route path="/properties" element={<Shell><Properties /></Shell>} />
