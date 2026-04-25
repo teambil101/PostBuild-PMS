@@ -16,6 +16,14 @@ import { BillingBadge, DeliveryBadge } from "@/components/services/CatalogBadges
 import type { CatalogEntry } from "@/components/services/CatalogEntryDialog";
 import { PRIORITY_LABEL, type ServiceRequestPriority } from "@/lib/services";
 import { cn } from "@/lib/utils";
+import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
+import {
+  BILL_TO_MODE_LABEL,
+  BILL_TO_MODE_DESC,
+  type BillToMode,
+} from "@/lib/vendor-services";
+import { Users } from "lucide-react";
 
 const STEPS = [
   { key: 1, label: "Service" },
@@ -38,6 +46,9 @@ export default function NewServiceRequest() {
   const [scheduledDate, setScheduledDate] = useState<string>(prefilledDate);
   const [description, setDescription] = useState("");
   const [costEstimate, setCostEstimate] = useState<string>("");
+  const [billToMode, setBillToMode] = useState<BillToMode>("landlord_only");
+  const [landlordShare, setLandlordShare] = useState<number>(100);
+  const [autoInviteVendors, setAutoInviteVendors] = useState<boolean>(true);
 
   const next = () => {
     if (step === 1 && !catalog) {
@@ -54,6 +65,10 @@ export default function NewServiceRequest() {
 
   const submit = async () => {
     if (!catalog) return;
+    if (billToMode === "split" && (landlordShare <= 0 || landlordShare >= 100)) {
+      toast.error("Use 'landlord pays' or 'tenant pays' instead of 0% / 100% split.");
+      return;
+    }
     setSaving(true);
     try {
       const { data, error } = await supabase.rpc("create_service_request_from_catalog", {
@@ -70,9 +85,33 @@ export default function NewServiceRequest() {
         p_cost_estimate: costEstimate ? Number(costEstimate) : null,
         p_override_title: null,
         p_internal_notes: null,
+        p_bill_to_mode: billToMode,
+        p_landlord_share_percent:
+          billToMode === "landlord_only"
+            ? 100
+            : billToMode === "tenant_only"
+              ? 0
+              : billToMode === "split"
+                ? landlordShare
+                : 100,
+        p_tenant_share_percent:
+          billToMode === "landlord_only"
+            ? 0
+            : billToMode === "tenant_only"
+              ? 100
+              : billToMode === "split"
+                ? 100 - landlordShare
+                : 0,
+        p_auto_invite_vendors: autoInviteVendors,
       });
       if (error) throw error;
-      toast.success(catalog.is_workflow ? "Workflow request created" : "Request created");
+      toast.success(
+        autoInviteVendors
+          ? "Request created — matching vendors invited to quote"
+          : catalog.is_workflow
+            ? "Workflow request created"
+            : "Request created",
+      );
       navigate(`/services/requests/${data}`);
     } catch (e: any) {
       console.error(e);
@@ -210,6 +249,77 @@ export default function NewServiceRequest() {
                   className="mt-1.5"
                 />
               </div>
+
+            {/* ---- Cost split ---- */}
+            <div className="border hairline rounded-sm p-4 space-y-4 bg-muted/20">
+              <div>
+                <div className="text-[11px] uppercase tracking-wider text-architect mb-1">
+                  Who pays?
+                </div>
+                <Select
+                  value={billToMode}
+                  onValueChange={(v) => {
+                    const m = v as BillToMode;
+                    setBillToMode(m);
+                    if (m === "split" && (landlordShare === 0 || landlordShare === 100)) {
+                      setLandlordShare(50);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="mt-1.5">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(BILL_TO_MODE_LABEL) as BillToMode[]).map((m) => (
+                      <SelectItem key={m} value={m}>
+                        {BILL_TO_MODE_LABEL[m]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground mt-1.5">
+                  {BILL_TO_MODE_DESC[billToMode]}
+                </p>
+              </div>
+
+              {billToMode === "split" && (
+                <div>
+                  <Label className="text-xs">Landlord share</Label>
+                  <div className="flex items-center gap-3 mt-2">
+                    <Slider
+                      value={[landlordShare]}
+                      min={0}
+                      max={100}
+                      step={5}
+                      onValueChange={(v) => setLandlordShare(v[0])}
+                      className="flex-1"
+                    />
+                    <span className="mono tabular-nums text-xs text-architect w-24 text-right">
+                      {landlordShare}% / {100 - landlordShare}%
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Landlord pays {landlordShare}%, tenant pays {100 - landlordShare}% of the
+                    accepted vendor quote.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* ---- Auto-invite ---- */}
+            <div className="flex items-start justify-between border hairline rounded-sm p-4 gap-3">
+              <div className="min-w-0">
+                <div className="text-[11px] uppercase tracking-wider text-architect flex items-center gap-1.5">
+                  <Users className="h-3.5 w-3.5" />
+                  Auto-invite matching vendors
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  When on, every active vendor who covers this service in the unit's city is
+                  invited to submit a quote as soon as the request is created.
+                </p>
+              </div>
+              <Switch checked={autoInviteVendors} onCheckedChange={setAutoInviteVendors} />
+            </div>
             </CardContent>
           </>
         )}

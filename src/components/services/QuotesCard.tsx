@@ -139,16 +139,16 @@ export function QuotesCard({ requestId, category, hasAssignedVendor, onChanged }
 
   const accept = async (quoteId: string) => {
     setWorking(quoteId);
-    const { error } = await supabase.rpc("accept_service_request_quote", {
+    const { error } = await supabase.rpc("select_winning_quote", {
+      p_request_id: requestId,
       p_quote_id: quoteId,
-      p_notes: null,
     });
     setWorking(null);
     if (error) {
       toast.error(error.message);
       return;
     }
-    toast.success("Quote accepted — vendor assigned to request");
+    toast.success("Winner selected — awaiting cost approval from paying parties");
     await load();
     await onChanged();
   };

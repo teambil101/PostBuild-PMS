@@ -32,6 +32,8 @@ import { AddStepDialog } from "@/components/services/AddStepDialog";
 import { RecordFeedbackDialog } from "@/components/services/RecordFeedbackDialog";
 import { QuotesCard } from "@/components/services/QuotesCard";
 import { TenantCoordinationCard } from "@/components/services/TenantCoordinationCard";
+import { CostSplitAndApprovalCard } from "@/components/services/CostSplitAndApprovalCard";
+import type { BillToMode, PartyCostApprovalStatus } from "@/lib/vendor-services";
 import {
   PRIORITY_LABEL,
   PRIORITY_STYLES,
@@ -89,6 +91,16 @@ interface RequestRow {
   tenant_proposed_date: string | null;
   tenant_schedule_notes: string | null;
   schedule_counter_round: number;
+  bill_to_mode?: BillToMode;
+  landlord_share_percent?: number;
+  tenant_share_percent?: number;
+  winning_quote_id?: string | null;
+  landlord_cost_approval_status?: PartyCostApprovalStatus;
+  tenant_cost_approval_status?: PartyCostApprovalStatus;
+  landlord_cost_approved_at?: string | null;
+  tenant_cost_approved_at?: string | null;
+  service_area_city?: string | null;
+  service_area_community?: string | null;
 }
 
 interface StepRow {
@@ -141,6 +153,12 @@ export default function ServiceRequestDetail() {
   const [personLabels, setPersonLabels] = useState<Record<string, string>>({});
   const [feedback, setFeedback] = useState<{ id: string; rating: number; comment: string | null; submitted_at: string } | null>(null);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [winningQuote, setWinningQuote] = useState<{
+    id: string;
+    amount: number | null;
+    currency: string;
+    vendor_id: string;
+  } | null>(null);
 
   const load = async () => {
     if (!id) return;
@@ -170,6 +188,22 @@ export default function ServiceRequestDetail() {
     setFeedback((f.data as any) ?? null);
     setInternalNotes((r.data as any).internal_notes ?? "");
 
+    // Resolve winning quote, if any
+    const wqId = (r.data as any).winning_quote_id as string | null;
+    const reqVendorIds: string[] = [];
+    if ((r.data as any).assigned_vendor_id) reqVendorIds.push((r.data as any).assigned_vendor_id);
+    if (wqId) {
+      const { data: wq } = await supabase
+        .from("service_request_quotes")
+        .select("id, amount, currency, vendor_id")
+        .eq("id", wqId)
+        .maybeSingle();
+      setWinningQuote(wq as any);
+      if (wq && (wq as any).vendor_id) reqVendorIds.push((wq as any).vendor_id);
+    } else {
+      setWinningQuote(null);
+    }
+
     // Fetch labels for assigned vendors / persons
     const stepRows: any[] = (s.data ?? []) as any[];
     const vendorIds = Array.from(new Set(stepRows.map((x) => x.assigned_vendor_id).filter(Boolean)));
@@ -178,7 +212,15 @@ export default function ServiceRequestDetail() {
       const { data: vData } = await supabase
         .from("vendors")
         .select("id, legal_name, display_name")
-        .in("id", vendorIds as string[]);
+        .in("id", Array.from(new Set([...(vendorIds as string[]), ...reqVendorIds])));
+      const map: Record<string, string> = {};
+      (vData ?? []).forEach((v: any) => { map[v.id] = v.display_name || v.legal_name; });
+      setVendorLabels(map);
+    } else if (reqVendorIds.length) {
+      const { data: vData } = await supabase
+        .from("vendors")
+        .select("id, legal_name, display_name")
+        .in("id", reqVendorIds);
       const map: Record<string, string> = {};
       (vData ?? []).forEach((v: any) => { map[v.id] = v.display_name || v.legal_name; });
       setVendorLabels(map);
@@ -541,6 +583,30 @@ export default function ServiceRequestDetail() {
               requestId={req.id}
               category={req.category}
               hasAssignedVendor={!!req.assigned_vendor_id}
+              onChanged={load}
+            />
+          )}
+
+          {(req.delivery === "vendor" || req.delivery === "either") && !req.is_workflow && (
+            <CostSplitAndApprovalCard
+              requestId={req.id}
+              billToMode={(req.bill_to_mode ?? "landlord_only") as BillToMode}
+              landlordSharePercent={Number(req.landlord_share_percent ?? 100)}
+              tenantSharePercent={Number(req.tenant_share_percent ?? 0)}
+              winningQuoteId={req.winning_quote_id ?? null}
+              winningQuoteAmount={winningQuote?.amount ?? null}
+              winningQuoteCurrency={winningQuote?.currency ?? req.currency}
+              winningVendorName={
+                winningQuote ? vendorLabels[winningQuote.vendor_id] ?? null : null
+              }
+              landlordCostApprovalStatus={
+                (req.landlord_cost_approval_status ?? "not_required") as PartyCostApprovalStatus
+              }
+              tenantCostApprovalStatus={
+                (req.tenant_cost_approval_status ?? "not_required") as PartyCostApprovalStatus
+              }
+              landlordCostApprovedAt={req.landlord_cost_approved_at ?? null}
+              tenantCostApprovedAt={req.tenant_cost_approved_at ?? null}
               onChanged={load}
             />
           )}
