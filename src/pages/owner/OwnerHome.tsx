@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
+import { OverdueRentAlert } from "@/components/owner/OverdueRentAlert";
 
 export default function OwnerHome() {
   const { activeWorkspace } = useWorkspace();
@@ -60,6 +61,8 @@ export default function OwnerHome() {
         />
       ) : (
         <>
+          <OverdueRentAlert servicesHref="/owner/services" />
+
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard label="Properties" value={stats.buildings} />
             <StatCard label="Units" value={stats.units} />
