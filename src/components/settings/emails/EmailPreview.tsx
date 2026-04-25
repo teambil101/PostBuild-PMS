@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useMemo } from "react";
 import type { BrandTokens, EmailBlock } from "@/lib/email-blocks";
 import { renderTemplateHtml, CATEGORY_VARIABLES } from "@/lib/email-blocks";
 
@@ -10,30 +10,21 @@ interface Props {
 }
 
 export function EmailPreview({ blocks, brand, preheader, category }: Props) {
-  const ref = useRef<HTMLIFrameElement>(null);
-
-  useEffect(() => {
+  const html = useMemo(() => {
     const vars: Record<string, string> = {
       company_name: brand.companyName || "Post Build",
     };
     const cat = category && CATEGORY_VARIABLES[category];
     if (cat) for (const v of cat) vars[v.key] = v.example;
-
-    const html = renderTemplateHtml(blocks, brand, vars, preheader);
-    const doc = ref.current?.contentDocument;
-    if (doc) {
-      doc.open();
-      doc.write(html);
-      doc.close();
-    }
+    return renderTemplateHtml(blocks, brand, vars, preheader);
   }, [blocks, brand, preheader, category]);
 
   return (
     <iframe
-      ref={ref}
       title="Email preview"
+      srcDoc={html}
       className="w-full h-[720px] border border-border rounded-sm bg-white"
-      sandbox=""
+      sandbox="allow-same-origin"
     />
   );
 }
