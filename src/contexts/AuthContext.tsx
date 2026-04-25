@@ -72,9 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const hasRole = (role: AppRole) => roles.includes(role);
-  // Auth temporarily bypassed — grant edit access to everyone.
-  // Restore to: roles.includes("admin") || roles.includes("staff") when re-enabling auth.
-  const canEdit = true;
+  const canEdit = roles.includes("admin") || roles.includes("staff");
 
   return (
     <AuthContext.Provider value={{ user, session, roles, loading, signIn, signUp, signOut, hasRole, canEdit }}>
