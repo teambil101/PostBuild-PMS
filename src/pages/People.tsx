@@ -55,7 +55,6 @@ const ROLE_FILTERS = [
   { v: "all", l: "All" },
   { v: "tenant", l: "Tenants" },
   { v: "owner", l: "Owners" },
-  { v: "prospect", l: "Prospects" },
   { v: "staff", l: "Staff" },
   { v: "vendor", l: "Vendors" }, // includes vendor companies + people tagged as vendor
 ];
