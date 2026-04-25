@@ -58,3 +58,12 @@ Update `.lovable/plan.md` Phase 4 to record: "Broker = buyer-only. No catalog pu
 - Brokers offering their *own* PM services on the marketplace — would require turning their workspace into a hybrid buyer+provider. Deferred until provider infra lands.
 
 Approve and I'll implement in one pass.
+
+---
+
+## Status update
+
+- ✅ **Broker lockdown** — Brokers are buyers only:
+  - Frontend: `Services` page renders a Browse + My Requests view for `kind='broker'` workspaces (no catalog tab, no marketplace inbox button).
+  - Routing: `/services/marketplace` blocked by `RequireNotBroker` guard.
+  - Database: `service_catalog` write policies require `is_publisher_workspace(workspace_id)` — only `internal` (future `provider`) workspaces can publish.
