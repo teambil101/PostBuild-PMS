@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { VendorServicesPanel } from "@/components/vendors/VendorServicesPanel";
 import { EmptyState } from "@/components/EmptyState";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
@@ -472,6 +473,14 @@ export default function VendorDetail() {
             onChanged={load}
             onOpenAdd={() => { setContactSeed(null); setContactOpen(true); }}
             onOpenEdit={(c) => { setContactSeed(c); setContactOpen(true); }}
+          />
+        </TabsContent>
+
+        <TabsContent value="services" className="mt-6">
+          <VendorServicesPanel
+            vendorId={vendor.id}
+            workspaceId={(vendor as any).workspace_id ?? null}
+            canEdit={canEdit}
           />
         </TabsContent>
 
