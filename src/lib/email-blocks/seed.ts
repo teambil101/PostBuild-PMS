@@ -1,4 +1,4 @@
-import type { EmailBlock, EmailCategory } from "./types";
+import type { EmailBlock } from "./types";
 
 export type EmailCategory = "alert" | "quote" | "notice" | "service_request" | "work_update" | "confirmation";
 
