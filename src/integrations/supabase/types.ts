@@ -1794,18 +1794,21 @@ export type Database = {
           last_seq: number
           prefix: string
           updated_at: string
+          workspace_id: string | null
           year: number
         }
         Insert: {
           last_seq?: number
           prefix: string
           updated_at?: string
+          workspace_id?: string | null
           year: number
         }
         Update: {
           last_seq?: number
           prefix?: string
           updated_at?: string
+          workspace_id?: string | null
           year?: number
         }
         Relationships: []
@@ -4621,6 +4624,10 @@ export type Database = {
           quality_tier: Database["public"]["Enums"]["vendor_service_quality"]
           vendor_id: string
         }[]
+      }
+      next_doc_number: {
+        Args: { _prefix: string; _workspace_id: string }
+        Returns: string
       }
       next_number: {
         Args: { p_prefix: string; p_year: number }
