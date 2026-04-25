@@ -25,6 +25,7 @@ export type Database = {
           is_system: boolean
           name: string
           updated_at: string
+          workspace_id: string | null
         }
         Insert: {
           account_type: Database["public"]["Enums"]["account_type"]
@@ -36,6 +37,7 @@ export type Database = {
           is_system?: boolean
           name: string
           updated_at?: string
+          workspace_id?: string | null
         }
         Update: {
           account_type?: Database["public"]["Enums"]["account_type"]
@@ -47,8 +49,17 @@ export type Database = {
           is_system?: boolean
           name?: string
           updated_at?: string
+          workspace_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "accounts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ai_chat_messages: {
         Row: {
@@ -121,6 +132,7 @@ export type Database = {
           id: string
           self_person_id: string | null
           updated_at: string
+          workspace_id: string | null
         }
         Insert: {
           contract_number_prefix?: string
@@ -130,6 +142,7 @@ export type Database = {
           id?: string
           self_person_id?: string | null
           updated_at?: string
+          workspace_id?: string | null
         }
         Update: {
           contract_number_prefix?: string
@@ -139,6 +152,7 @@ export type Database = {
           id?: string
           self_person_id?: string | null
           updated_at?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -146,6 +160,13 @@ export type Database = {
             columns: ["self_person_id"]
             isOneToOne: false
             referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "app_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -163,6 +184,7 @@ export type Database = {
           notes: string | null
           opening_balance: number
           updated_at: string
+          workspace_id: string | null
         }
         Insert: {
           account_number_masked?: string | null
@@ -176,6 +198,7 @@ export type Database = {
           notes?: string | null
           opening_balance?: number
           updated_at?: string
+          workspace_id?: string | null
         }
         Update: {
           account_number_masked?: string | null
@@ -189,6 +212,7 @@ export type Database = {
           notes?: string | null
           opening_balance?: number
           updated_at?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -196,6 +220,13 @@ export type Database = {
             columns: ["gl_account_id"]
             isOneToOne: false
             referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_accounts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -211,6 +242,7 @@ export type Database = {
           quantity: number
           sort_order: number
           unit_price: number
+          workspace_id: string | null
         }
         Insert: {
           account_id?: string | null
@@ -222,6 +254,7 @@ export type Database = {
           quantity?: number
           sort_order?: number
           unit_price?: number
+          workspace_id?: string | null
         }
         Update: {
           account_id?: string | null
@@ -233,6 +266,7 @@ export type Database = {
           quantity?: number
           sort_order?: number
           unit_price?: number
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -247,6 +281,13 @@ export type Database = {
             columns: ["bill_id"]
             isOneToOne: false
             referencedRelation: "bills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bill_lines_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -275,6 +316,7 @@ export type Database = {
           voided_at: string | null
           voided_reason: string | null
           vsa_contract_id: string | null
+          workspace_id: string | null
         }
         Insert: {
           amount_paid?: number
@@ -299,6 +341,7 @@ export type Database = {
           voided_at?: string | null
           voided_reason?: string | null
           vsa_contract_id?: string | null
+          workspace_id?: string | null
         }
         Update: {
           amount_paid?: number
@@ -323,6 +366,7 @@ export type Database = {
           voided_at?: string | null
           voided_reason?: string | null
           vsa_contract_id?: string | null
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -367,6 +411,13 @@ export type Database = {
             referencedRelation: "contracts"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "bills_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
         ]
       }
       buildings: {
@@ -383,6 +434,7 @@ export type Database = {
           name: string
           ref_code: string
           updated_at: string
+          workspace_id: string | null
         }
         Insert: {
           building_type?: string
@@ -397,6 +449,7 @@ export type Database = {
           name: string
           ref_code: string
           updated_at?: string
+          workspace_id?: string | null
         }
         Update: {
           building_type?: string
@@ -411,8 +464,17 @@ export type Database = {
           name?: string
           ref_code?: string
           updated_at?: string
+          workspace_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "buildings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contract_events: {
         Row: {
@@ -424,6 +486,7 @@ export type Database = {
           from_value: string | null
           id: string
           to_value: string | null
+          workspace_id: string | null
         }
         Insert: {
           actor_id?: string | null
@@ -434,6 +497,7 @@ export type Database = {
           from_value?: string | null
           id?: string
           to_value?: string | null
+          workspace_id?: string | null
         }
         Update: {
           actor_id?: string | null
@@ -444,6 +508,7 @@ export type Database = {
           from_value?: string | null
           id?: string
           to_value?: string | null
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -451,6 +516,13 @@ export type Database = {
             columns: ["contract_id"]
             isOneToOne: false
             referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -464,6 +536,7 @@ export type Database = {
           notes: string | null
           person_id: string
           role: Database["public"]["Enums"]["contract_party_role"]
+          workspace_id: string | null
         }
         Insert: {
           contract_id: string
@@ -473,6 +546,7 @@ export type Database = {
           notes?: string | null
           person_id: string
           role: Database["public"]["Enums"]["contract_party_role"]
+          workspace_id?: string | null
         }
         Update: {
           contract_id?: string
@@ -482,6 +556,7 @@ export type Database = {
           notes?: string | null
           person_id?: string
           role?: Database["public"]["Enums"]["contract_party_role"]
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -498,6 +573,13 @@ export type Database = {
             referencedRelation: "people"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "contract_parties_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
         ]
       }
       contract_subjects: {
@@ -508,6 +590,7 @@ export type Database = {
           notes: string | null
           subject_id: string
           subject_type: string
+          workspace_id: string | null
         }
         Insert: {
           contract_id: string
@@ -516,6 +599,7 @@ export type Database = {
           notes?: string | null
           subject_id: string
           subject_type: string
+          workspace_id?: string | null
         }
         Update: {
           contract_id?: string
@@ -524,6 +608,7 @@ export type Database = {
           notes?: string | null
           subject_id?: string
           subject_type?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -531,6 +616,13 @@ export type Database = {
             columns: ["contract_id"]
             isOneToOne: false
             referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_subjects_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -550,6 +642,7 @@ export type Database = {
           status: Database["public"]["Enums"]["contract_status"]
           title: string | null
           updated_at: string
+          workspace_id: string | null
         }
         Insert: {
           contract_number: string
@@ -565,6 +658,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["contract_status"]
           title?: string | null
           updated_at?: string
+          workspace_id?: string | null
         }
         Update: {
           contract_number?: string
@@ -580,8 +674,17 @@ export type Database = {
           status?: Database["public"]["Enums"]["contract_status"]
           title?: string | null
           updated_at?: string
+          workspace_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "contracts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       documents: {
         Row: {
@@ -597,6 +700,7 @@ export type Database = {
           storage_path: string
           title: string | null
           uploaded_by: string | null
+          workspace_id: string | null
         }
         Insert: {
           created_at?: string
@@ -611,6 +715,7 @@ export type Database = {
           storage_path: string
           title?: string | null
           uploaded_by?: string | null
+          workspace_id?: string | null
         }
         Update: {
           created_at?: string
@@ -625,8 +730,17 @@ export type Database = {
           storage_path?: string
           title?: string | null
           uploaded_by?: string | null
+          workspace_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "documents_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       invoice_lines: {
         Row: {
@@ -639,6 +753,7 @@ export type Database = {
           quantity: number
           sort_order: number
           unit_price: number
+          workspace_id: string | null
         }
         Insert: {
           account_id?: string | null
@@ -650,6 +765,7 @@ export type Database = {
           quantity?: number
           sort_order?: number
           unit_price?: number
+          workspace_id?: string | null
         }
         Update: {
           account_id?: string | null
@@ -661,6 +777,7 @@ export type Database = {
           quantity?: number
           sort_order?: number
           unit_price?: number
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -675,6 +792,13 @@ export type Database = {
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_lines_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -702,6 +826,7 @@ export type Database = {
           updated_at: string
           voided_at: string | null
           voided_reason: string | null
+          workspace_id: string | null
         }
         Insert: {
           amount_paid?: number
@@ -725,6 +850,7 @@ export type Database = {
           updated_at?: string
           voided_at?: string | null
           voided_reason?: string | null
+          workspace_id?: string | null
         }
         Update: {
           amount_paid?: number
@@ -748,6 +874,7 @@ export type Database = {
           updated_at?: string
           voided_at?: string | null
           voided_reason?: string | null
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -778,6 +905,13 @@ export type Database = {
             referencedRelation: "service_requests"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "invoices_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
         ]
       }
       journal_entries: {
@@ -790,6 +924,7 @@ export type Database = {
           reverses_entry_id: string | null
           source_id: string
           source_type: string
+          workspace_id: string | null
         }
         Insert: {
           created_at?: string
@@ -800,6 +935,7 @@ export type Database = {
           reverses_entry_id?: string | null
           source_id: string
           source_type: string
+          workspace_id?: string | null
         }
         Update: {
           created_at?: string
@@ -810,6 +946,7 @@ export type Database = {
           reverses_entry_id?: string | null
           source_id?: string
           source_type?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -817,6 +954,13 @@ export type Database = {
             columns: ["reverses_entry_id"]
             isOneToOne: false
             referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_entries_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -834,6 +978,7 @@ export type Database = {
           party_person_id: string | null
           party_vendor_id: string | null
           sort_order: number
+          workspace_id: string | null
         }
         Insert: {
           account_id: string
@@ -847,6 +992,7 @@ export type Database = {
           party_person_id?: string | null
           party_vendor_id?: string | null
           sort_order?: number
+          workspace_id?: string | null
         }
         Update: {
           account_id?: string
@@ -860,6 +1006,7 @@ export type Database = {
           party_person_id?: string | null
           party_vendor_id?: string | null
           sort_order?: number
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -897,6 +1044,13 @@ export type Database = {
             referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "journal_lines_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
         ]
       }
       lead_events: {
@@ -909,6 +1063,7 @@ export type Database = {
           id: string
           lead_id: string
           to_value: string | null
+          workspace_id: string | null
         }
         Insert: {
           actor_id?: string | null
@@ -919,6 +1074,7 @@ export type Database = {
           id?: string
           lead_id: string
           to_value?: string | null
+          workspace_id?: string | null
         }
         Update: {
           actor_id?: string | null
@@ -929,6 +1085,7 @@ export type Database = {
           id?: string
           lead_id?: string
           to_value?: string | null
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -936,6 +1093,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -974,6 +1138,7 @@ export type Database = {
           target_close_date: string | null
           updated_at: string
           won_at: string | null
+          workspace_id: string | null
         }
         Insert: {
           assignee_id?: string | null
@@ -1008,6 +1173,7 @@ export type Database = {
           target_close_date?: string | null
           updated_at?: string
           won_at?: string | null
+          workspace_id?: string | null
         }
         Update: {
           assignee_id?: string | null
@@ -1042,6 +1208,7 @@ export type Database = {
           target_close_date?: string | null
           updated_at?: string
           won_at?: string | null
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -1063,6 +1230,13 @@ export type Database = {
             columns: ["primary_contact_id"]
             isOneToOne: false
             referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -1091,6 +1265,7 @@ export type Database = {
           termination_notice_days: number | null
           unit_id: string
           updated_at: string
+          workspace_id: string | null
         }
         Insert: {
           auto_renew?: boolean
@@ -1115,6 +1290,7 @@ export type Database = {
           termination_notice_days?: number | null
           unit_id: string
           updated_at?: string
+          workspace_id?: string | null
         }
         Update: {
           auto_renew?: boolean
@@ -1139,6 +1315,7 @@ export type Database = {
           termination_notice_days?: number | null
           unit_id?: string
           updated_at?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -1169,6 +1346,13 @@ export type Database = {
             referencedRelation: "units_without_owners"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "leases_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
         ]
       }
       management_agreements: {
@@ -1192,6 +1376,7 @@ export type Database = {
           scope_notes: string | null
           termination_notice_days: number | null
           updated_at: string
+          workspace_id: string | null
         }
         Insert: {
           approval_rule?: Database["public"]["Enums"]["ma_approval_rule"]
@@ -1213,6 +1398,7 @@ export type Database = {
           scope_notes?: string | null
           termination_notice_days?: number | null
           updated_at?: string
+          workspace_id?: string | null
         }
         Update: {
           approval_rule?: Database["public"]["Enums"]["ma_approval_rule"]
@@ -1234,6 +1420,7 @@ export type Database = {
           scope_notes?: string | null
           termination_notice_days?: number | null
           updated_at?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -1241,6 +1428,13 @@ export type Database = {
             columns: ["contract_id"]
             isOneToOne: true
             referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "management_agreements_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -1254,6 +1448,7 @@ export type Database = {
           entity_type: string
           id: string
           updated_at: string | null
+          workspace_id: string | null
         }
         Insert: {
           author_id?: string | null
@@ -1263,6 +1458,7 @@ export type Database = {
           entity_type: string
           id?: string
           updated_at?: string | null
+          workspace_id?: string | null
         }
         Update: {
           author_id?: string | null
@@ -1272,8 +1468,17 @@ export type Database = {
           entity_type?: string
           id?: string
           updated_at?: string | null
+          workspace_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "notes_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       number_sequences: {
         Row: {
@@ -1307,6 +1512,7 @@ export type Database = {
           source_id: string | null
           source_type: string | null
           statement_id: string
+          workspace_id: string | null
         }
         Insert: {
           amount?: number
@@ -1318,6 +1524,7 @@ export type Database = {
           source_id?: string | null
           source_type?: string | null
           statement_id: string
+          workspace_id?: string | null
         }
         Update: {
           amount?: number
@@ -1329,6 +1536,7 @@ export type Database = {
           source_id?: string | null
           source_type?: string | null
           statement_id?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -1336,6 +1544,13 @@ export type Database = {
             columns: ["statement_id"]
             isOneToOne: false
             referencedRelation: "owner_statements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owner_statement_lines_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -1361,6 +1576,7 @@ export type Database = {
           remittance_bill_id: string | null
           status: Database["public"]["Enums"]["statement_status"]
           updated_at: string
+          workspace_id: string | null
         }
         Insert: {
           created_at?: string
@@ -1382,6 +1598,7 @@ export type Database = {
           remittance_bill_id?: string | null
           status?: Database["public"]["Enums"]["statement_status"]
           updated_at?: string
+          workspace_id?: string | null
         }
         Update: {
           created_at?: string
@@ -1403,6 +1620,7 @@ export type Database = {
           remittance_bill_id?: string | null
           status?: Database["public"]["Enums"]["statement_status"]
           updated_at?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -1426,6 +1644,13 @@ export type Database = {
             referencedRelation: "bills"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "owner_statements_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
         ]
       }
       payment_allocations: {
@@ -1436,6 +1661,7 @@ export type Database = {
           id: string
           invoice_id: string | null
           payment_id: string
+          workspace_id: string | null
         }
         Insert: {
           amount: number
@@ -1444,6 +1670,7 @@ export type Database = {
           id?: string
           invoice_id?: string | null
           payment_id: string
+          workspace_id?: string | null
         }
         Update: {
           amount?: number
@@ -1452,6 +1679,7 @@ export type Database = {
           id?: string
           invoice_id?: string | null
           payment_id?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -1475,6 +1703,13 @@ export type Database = {
             referencedRelation: "payments"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "payment_allocations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
         ]
       }
       payments: {
@@ -1496,6 +1731,7 @@ export type Database = {
           updated_at: string
           voided_at: string | null
           voided_reason: string | null
+          workspace_id: string | null
         }
         Insert: {
           amount: number
@@ -1515,6 +1751,7 @@ export type Database = {
           updated_at?: string
           voided_at?: string | null
           voided_reason?: string | null
+          workspace_id?: string | null
         }
         Update: {
           amount?: number
@@ -1534,6 +1771,7 @@ export type Database = {
           updated_at?: string
           voided_at?: string | null
           voided_reason?: string | null
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -1555,6 +1793,13 @@ export type Database = {
             columns: ["party_vendor_id"]
             isOneToOne: false
             referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -1587,6 +1832,7 @@ export type Database = {
           trade_license_authority: string | null
           trade_license_number: string | null
           updated_at: string
+          workspace_id: string | null
         }
         Insert: {
           address?: string | null
@@ -1615,6 +1861,7 @@ export type Database = {
           trade_license_authority?: string | null
           trade_license_number?: string | null
           updated_at?: string
+          workspace_id?: string | null
         }
         Update: {
           address?: string | null
@@ -1643,8 +1890,17 @@ export type Database = {
           trade_license_authority?: string | null
           trade_license_number?: string | null
           updated_at?: string
+          workspace_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "people_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       people_documents: {
         Row: {
@@ -1657,6 +1913,7 @@ export type Database = {
           name: string
           person_id: string
           uploaded_by: string | null
+          workspace_id: string | null
         }
         Insert: {
           category?: string | null
@@ -1668,6 +1925,7 @@ export type Database = {
           name: string
           person_id: string
           uploaded_by?: string | null
+          workspace_id?: string | null
         }
         Update: {
           category?: string | null
@@ -1679,6 +1937,7 @@ export type Database = {
           name?: string
           person_id?: string
           uploaded_by?: string | null
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -1686,6 +1945,13 @@ export type Database = {
             columns: ["person_id"]
             isOneToOne: false
             referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "people_documents_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -1704,6 +1970,7 @@ export type Database = {
           sort_order: number
           storage_path: string
           uploaded_by: string | null
+          workspace_id: string | null
         }
         Insert: {
           caption?: string | null
@@ -1718,6 +1985,7 @@ export type Database = {
           sort_order?: number
           storage_path: string
           uploaded_by?: string | null
+          workspace_id?: string | null
         }
         Update: {
           caption?: string | null
@@ -1732,8 +2000,17 @@ export type Database = {
           sort_order?: number
           storage_path?: string
           uploaded_by?: string | null
+          workspace_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "photos_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       property_documents: {
         Row: {
@@ -1748,6 +2025,7 @@ export type Database = {
           name: string
           unit_id: string | null
           uploaded_by: string | null
+          workspace_id: string | null
         }
         Insert: {
           building_id?: string | null
@@ -1761,6 +2039,7 @@ export type Database = {
           name: string
           unit_id?: string | null
           uploaded_by?: string | null
+          workspace_id?: string | null
         }
         Update: {
           building_id?: string | null
@@ -1774,6 +2053,7 @@ export type Database = {
           name?: string
           unit_id?: string | null
           uploaded_by?: string | null
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -1804,6 +2084,13 @@ export type Database = {
             referencedRelation: "units_without_owners"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "property_documents_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
         ]
       }
       property_owners: {
@@ -1819,6 +2106,7 @@ export type Database = {
           ownership_percentage: number
           person_id: string
           updated_at: string
+          workspace_id: string | null
         }
         Insert: {
           acquired_on?: string | null
@@ -1832,6 +2120,7 @@ export type Database = {
           ownership_percentage?: number
           person_id: string
           updated_at?: string
+          workspace_id?: string | null
         }
         Update: {
           acquired_on?: string | null
@@ -1845,6 +2134,7 @@ export type Database = {
           ownership_percentage?: number
           person_id?: string
           updated_at?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -1852,6 +2142,13 @@ export type Database = {
             columns: ["person_id"]
             isOneToOne: false
             referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_owners_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -1865,6 +2162,7 @@ export type Database = {
           note: string | null
           old_status: Database["public"]["Enums"]["property_status"] | null
           unit_id: string
+          workspace_id: string | null
         }
         Insert: {
           changed_at?: string
@@ -1874,6 +2172,7 @@ export type Database = {
           note?: string | null
           old_status?: Database["public"]["Enums"]["property_status"] | null
           unit_id: string
+          workspace_id?: string | null
         }
         Update: {
           changed_at?: string
@@ -1883,6 +2182,7 @@ export type Database = {
           note?: string | null
           old_status?: Database["public"]["Enums"]["property_status"] | null
           unit_id?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -1906,6 +2206,13 @@ export type Database = {
             referencedRelation: "units_without_owners"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "property_status_history_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
         ]
       }
       quote_lines: {
@@ -1918,6 +2225,7 @@ export type Database = {
           quote_id: string
           sort_order: number
           unit_price: number
+          workspace_id: string | null
         }
         Insert: {
           amount?: number
@@ -1928,6 +2236,7 @@ export type Database = {
           quote_id: string
           sort_order?: number
           unit_price?: number
+          workspace_id?: string | null
         }
         Update: {
           amount?: number
@@ -1938,6 +2247,7 @@ export type Database = {
           quote_id?: string
           sort_order?: number
           unit_price?: number
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -1945,6 +2255,13 @@ export type Database = {
             columns: ["quote_id"]
             isOneToOne: false
             referencedRelation: "vendor_quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_lines_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -1960,6 +2277,7 @@ export type Database = {
           invoice_id: string | null
           lease_contract_id: string
           total_installments: number
+          workspace_id: string | null
         }
         Insert: {
           amount: number
@@ -1971,6 +2289,7 @@ export type Database = {
           invoice_id?: string | null
           lease_contract_id: string
           total_installments: number
+          workspace_id?: string | null
         }
         Update: {
           amount?: number
@@ -1982,6 +2301,7 @@ export type Database = {
           invoice_id?: string | null
           lease_contract_id?: string
           total_installments?: number
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -1996,6 +2316,13 @@ export type Database = {
             columns: ["lease_contract_id"]
             isOneToOne: false
             referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_invoice_schedules_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -2021,6 +2348,7 @@ export type Database = {
           typical_duration_days: number | null
           updated_at: string
           workflow_steps: Json
+          workspace_id: string | null
         }
         Insert: {
           cadence?: Database["public"]["Enums"]["service_cadence"]
@@ -2042,6 +2370,7 @@ export type Database = {
           typical_duration_days?: number | null
           updated_at?: string
           workflow_steps?: Json
+          workspace_id?: string | null
         }
         Update: {
           cadence?: Database["public"]["Enums"]["service_cadence"]
@@ -2063,6 +2392,7 @@ export type Database = {
           typical_duration_days?: number | null
           updated_at?: string
           workflow_steps?: Json
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -2079,6 +2409,13 @@ export type Database = {
             referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "service_catalog_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
         ]
       }
       service_feedback: {
@@ -2093,6 +2430,7 @@ export type Database = {
           submitted_at: string
           submitted_by_person_id: string | null
           updated_at: string
+          workspace_id: string | null
         }
         Insert: {
           assigned_person_id?: string | null
@@ -2105,6 +2443,7 @@ export type Database = {
           submitted_at?: string
           submitted_by_person_id?: string | null
           updated_at?: string
+          workspace_id?: string | null
         }
         Update: {
           assigned_person_id?: string | null
@@ -2117,6 +2456,7 @@ export type Database = {
           submitted_at?: string
           submitted_by_person_id?: string | null
           updated_at?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -2133,6 +2473,13 @@ export type Database = {
             referencedRelation: "people"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "service_feedback_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
         ]
       }
       service_request_events: {
@@ -2146,6 +2493,7 @@ export type Database = {
           request_id: string
           step_id: string | null
           to_value: string | null
+          workspace_id: string | null
         }
         Insert: {
           actor_id?: string | null
@@ -2157,6 +2505,7 @@ export type Database = {
           request_id: string
           step_id?: string | null
           to_value?: string | null
+          workspace_id?: string | null
         }
         Update: {
           actor_id?: string | null
@@ -2168,6 +2517,7 @@ export type Database = {
           request_id?: string
           step_id?: string | null
           to_value?: string | null
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -2182,6 +2532,13 @@ export type Database = {
             columns: ["step_id"]
             isOneToOne: false
             referencedRelation: "service_request_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_request_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -2205,6 +2562,7 @@ export type Database = {
           updated_at: string
           vendor_id: string
           vendor_notes: string | null
+          workspace_id: string | null
         }
         Insert: {
           amount?: number | null
@@ -2224,6 +2582,7 @@ export type Database = {
           updated_at?: string
           vendor_id: string
           vendor_notes?: string | null
+          workspace_id?: string | null
         }
         Update: {
           amount?: number | null
@@ -2243,6 +2602,7 @@ export type Database = {
           updated_at?: string
           vendor_id?: string
           vendor_notes?: string | null
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -2257,6 +2617,13 @@ export type Database = {
             columns: ["vendor_id"]
             isOneToOne: false
             referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_request_quotes_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -2294,6 +2661,7 @@ export type Database = {
           title: string
           typical_duration_days: number | null
           updated_at: string
+          workspace_id: string | null
         }
         Insert: {
           approval_decided_at?: string | null
@@ -2327,6 +2695,7 @@ export type Database = {
           title: string
           typical_duration_days?: number | null
           updated_at?: string
+          workspace_id?: string | null
         }
         Update: {
           approval_decided_at?: string | null
@@ -2360,6 +2729,7 @@ export type Database = {
           title?: string
           typical_duration_days?: number | null
           updated_at?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -2388,6 +2758,13 @@ export type Database = {
             columns: ["request_id"]
             isOneToOne: false
             referencedRelation: "service_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_request_steps_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -2446,6 +2823,7 @@ export type Database = {
           tenant_token: string | null
           title: string
           updated_at: string
+          workspace_id: string | null
         }
         Insert: {
           approval_decided_at?: string | null
@@ -2500,6 +2878,7 @@ export type Database = {
           tenant_token?: string | null
           title: string
           updated_at?: string
+          workspace_id?: string | null
         }
         Update: {
           approval_decided_at?: string | null
@@ -2554,6 +2933,7 @@ export type Database = {
           tenant_token?: string | null
           title?: string
           updated_at?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -2591,6 +2971,13 @@ export type Database = {
             referencedRelation: "people"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "service_requests_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
         ]
       }
       unit_status_history: {
@@ -2602,6 +2989,7 @@ export type Database = {
           old_status: Database["public"]["Enums"]["property_status"] | null
           reason: string | null
           unit_id: string
+          workspace_id: string | null
         }
         Insert: {
           changed_at?: string
@@ -2611,6 +2999,7 @@ export type Database = {
           old_status?: Database["public"]["Enums"]["property_status"] | null
           reason?: string | null
           unit_id: string
+          workspace_id?: string | null
         }
         Update: {
           changed_at?: string
@@ -2620,6 +3009,7 @@ export type Database = {
           old_status?: Database["public"]["Enums"]["property_status"] | null
           reason?: string | null
           unit_id?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -2641,6 +3031,13 @@ export type Database = {
             columns: ["unit_id"]
             isOneToOne: false
             referencedRelation: "units_without_owners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unit_status_history_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -2667,6 +3064,7 @@ export type Database = {
           unit_number: string
           unit_type: Database["public"]["Enums"]["unit_type"]
           updated_at: string
+          workspace_id: string | null
         }
         Insert: {
           asking_rent?: number | null
@@ -2689,6 +3087,7 @@ export type Database = {
           unit_number: string
           unit_type?: Database["public"]["Enums"]["unit_type"]
           updated_at?: string
+          workspace_id?: string | null
         }
         Update: {
           asking_rent?: number | null
@@ -2711,6 +3110,7 @@ export type Database = {
           unit_number?: string
           unit_type?: Database["public"]["Enums"]["unit_type"]
           updated_at?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -2718,6 +3118,13 @@ export type Database = {
             columns: ["building_id"]
             isOneToOne: false
             referencedRelation: "buildings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "units_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -2753,6 +3160,7 @@ export type Database = {
           role: string
           role_other: string | null
           vendor_id: string
+          workspace_id: string | null
         }
         Insert: {
           created_at?: string
@@ -2763,6 +3171,7 @@ export type Database = {
           role?: string
           role_other?: string | null
           vendor_id: string
+          workspace_id?: string | null
         }
         Update: {
           created_at?: string
@@ -2773,6 +3182,7 @@ export type Database = {
           role?: string
           role_other?: string | null
           vendor_id?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -2789,6 +3199,13 @@ export type Database = {
             referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "vendor_contacts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
         ]
       }
       vendor_events: {
@@ -2801,6 +3218,7 @@ export type Database = {
           id: string
           to_value: string | null
           vendor_id: string
+          workspace_id: string | null
         }
         Insert: {
           actor_id?: string | null
@@ -2811,6 +3229,7 @@ export type Database = {
           id?: string
           to_value?: string | null
           vendor_id: string
+          workspace_id?: string | null
         }
         Update: {
           actor_id?: string | null
@@ -2821,6 +3240,7 @@ export type Database = {
           id?: string
           to_value?: string | null
           vendor_id?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -2828,6 +3248,13 @@ export type Database = {
             columns: ["vendor_id"]
             isOneToOne: false
             referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -2952,6 +3379,7 @@ export type Database = {
           termination_notice_days: number | null
           updated_at: string
           vendor_id: string
+          workspace_id: string | null
         }
         Insert: {
           auto_renew?: boolean
@@ -2980,6 +3408,7 @@ export type Database = {
           termination_notice_days?: number | null
           updated_at?: string
           vendor_id: string
+          workspace_id?: string | null
         }
         Update: {
           auto_renew?: boolean
@@ -3008,6 +3437,7 @@ export type Database = {
           termination_notice_days?: number | null
           updated_at?: string
           vendor_id?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -3022,6 +3452,13 @@ export type Database = {
             columns: ["vendor_id"]
             isOneToOne: false
             referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_service_agreements_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -3061,6 +3498,7 @@ export type Database = {
           vendor_number: string
           vendor_type: string
           website: string | null
+          workspace_id: string | null
         }
         Insert: {
           address?: string | null
@@ -3096,6 +3534,7 @@ export type Database = {
           vendor_number: string
           vendor_type: string
           website?: string | null
+          workspace_id?: string | null
         }
         Update: {
           address?: string | null
@@ -3131,6 +3570,142 @@ export type Database = {
           vendor_number?: string
           vendor_type?: string
           website?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendors_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_invitations: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string | null
+          role: Database["public"]["Enums"]["workspace_member_role"]
+          token: string
+          workspace_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          role?: Database["public"]["Enums"]["workspace_member_role"]
+          token?: string
+          workspace_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          role?: Database["public"]["Enums"]["workspace_member_role"]
+          token?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_invitations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_members: {
+        Row: {
+          id: string
+          invited_by: string | null
+          joined_at: string
+          last_active_at: string | null
+          role: Database["public"]["Enums"]["workspace_member_role"]
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          id?: string
+          invited_by?: string | null
+          joined_at?: string
+          last_active_at?: string | null
+          role?: Database["public"]["Enums"]["workspace_member_role"]
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          id?: string
+          invited_by?: string | null
+          joined_at?: string
+          last_active_at?: string | null
+          role?: Database["public"]["Enums"]["workspace_member_role"]
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_members_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspaces: {
+        Row: {
+          brand_color: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          kind: Database["public"]["Enums"]["workspace_kind"]
+          logo_url: string | null
+          name: string
+          plan: Database["public"]["Enums"]["workspace_plan"]
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          brand_color?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          kind?: Database["public"]["Enums"]["workspace_kind"]
+          logo_url?: string | null
+          name: string
+          plan?: Database["public"]["Enums"]["workspace_plan"]
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          brand_color?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          kind?: Database["public"]["Enums"]["workspace_kind"]
+          logo_url?: string | null
+          name?: string
+          plan?: Database["public"]["Enums"]["workspace_plan"]
+          slug?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -3312,6 +3887,7 @@ export type Database = {
           updated_at: string
           vendor_id: string
           vendor_notes: string | null
+          workspace_id: string | null
         }
         SetofOptions: {
           from: "*"
@@ -3374,6 +3950,7 @@ export type Database = {
         Returns: string
       }
       current_user_person_id: { Args: never; Returns: string }
+      current_user_workspace_ids: { Args: never; Returns: string[] }
       decide_service_request_approval: {
         Args: { p_decision: string; p_notes?: string; p_request_id: string }
         Returns: Database["public"]["Enums"]["service_request_approval_status"]
@@ -3437,6 +4014,7 @@ export type Database = {
           tenant_token: string | null
           title: string
           updated_at: string
+          workspace_id: string | null
         }
         SetofOptions: {
           from: "*"
@@ -3488,10 +4066,18 @@ export type Database = {
         }
         Returns: boolean
       }
+      has_workspace_role: {
+        Args: {
+          _roles: Database["public"]["Enums"]["workspace_member_role"][]
+          _workspace_id: string
+        }
+        Returns: boolean
+      }
       initialize_ticket_workflow: {
         Args: { p_stages: Json; p_ticket_id: string; p_workflow_key: string }
         Returns: undefined
       }
+      is_workspace_member: { Args: { _workspace_id: string }; Returns: boolean }
       list_auth_users_with_person: {
         Args: never
         Returns: {
@@ -3565,6 +4151,7 @@ export type Database = {
           tenant_token: string | null
           title: string
           updated_at: string
+          workspace_id: string | null
         }
         SetofOptions: {
           from: "*"
@@ -3636,6 +4223,7 @@ export type Database = {
           tenant_token: string | null
           title: string
           updated_at: string
+          workspace_id: string | null
         }
         SetofOptions: {
           from: "*"
@@ -3725,6 +4313,7 @@ export type Database = {
           tenant_token: string | null
           title: string
           updated_at: string
+          workspace_id: string | null
         }
         SetofOptions: {
           from: "*"
@@ -3885,6 +4474,9 @@ export type Database = {
         | "fixed_per_visit"
         | "quote_required"
         | "hybrid"
+      workspace_kind: "internal" | "owner" | "broker"
+      workspace_member_role: "owner" | "admin" | "manager" | "agent" | "viewer"
+      workspace_plan: "free" | "portfolio" | "broker_pro" | "enterprise"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -4161,6 +4753,9 @@ export const Constants = {
         "quote_required",
         "hybrid",
       ],
+      workspace_kind: ["internal", "owner", "broker"],
+      workspace_member_role: ["owner", "admin", "manager", "agent", "viewer"],
+      workspace_plan: ["free", "portfolio", "broker_pro", "enterprise"],
     },
   },
 } as const

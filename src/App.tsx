@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AppShell } from "@/components/AppShell";
 import Auth from "./pages/Auth";
@@ -45,7 +46,8 @@ const App = () => (
       <Sonner position="top-right" />
       <BrowserRouter>
         <AuthProvider>
-          <Routes>
+          <WorkspaceProvider>
+            <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route path="/q/:token" element={<PublicQuoteSubmit />} />
             <Route path="/t/:token" element={<PublicTenantDecision />} />
@@ -75,7 +77,8 @@ const App = () => (
             <Route path="/leads" element={<Navigate to="/dashboard" replace />} />
             <Route path="/leads/:leadId" element={<Navigate to="/dashboard" replace />} />
             <Route path="*" element={<NotFound />} />
-          </Routes>
+            </Routes>
+          </WorkspaceProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

@@ -33,6 +33,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { YahyaDock } from "@/components/yahya/YahyaDock";
+import { WorkspaceSwitcher } from "@/components/workspace/WorkspaceSwitcher";
 
 const MODULE_ORDER_STORAGE_KEY = "tb.sidebar.moduleOrder.v1";
 
@@ -232,6 +233,7 @@ export function AppShell({ children }: AppShellProps) {
           </div>
 
           <div className="flex items-center gap-2 lg:gap-3 shrink-0">
+            <WorkspaceSwitcher />
             <div className="relative hidden md:block">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
