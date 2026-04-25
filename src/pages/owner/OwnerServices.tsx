@@ -59,6 +59,7 @@ export default function OwnerServices() {
         supabase
           .from("service_catalog")
           .select("id, name, description, category")
+          .eq("is_marketplace", true)
           .eq("is_active", true)
           .order("name"),
         supabase
@@ -88,13 +89,13 @@ export default function OwnerServices() {
       toast.error("Pick a property first");
       return;
     }
+    if (!activeWorkspace) return;
     setSubmitting(true);
-    const { error } = await supabase.rpc("create_service_request_from_catalog", {
-      p_catalog_id: picked.id,
-      p_target_type: "building",
-      p_target_id: targetId,
-      p_description: notes || null,
-      p_source: "owner_portal",
+    const { error } = await supabase.rpc("create_marketplace_service_request", {
+      _requester_workspace_id: activeWorkspace.id,
+      _catalog_id: picked.id,
+      _building_id: targetId,
+      _description: notes || null,
     });
     setSubmitting(false);
     if (error) {
