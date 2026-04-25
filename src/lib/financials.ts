@@ -49,6 +49,7 @@ export interface GenerateLeaseInvoicesArgs {
   numberOfCheques: number;
   currency: string;
   tenantPersonId: string | null;
+  workspaceId: string;
 }
 
 /**
@@ -79,7 +80,7 @@ export async function generateLeaseInvoiceSchedule(
 
   let created = 0;
   for (const inst of installments) {
-    const number = await nextDocNumber(FINANCIAL_DOC_PREFIXES.invoice);
+    const number = await nextDocNumber(FINANCIAL_DOC_PREFIXES.invoice, args.workspaceId);
     const { data: inv, error: invErr } = await supabase
       .from("invoices")
       .insert({
