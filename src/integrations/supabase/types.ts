@@ -4371,6 +4371,10 @@ export type Database = {
       }
     }
     Functions: {
+      accept_cost_split: {
+        Args: { p_proposal_id: string; p_role: string }
+        Returns: undefined
+      }
       accept_service_request_quote: {
         Args: { p_notes?: string; p_quote_id: string }
         Returns: {
@@ -4449,24 +4453,49 @@ export type Database = {
         }
         Returns: string
       }
-      create_service_request_from_catalog: {
-        Args: {
-          p_assigned_person_id?: string
-          p_assigned_vendor_id?: string
-          p_catalog_id: string
-          p_cost_estimate?: number
-          p_description?: string
-          p_internal_notes?: string
-          p_override_title?: string
-          p_priority?: Database["public"]["Enums"]["service_request_priority"]
-          p_requested_by_person_id?: string
-          p_scheduled_date?: string
-          p_source?: string
-          p_target_id: string
-          p_target_type: string
-        }
-        Returns: string
-      }
+      create_service_request_from_catalog:
+        | {
+            Args: {
+              p_assigned_person_id?: string
+              p_assigned_vendor_id?: string
+              p_catalog_id: string
+              p_cost_estimate?: number
+              p_description?: string
+              p_internal_notes?: string
+              p_override_title?: string
+              p_priority?: Database["public"]["Enums"]["service_request_priority"]
+              p_requested_by_person_id?: string
+              p_scheduled_date?: string
+              p_source?: string
+              p_target_id: string
+              p_target_type: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_assigned_person_id?: string
+              p_assigned_vendor_id?: string
+              p_auto_invite_vendors?: boolean
+              p_bill_to_mode?: Database["public"]["Enums"]["bill_to_mode"]
+              p_catalog_id: string
+              p_cost_estimate?: number
+              p_description?: string
+              p_internal_notes?: string
+              p_landlord_share_percent?: number
+              p_override_title?: string
+              p_priority?: Database["public"]["Enums"]["service_request_priority"]
+              p_requested_by_person_id?: string
+              p_scheduled_date?: string
+              p_service_area_city?: string
+              p_service_area_community?: string
+              p_source?: string
+              p_target_id: string
+              p_target_type: string
+              p_tenant_share_percent?: number
+            }
+            Returns: string
+          }
       current_user_person_id: { Args: never; Returns: string }
       current_user_workspace_ids: { Args: never; Returns: string[] }
       decide_service_request_approval: {
@@ -4668,6 +4697,17 @@ export type Database = {
         Returns: string
       }
       process_contract_lifecycle: { Args: never; Returns: Json }
+      propose_cost_split: {
+        Args: {
+          p_landlord_share_percent: number
+          p_message?: string
+          p_proposed_by_person_id?: string
+          p_request_id: string
+          p_role: string
+          p_tenant_share_percent: number
+        }
+        Returns: string
+      }
       propose_tenant_schedule: {
         Args: { p_date: string; p_notes?: string; p_request_id: string }
         Returns: {
@@ -4933,7 +4973,20 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      respond_winning_quote: {
+        Args: {
+          p_decision: string
+          p_notes?: string
+          p_request_id: string
+          p_role: string
+        }
+        Returns: undefined
+      }
       run_readonly_sql: { Args: { query_text: string }; Returns: Json }
+      select_winning_quote: {
+        Args: { p_quote_id: string; p_request_id: string }
+        Returns: undefined
+      }
       skip_ticket_stage: {
         Args: { p_reason: string; p_stage_key: string; p_ticket_id: string }
         Returns: undefined
