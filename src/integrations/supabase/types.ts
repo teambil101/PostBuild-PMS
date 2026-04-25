@@ -2794,6 +2794,66 @@ export type Database = {
           },
         ]
       }
+      service_request_cost_split: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          decided_by_person_id: string | null
+          id: string
+          landlord_share_percent: number
+          message: string | null
+          proposed_by_person_id: string | null
+          proposed_by_role: string
+          request_id: string
+          status: Database["public"]["Enums"]["cost_split_proposal_status"]
+          tenant_share_percent: number
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by_person_id?: string | null
+          id?: string
+          landlord_share_percent: number
+          message?: string | null
+          proposed_by_person_id?: string | null
+          proposed_by_role: string
+          request_id: string
+          status?: Database["public"]["Enums"]["cost_split_proposal_status"]
+          tenant_share_percent: number
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by_person_id?: string | null
+          id?: string
+          landlord_share_percent?: number
+          message?: string | null
+          proposed_by_person_id?: string | null
+          proposed_by_role?: string
+          request_id?: string
+          status?: Database["public"]["Enums"]["cost_split_proposal_status"]
+          tenant_share_percent?: number
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_request_cost_split_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_request_cost_split_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_request_events: {
         Row: {
           actor_id: string | null
@@ -3095,7 +3155,9 @@ export type Database = {
           approval_threshold_currency: string | null
           assigned_person_id: string | null
           assigned_vendor_id: string | null
+          auto_invite_vendors: boolean
           bill_to: Database["public"]["Enums"]["bill_to_role"]
+          bill_to_mode: Database["public"]["Enums"]["bill_to_mode"]
           billing: Database["public"]["Enums"]["service_billing"]
           catalog_id: string | null
           category: Database["public"]["Enums"]["service_category"]
@@ -3103,6 +3165,7 @@ export type Database = {
           completed_at: string | null
           cost_estimate: number | null
           cost_final: number | null
+          cost_split_resolved_at: string | null
           created_at: string
           created_by: string | null
           currency: string
@@ -3112,12 +3175,17 @@ export type Database = {
           id: string
           internal_notes: string | null
           is_workflow: boolean
+          landlord_cost_approval_status: Database["public"]["Enums"]["party_cost_approval_status"]
+          landlord_cost_approved_at: string | null
+          landlord_share_percent: number
           priority: Database["public"]["Enums"]["service_request_priority"]
           proposed_scheduled_date: string | null
           request_number: string
           requested_by_person_id: string | null
           schedule_counter_round: number
           scheduled_date: string | null
+          service_area_city: string | null
+          service_area_community: string | null
           source: string
           started_at: string | null
           status: Database["public"]["Enums"]["service_request_status"]
@@ -3129,13 +3197,17 @@ export type Database = {
           tenant_approval_requested_at: string | null
           tenant_approval_required: boolean
           tenant_approval_status: Database["public"]["Enums"]["tenant_approval_status"]
+          tenant_cost_approval_status: Database["public"]["Enums"]["party_cost_approval_status"]
+          tenant_cost_approved_at: string | null
           tenant_proposed_date: string | null
           tenant_schedule_decided_at: string | null
           tenant_schedule_notes: string | null
           tenant_schedule_status: Database["public"]["Enums"]["tenant_schedule_status"]
+          tenant_share_percent: number
           tenant_token: string | null
           title: string
           updated_at: string
+          winning_quote_id: string | null
           workspace_id: string | null
         }
         Insert: {
@@ -3151,7 +3223,9 @@ export type Database = {
           approval_threshold_currency?: string | null
           assigned_person_id?: string | null
           assigned_vendor_id?: string | null
+          auto_invite_vendors?: boolean
           bill_to?: Database["public"]["Enums"]["bill_to_role"]
+          bill_to_mode?: Database["public"]["Enums"]["bill_to_mode"]
           billing?: Database["public"]["Enums"]["service_billing"]
           catalog_id?: string | null
           category: Database["public"]["Enums"]["service_category"]
@@ -3159,6 +3233,7 @@ export type Database = {
           completed_at?: string | null
           cost_estimate?: number | null
           cost_final?: number | null
+          cost_split_resolved_at?: string | null
           created_at?: string
           created_by?: string | null
           currency?: string
@@ -3168,12 +3243,17 @@ export type Database = {
           id?: string
           internal_notes?: string | null
           is_workflow?: boolean
+          landlord_cost_approval_status?: Database["public"]["Enums"]["party_cost_approval_status"]
+          landlord_cost_approved_at?: string | null
+          landlord_share_percent?: number
           priority?: Database["public"]["Enums"]["service_request_priority"]
           proposed_scheduled_date?: string | null
           request_number: string
           requested_by_person_id?: string | null
           schedule_counter_round?: number
           scheduled_date?: string | null
+          service_area_city?: string | null
+          service_area_community?: string | null
           source?: string
           started_at?: string | null
           status?: Database["public"]["Enums"]["service_request_status"]
@@ -3185,13 +3265,17 @@ export type Database = {
           tenant_approval_requested_at?: string | null
           tenant_approval_required?: boolean
           tenant_approval_status?: Database["public"]["Enums"]["tenant_approval_status"]
+          tenant_cost_approval_status?: Database["public"]["Enums"]["party_cost_approval_status"]
+          tenant_cost_approved_at?: string | null
           tenant_proposed_date?: string | null
           tenant_schedule_decided_at?: string | null
           tenant_schedule_notes?: string | null
           tenant_schedule_status?: Database["public"]["Enums"]["tenant_schedule_status"]
+          tenant_share_percent?: number
           tenant_token?: string | null
           title: string
           updated_at?: string
+          winning_quote_id?: string | null
           workspace_id?: string | null
         }
         Update: {
@@ -3207,7 +3291,9 @@ export type Database = {
           approval_threshold_currency?: string | null
           assigned_person_id?: string | null
           assigned_vendor_id?: string | null
+          auto_invite_vendors?: boolean
           bill_to?: Database["public"]["Enums"]["bill_to_role"]
+          bill_to_mode?: Database["public"]["Enums"]["bill_to_mode"]
           billing?: Database["public"]["Enums"]["service_billing"]
           catalog_id?: string | null
           category?: Database["public"]["Enums"]["service_category"]
@@ -3215,6 +3301,7 @@ export type Database = {
           completed_at?: string | null
           cost_estimate?: number | null
           cost_final?: number | null
+          cost_split_resolved_at?: string | null
           created_at?: string
           created_by?: string | null
           currency?: string
@@ -3224,12 +3311,17 @@ export type Database = {
           id?: string
           internal_notes?: string | null
           is_workflow?: boolean
+          landlord_cost_approval_status?: Database["public"]["Enums"]["party_cost_approval_status"]
+          landlord_cost_approved_at?: string | null
+          landlord_share_percent?: number
           priority?: Database["public"]["Enums"]["service_request_priority"]
           proposed_scheduled_date?: string | null
           request_number?: string
           requested_by_person_id?: string | null
           schedule_counter_round?: number
           scheduled_date?: string | null
+          service_area_city?: string | null
+          service_area_community?: string | null
           source?: string
           started_at?: string | null
           status?: Database["public"]["Enums"]["service_request_status"]
@@ -3241,13 +3333,17 @@ export type Database = {
           tenant_approval_requested_at?: string | null
           tenant_approval_required?: boolean
           tenant_approval_status?: Database["public"]["Enums"]["tenant_approval_status"]
+          tenant_cost_approval_status?: Database["public"]["Enums"]["party_cost_approval_status"]
+          tenant_cost_approved_at?: string | null
           tenant_proposed_date?: string | null
           tenant_schedule_decided_at?: string | null
           tenant_schedule_notes?: string | null
           tenant_schedule_status?: Database["public"]["Enums"]["tenant_schedule_status"]
+          tenant_share_percent?: number
           tenant_token?: string | null
           title?: string
           updated_at?: string
+          winning_quote_id?: string | null
           workspace_id?: string | null
         }
         Relationships: [
@@ -3291,6 +3387,13 @@ export type Database = {
             columns: ["requested_by_person_id"]
             isOneToOne: false
             referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_requests_winning_quote_id_fkey"
+            columns: ["winning_quote_id"]
+            isOneToOne: false
+            referencedRelation: "service_request_quotes"
             referencedColumns: ["id"]
           },
           {
@@ -3785,6 +3888,85 @@ export type Database = {
           },
         ]
       }
+      vendor_services: {
+        Row: {
+          catalog_id: string
+          created_at: string
+          currency: string
+          id: string
+          is_active: boolean
+          lead_time_days: number | null
+          list_price: number | null
+          min_order_amount: number | null
+          notes: string | null
+          quality_tier: Database["public"]["Enums"]["vendor_service_quality"]
+          service_area_all_cities: boolean
+          service_area_cities: string[]
+          service_area_communities: string[]
+          updated_at: string
+          vendor_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          catalog_id: string
+          created_at?: string
+          currency?: string
+          id?: string
+          is_active?: boolean
+          lead_time_days?: number | null
+          list_price?: number | null
+          min_order_amount?: number | null
+          notes?: string | null
+          quality_tier?: Database["public"]["Enums"]["vendor_service_quality"]
+          service_area_all_cities?: boolean
+          service_area_cities?: string[]
+          service_area_communities?: string[]
+          updated_at?: string
+          vendor_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          catalog_id?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          is_active?: boolean
+          lead_time_days?: number | null
+          list_price?: number | null
+          min_order_amount?: number | null
+          notes?: string | null
+          quality_tier?: Database["public"]["Enums"]["vendor_service_quality"]
+          service_area_all_cities?: boolean
+          service_area_cities?: string[]
+          service_area_communities?: string[]
+          updated_at?: string
+          vendor_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_services_catalog_id_fkey"
+            columns: ["catalog_id"]
+            isOneToOne: false
+            referencedRelation: "service_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_services_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_services_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vendors: {
         Row: {
           address: string | null
@@ -4236,6 +4418,10 @@ export type Database = {
         Args: { p_ticket_id: string }
         Returns: undefined
       }
+      auto_invite_vendors_for_request: {
+        Args: { _request_id: string }
+        Returns: number
+      }
       change_ticket_workflow: {
         Args: {
           p_new_stages: Json
@@ -4306,7 +4492,9 @@ export type Database = {
           approval_threshold_currency: string | null
           assigned_person_id: string | null
           assigned_vendor_id: string | null
+          auto_invite_vendors: boolean
           bill_to: Database["public"]["Enums"]["bill_to_role"]
+          bill_to_mode: Database["public"]["Enums"]["bill_to_mode"]
           billing: Database["public"]["Enums"]["service_billing"]
           catalog_id: string | null
           category: Database["public"]["Enums"]["service_category"]
@@ -4314,6 +4502,7 @@ export type Database = {
           completed_at: string | null
           cost_estimate: number | null
           cost_final: number | null
+          cost_split_resolved_at: string | null
           created_at: string
           created_by: string | null
           currency: string
@@ -4323,12 +4512,17 @@ export type Database = {
           id: string
           internal_notes: string | null
           is_workflow: boolean
+          landlord_cost_approval_status: Database["public"]["Enums"]["party_cost_approval_status"]
+          landlord_cost_approved_at: string | null
+          landlord_share_percent: number
           priority: Database["public"]["Enums"]["service_request_priority"]
           proposed_scheduled_date: string | null
           request_number: string
           requested_by_person_id: string | null
           schedule_counter_round: number
           scheduled_date: string | null
+          service_area_city: string | null
+          service_area_community: string | null
           source: string
           started_at: string | null
           status: Database["public"]["Enums"]["service_request_status"]
@@ -4340,13 +4534,17 @@ export type Database = {
           tenant_approval_requested_at: string | null
           tenant_approval_required: boolean
           tenant_approval_status: Database["public"]["Enums"]["tenant_approval_status"]
+          tenant_cost_approval_status: Database["public"]["Enums"]["party_cost_approval_status"]
+          tenant_cost_approved_at: string | null
           tenant_proposed_date: string | null
           tenant_schedule_decided_at: string | null
           tenant_schedule_notes: string | null
           tenant_schedule_status: Database["public"]["Enums"]["tenant_schedule_status"]
+          tenant_share_percent: number
           tenant_token: string | null
           title: string
           updated_at: string
+          winning_quote_id: string | null
           workspace_id: string | null
         }
         SetofOptions: {
@@ -4440,6 +4638,21 @@ export type Database = {
           workspace_name: string
         }[]
       }
+      match_vendors_for_catalog: {
+        Args: {
+          _catalog_id: string
+          _city?: string
+          _community?: string
+          _workspace_id: string
+        }
+        Returns: {
+          is_preferred: boolean
+          lead_time_days: number
+          list_price: number
+          quality_tier: Database["public"]["Enums"]["vendor_service_quality"]
+          vendor_id: string
+        }[]
+      }
       next_number: {
         Args: { p_prefix: string; p_year: number }
         Returns: string
@@ -4470,7 +4683,9 @@ export type Database = {
           approval_threshold_currency: string | null
           assigned_person_id: string | null
           assigned_vendor_id: string | null
+          auto_invite_vendors: boolean
           bill_to: Database["public"]["Enums"]["bill_to_role"]
+          bill_to_mode: Database["public"]["Enums"]["bill_to_mode"]
           billing: Database["public"]["Enums"]["service_billing"]
           catalog_id: string | null
           category: Database["public"]["Enums"]["service_category"]
@@ -4478,6 +4693,7 @@ export type Database = {
           completed_at: string | null
           cost_estimate: number | null
           cost_final: number | null
+          cost_split_resolved_at: string | null
           created_at: string
           created_by: string | null
           currency: string
@@ -4487,12 +4703,17 @@ export type Database = {
           id: string
           internal_notes: string | null
           is_workflow: boolean
+          landlord_cost_approval_status: Database["public"]["Enums"]["party_cost_approval_status"]
+          landlord_cost_approved_at: string | null
+          landlord_share_percent: number
           priority: Database["public"]["Enums"]["service_request_priority"]
           proposed_scheduled_date: string | null
           request_number: string
           requested_by_person_id: string | null
           schedule_counter_round: number
           scheduled_date: string | null
+          service_area_city: string | null
+          service_area_community: string | null
           source: string
           started_at: string | null
           status: Database["public"]["Enums"]["service_request_status"]
@@ -4504,13 +4725,17 @@ export type Database = {
           tenant_approval_requested_at: string | null
           tenant_approval_required: boolean
           tenant_approval_status: Database["public"]["Enums"]["tenant_approval_status"]
+          tenant_cost_approval_status: Database["public"]["Enums"]["party_cost_approval_status"]
+          tenant_cost_approved_at: string | null
           tenant_proposed_date: string | null
           tenant_schedule_decided_at: string | null
           tenant_schedule_notes: string | null
           tenant_schedule_status: Database["public"]["Enums"]["tenant_schedule_status"]
+          tenant_share_percent: number
           tenant_token: string | null
           title: string
           updated_at: string
+          winning_quote_id: string | null
           workspace_id: string | null
         }
         SetofOptions: {
@@ -4543,7 +4768,9 @@ export type Database = {
           approval_threshold_currency: string | null
           assigned_person_id: string | null
           assigned_vendor_id: string | null
+          auto_invite_vendors: boolean
           bill_to: Database["public"]["Enums"]["bill_to_role"]
+          bill_to_mode: Database["public"]["Enums"]["bill_to_mode"]
           billing: Database["public"]["Enums"]["service_billing"]
           catalog_id: string | null
           category: Database["public"]["Enums"]["service_category"]
@@ -4551,6 +4778,7 @@ export type Database = {
           completed_at: string | null
           cost_estimate: number | null
           cost_final: number | null
+          cost_split_resolved_at: string | null
           created_at: string
           created_by: string | null
           currency: string
@@ -4560,12 +4788,17 @@ export type Database = {
           id: string
           internal_notes: string | null
           is_workflow: boolean
+          landlord_cost_approval_status: Database["public"]["Enums"]["party_cost_approval_status"]
+          landlord_cost_approved_at: string | null
+          landlord_share_percent: number
           priority: Database["public"]["Enums"]["service_request_priority"]
           proposed_scheduled_date: string | null
           request_number: string
           requested_by_person_id: string | null
           schedule_counter_round: number
           scheduled_date: string | null
+          service_area_city: string | null
+          service_area_community: string | null
           source: string
           started_at: string | null
           status: Database["public"]["Enums"]["service_request_status"]
@@ -4577,13 +4810,17 @@ export type Database = {
           tenant_approval_requested_at: string | null
           tenant_approval_required: boolean
           tenant_approval_status: Database["public"]["Enums"]["tenant_approval_status"]
+          tenant_cost_approval_status: Database["public"]["Enums"]["party_cost_approval_status"]
+          tenant_cost_approved_at: string | null
           tenant_proposed_date: string | null
           tenant_schedule_decided_at: string | null
           tenant_schedule_notes: string | null
           tenant_schedule_status: Database["public"]["Enums"]["tenant_schedule_status"]
+          tenant_share_percent: number
           tenant_token: string | null
           title: string
           updated_at: string
+          winning_quote_id: string | null
           workspace_id: string | null
         }
         SetofOptions: {
@@ -4634,7 +4871,9 @@ export type Database = {
           approval_threshold_currency: string | null
           assigned_person_id: string | null
           assigned_vendor_id: string | null
+          auto_invite_vendors: boolean
           bill_to: Database["public"]["Enums"]["bill_to_role"]
+          bill_to_mode: Database["public"]["Enums"]["bill_to_mode"]
           billing: Database["public"]["Enums"]["service_billing"]
           catalog_id: string | null
           category: Database["public"]["Enums"]["service_category"]
@@ -4642,6 +4881,7 @@ export type Database = {
           completed_at: string | null
           cost_estimate: number | null
           cost_final: number | null
+          cost_split_resolved_at: string | null
           created_at: string
           created_by: string | null
           currency: string
@@ -4651,12 +4891,17 @@ export type Database = {
           id: string
           internal_notes: string | null
           is_workflow: boolean
+          landlord_cost_approval_status: Database["public"]["Enums"]["party_cost_approval_status"]
+          landlord_cost_approved_at: string | null
+          landlord_share_percent: number
           priority: Database["public"]["Enums"]["service_request_priority"]
           proposed_scheduled_date: string | null
           request_number: string
           requested_by_person_id: string | null
           schedule_counter_round: number
           scheduled_date: string | null
+          service_area_city: string | null
+          service_area_community: string | null
           source: string
           started_at: string | null
           status: Database["public"]["Enums"]["service_request_status"]
@@ -4668,13 +4913,17 @@ export type Database = {
           tenant_approval_requested_at: string | null
           tenant_approval_required: boolean
           tenant_approval_status: Database["public"]["Enums"]["tenant_approval_status"]
+          tenant_cost_approval_status: Database["public"]["Enums"]["party_cost_approval_status"]
+          tenant_cost_approved_at: string | null
           tenant_proposed_date: string | null
           tenant_schedule_decided_at: string | null
           tenant_schedule_notes: string | null
           tenant_schedule_status: Database["public"]["Enums"]["tenant_schedule_status"]
+          tenant_share_percent: number
           tenant_token: string | null
           title: string
           updated_at: string
+          winning_quote_id: string | null
           workspace_id: string | null
         }
         SetofOptions: {
@@ -4707,6 +4956,11 @@ export type Database = {
       account_type: "asset" | "liability" | "equity" | "income" | "expense"
       app_role: "admin" | "staff" | "viewer"
       bill_status: "draft" | "approved" | "partial" | "paid" | "void"
+      bill_to_mode:
+        | "landlord_only"
+        | "tenant_only"
+        | "split"
+        | "to_be_negotiated"
       bill_to_role: "landlord" | "tenant"
       contract_party_role:
         | "pm_company"
@@ -4726,6 +4980,12 @@ export type Database = {
         | "management_agreement"
         | "lease"
         | "vendor_service_agreement"
+      cost_split_proposal_status:
+        | "proposed"
+        | "accepted"
+        | "rejected"
+        | "countered"
+        | "superseded"
       email_category:
         | "alert"
         | "quote"
@@ -4740,6 +5000,11 @@ export type Database = {
         | "flat_annual"
         | "flat_per_unit"
         | "hybrid"
+      party_cost_approval_status:
+        | "not_required"
+        | "pending"
+        | "approved"
+        | "rejected"
       payment_direction: "in" | "out"
       payment_method:
         | "cash"
@@ -4829,6 +5094,7 @@ export type Database = {
         | "townhouse"
         | "warehouse"
         | "showroom"
+      vendor_service_quality: "economy" | "standard" | "premium"
       vsa_payment_terms:
         | "on_completion"
         | "net_7"
@@ -4976,6 +5242,12 @@ export const Constants = {
       account_type: ["asset", "liability", "equity", "income", "expense"],
       app_role: ["admin", "staff", "viewer"],
       bill_status: ["draft", "approved", "partial", "paid", "void"],
+      bill_to_mode: [
+        "landlord_only",
+        "tenant_only",
+        "split",
+        "to_be_negotiated",
+      ],
       bill_to_role: ["landlord", "tenant"],
       contract_party_role: [
         "pm_company",
@@ -4998,6 +5270,13 @@ export const Constants = {
         "lease",
         "vendor_service_agreement",
       ],
+      cost_split_proposal_status: [
+        "proposed",
+        "accepted",
+        "rejected",
+        "countered",
+        "superseded",
+      ],
       email_category: [
         "alert",
         "quote",
@@ -5013,6 +5292,12 @@ export const Constants = {
         "flat_annual",
         "flat_per_unit",
         "hybrid",
+      ],
+      party_cost_approval_status: [
+        "not_required",
+        "pending",
+        "approved",
+        "rejected",
       ],
       payment_direction: ["in", "out"],
       payment_method: [
@@ -5114,6 +5399,7 @@ export const Constants = {
         "warehouse",
         "showroom",
       ],
+      vendor_service_quality: ["economy", "standard", "premium"],
       vsa_payment_terms: [
         "on_completion",
         "net_7",
