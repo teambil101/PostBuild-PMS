@@ -31,7 +31,7 @@ export default function ForPropertyManagers() {
     <LandingShell>
       <Hero
         eyebrow="Fully Managed by Post Build"
-        headline={<>Hands off. <span className="text-accent">Done right.</span></>}
+         headline={<>You own the property. <span className="text-accent">We take care of everything else.</span></>}
         punchline="The concierge-level service your portfolio deserves."
         sub="We become your property management company — leasing, maintenance, finances, reporting, compliance. You just receive the rent and the reports. Designed for owners who want to forget they own a property until quarterly review."
         servicesHook="Complete hands-off management stack"
