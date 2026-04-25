@@ -181,3 +181,20 @@ I'll ask these as proper questions when we start Phase 1 if you want, but flaggi
 ## Suggested starting point
 
 If you approve, the next concrete step is **Phase 1 only** (tenancy foundation). It's invisible to current users but unblocks everything else. Phase 2 (Owner Portal) is the next visible milestone and where the product story really starts.
+
+---
+
+## Status
+
+- ✅ **Phase 1** — Tenancy foundation (workspaces, members, `workspace_id` on every business table, helper RPCs).
+- ✅ **Phase 1b** — RLS lockdown across business tables, auth gate re-enabled, auto-provision personal owner workspace on signup.
+- ✅ **Phase 2** — Owner Portal shell (`OwnerShell`), Owner pages (Home, Properties, Leases, Documents, Services, Account), invite-only flow:
+  - `lookup_invitation(token)` + `accept_workspace_invitation(token)` RPCs
+  - `owner_onboard_property` 3-field wizard helper
+  - `/invite/:token` public accept page
+  - `/invitations` operator-side invite manager (creates link to copy/send)
+  - `SmartShell` picks `OwnerShell` vs `AppShell` based on active workspace `kind`
+  - Re-added the `address` column to `buildings` that had been dropped in an earlier migration
+- ⏳ **Phase 3** — Services Marketplace: promote catalog to marketplace, add `fulfilling_workspace_id`, build operator marketplace inbox, allow owners to see internal-workspace catalog.
+- ⏳ **Phase 4** — Broker Portal: branded operator workspace, teammate roles, "Outsource to True Build".
+- ⏳ **Phase 5** — Polish & growth.
