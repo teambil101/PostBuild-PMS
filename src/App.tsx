@@ -7,6 +7,8 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AppShell } from "@/components/AppShell";
+import { OwnerShell } from "@/components/owner/OwnerShell";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Properties from "./pages/Properties";
@@ -30,12 +32,38 @@ import Financials from "./pages/Financials";
 import InvoiceDetail from "./pages/financials/InvoiceDetail";
 import PublicQuoteSubmit from "./pages/PublicQuoteSubmit";
 import PublicTenantDecision from "./pages/PublicTenantDecision";
+import AcceptInvite from "./pages/AcceptInvite";
+import Invitations from "./pages/Invitations";
+import OwnerHome from "./pages/owner/OwnerHome";
+import OwnerProperties from "./pages/owner/OwnerProperties";
+import OwnerLeases from "./pages/owner/OwnerLeases";
+import OwnerDocuments from "./pages/owner/OwnerDocuments";
+import OwnerServices from "./pages/owner/OwnerServices";
+import OwnerAccount from "./pages/owner/OwnerAccount";
 
 const queryClient = new QueryClient();
 
 const Shell = ({ children }: { children: React.ReactNode }) => (
   <ProtectedRoute>
-    <AppShell>{children}</AppShell>
+    <SmartShell>{children}</SmartShell>
+  </ProtectedRoute>
+);
+
+/**
+ * Picks AppShell (operator/broker) or OwnerShell based on the active workspace kind.
+ * Brokers use the same AppShell as operators — RLS already scopes their data.
+ */
+const SmartShell = ({ children }: { children: React.ReactNode }) => {
+  const { activeWorkspace } = useWorkspace();
+  if (activeWorkspace?.kind === "owner") {
+    return <OwnerShell>{children}</OwnerShell>;
+  }
+  return <AppShell>{children}</AppShell>;
+};
+
+const OwnerOnly = ({ children }: { children: React.ReactNode }) => (
+  <ProtectedRoute>
+    <OwnerShell>{children}</OwnerShell>
   </ProtectedRoute>
 );
 
@@ -51,6 +79,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/q/:token" element={<PublicQuoteSubmit />} />
             <Route path="/t/:token" element={<PublicTenantDecision />} />
+            <Route path="/invite/:token" element={<AcceptInvite />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Shell><Dashboard /></Shell>} />
             <Route path="/properties" element={<Shell><Properties /></Shell>} />
@@ -70,6 +99,15 @@ const App = () => (
             <Route path="/services/requests/:id" element={<Shell><ServiceRequestDetail /></Shell>} />
             <Route path="/financials" element={<Shell><Financials /></Shell>} />
             <Route path="/financials/invoices/:id" element={<Shell><InvoiceDetail /></Shell>} />
+            <Route path="/invitations" element={<Shell><Invitations /></Shell>} />
+            {/* Owner portal */}
+            <Route path="/owner" element={<OwnerOnly><OwnerHome /></OwnerOnly>} />
+            <Route path="/owner/properties" element={<OwnerOnly><OwnerProperties /></OwnerOnly>} />
+            <Route path="/owner/properties/:id" element={<OwnerOnly><PropertyDetail /></OwnerOnly>} />
+            <Route path="/owner/leases" element={<OwnerOnly><OwnerLeases /></OwnerOnly>} />
+            <Route path="/owner/documents" element={<OwnerOnly><OwnerDocuments /></OwnerOnly>} />
+            <Route path="/owner/services" element={<OwnerOnly><OwnerServices /></OwnerOnly>} />
+            <Route path="/owner/account" element={<OwnerOnly><OwnerAccount /></OwnerOnly>} />
             <Route path="/tickets" element={<Navigate to="/dashboard" replace />} />
             <Route path="/tickets/:ticketId" element={<Navigate to="/dashboard" replace />} />
             <Route path="/vendors" element={<Navigate to="/people?role=vendor" replace />} />
