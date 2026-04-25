@@ -35,6 +35,7 @@ import PublicTenantDecision from "./pages/PublicTenantDecision";
 import AcceptInvite from "./pages/AcceptInvite";
 import Invitations from "./pages/Invitations";
 import MarketplaceInbox from "./pages/MarketplaceInbox";
+import { RequireNotBroker } from "@/components/RequireNotBroker";
 import OwnerHome from "./pages/owner/OwnerHome";
 import OwnerProperties from "./pages/owner/OwnerProperties";
 import OwnerLeases from "./pages/owner/OwnerLeases";
@@ -103,7 +104,7 @@ const App = () => (
             <Route path="/contracts/new/vendor-service-agreement" element={<Shell><NewVendorServiceAgreement /></Shell>} />
             <Route path="/contracts/:id" element={<Shell><ContractDetail /></Shell>} />
             <Route path="/services" element={<Shell><Services /></Shell>} />
-            <Route path="/services/marketplace" element={<Shell><MarketplaceInbox /></Shell>} />
+            <Route path="/services/marketplace" element={<Shell><RequireNotBroker><MarketplaceInbox /></RequireNotBroker></Shell>} />
             <Route path="/services/requests/new" element={<Shell><NewServiceRequest /></Shell>} />
             <Route path="/services/requests/:id" element={<Shell><ServiceRequestDetail /></Shell>} />
             <Route path="/financials" element={<Shell><Financials /></Shell>} />
