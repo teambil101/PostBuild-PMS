@@ -745,6 +745,312 @@ export type Database = {
           },
         ]
       }
+      email_brand_settings: {
+        Row: {
+          accent_color: string
+          background_color: string
+          border_radius_px: number
+          company_address: string | null
+          company_name: string | null
+          created_at: string
+          font_family: string
+          footer_text: string | null
+          from_name: string | null
+          heading_font_family: string | null
+          id: string
+          logo_storage_path: string | null
+          logo_url: string | null
+          muted_text_color: string
+          primary_color: string
+          reply_to_email: string | null
+          show_powered_by: boolean
+          show_unsubscribe: boolean
+          social_facebook: string | null
+          social_instagram: string | null
+          social_linkedin: string | null
+          social_website: string | null
+          social_x: string | null
+          text_color: string
+          unsubscribe_url: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          accent_color?: string
+          background_color?: string
+          border_radius_px?: number
+          company_address?: string | null
+          company_name?: string | null
+          created_at?: string
+          font_family?: string
+          footer_text?: string | null
+          from_name?: string | null
+          heading_font_family?: string | null
+          id?: string
+          logo_storage_path?: string | null
+          logo_url?: string | null
+          muted_text_color?: string
+          primary_color?: string
+          reply_to_email?: string | null
+          show_powered_by?: boolean
+          show_unsubscribe?: boolean
+          social_facebook?: string | null
+          social_instagram?: string | null
+          social_linkedin?: string | null
+          social_website?: string | null
+          social_x?: string | null
+          text_color?: string
+          unsubscribe_url?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          accent_color?: string
+          background_color?: string
+          border_radius_px?: number
+          company_address?: string | null
+          company_name?: string | null
+          created_at?: string
+          font_family?: string
+          footer_text?: string | null
+          from_name?: string | null
+          heading_font_family?: string | null
+          id?: string
+          logo_storage_path?: string | null
+          logo_url?: string | null
+          muted_text_color?: string
+          primary_color?: string
+          reply_to_email?: string | null
+          show_powered_by?: boolean
+          show_unsubscribe?: boolean
+          social_facebook?: string | null
+          social_instagram?: string | null
+          social_linkedin?: string | null
+          social_website?: string | null
+          social_x?: string | null
+          text_color?: string
+          unsubscribe_url?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      email_send_log: {
+        Row: {
+          attachment_count: number
+          bcc_emails: string[] | null
+          category: Database["public"]["Enums"]["email_category"] | null
+          cc_emails: string[] | null
+          context: Json | null
+          created_at: string
+          error_message: string | null
+          id: string
+          provider_message_id: string | null
+          sent_at: string | null
+          status: string
+          subject: string
+          template_id: string | null
+          template_key: string | null
+          to_email: string
+          to_name: string | null
+          workspace_id: string
+        }
+        Insert: {
+          attachment_count?: number
+          bcc_emails?: string[] | null
+          category?: Database["public"]["Enums"]["email_category"] | null
+          cc_emails?: string[] | null
+          context?: Json | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          provider_message_id?: string | null
+          sent_at?: string | null
+          status?: string
+          subject: string
+          template_id?: string | null
+          template_key?: string | null
+          to_email: string
+          to_name?: string | null
+          workspace_id: string
+        }
+        Update: {
+          attachment_count?: number
+          bcc_emails?: string[] | null
+          category?: Database["public"]["Enums"]["email_category"] | null
+          cc_emails?: string[] | null
+          context?: Json | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          provider_message_id?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string
+          template_id?: string | null
+          template_key?: string | null
+          to_email?: string
+          to_name?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_send_log_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_template_attachments: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_size_bytes: number
+          id: string
+          mime_type: string
+          storage_path: string
+          template_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_size_bytes: number
+          id?: string
+          mime_type: string
+          storage_path: string
+          template_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_size_bytes?: number
+          id?: string
+          mime_type?: string
+          storage_path?: string
+          template_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_template_attachments_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_template_dynamic_attachments: {
+        Row: {
+          config: Json
+          created_at: string
+          enabled: boolean
+          filename_pattern: string | null
+          generator_key: string
+          id: string
+          template_id: string
+          workspace_id: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          enabled?: boolean
+          filename_pattern?: string | null
+          generator_key: string
+          id?: string
+          template_id: string
+          workspace_id: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          enabled?: boolean
+          filename_pattern?: string | null
+          generator_key?: string
+          id?: string
+          template_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_template_dynamic_attachments_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_templates: {
+        Row: {
+          available_variables: Json
+          blocks: Json
+          brand_overrides: Json | null
+          category: Database["public"]["Enums"]["email_category"]
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          is_system: boolean
+          name: string
+          override_brand: boolean
+          plain_text_fallback: string | null
+          preheader: string | null
+          subject: string
+          template_key: string
+          updated_at: string
+          version: number
+          workspace_id: string
+        }
+        Insert: {
+          available_variables?: Json
+          blocks?: Json
+          brand_overrides?: Json | null
+          category: Database["public"]["Enums"]["email_category"]
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          name: string
+          override_brand?: boolean
+          plain_text_fallback?: string | null
+          preheader?: string | null
+          subject: string
+          template_key: string
+          updated_at?: string
+          version?: number
+          workspace_id: string
+        }
+        Update: {
+          available_variables?: Json
+          blocks?: Json
+          brand_overrides?: Json | null
+          category?: Database["public"]["Enums"]["email_category"]
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          name?: string
+          override_brand?: boolean
+          plain_text_fallback?: string | null
+          preheader?: string | null
+          subject?: string
+          template_key?: string
+          updated_at?: string
+          version?: number
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       invoice_lines: {
         Row: {
           account_id: string | null
@@ -4420,6 +4726,13 @@ export type Database = {
         | "management_agreement"
         | "lease"
         | "vendor_service_agreement"
+      email_category:
+        | "alert"
+        | "quote"
+        | "notice"
+        | "service_request"
+        | "work_update"
+        | "confirmation"
       invoice_status: "draft" | "issued" | "partial" | "paid" | "void"
       ma_approval_rule: "auto_threshold" | "always_required" | "auto_all"
       ma_fee_model:
@@ -4684,6 +4997,14 @@ export const Constants = {
         "management_agreement",
         "lease",
         "vendor_service_agreement",
+      ],
+      email_category: [
+        "alert",
+        "quote",
+        "notice",
+        "service_request",
+        "work_update",
+        "confirmation",
       ],
       invoice_status: ["draft", "issued", "partial", "paid", "void"],
       ma_approval_rule: ["auto_threshold", "always_required", "auto_all"],

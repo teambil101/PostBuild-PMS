@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { CompanyProfileForm } from "@/components/settings/CompanyProfileForm";
-import { Building2, CreditCard, Bell, Plug, type LucideIcon } from "lucide-react";
+import { EmailsSettings } from "@/components/settings/emails/EmailsSettings";
+import { Building2, CreditCard, Bell, Plug, Mail, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Section {
@@ -13,6 +14,7 @@ interface Section {
 
 const SECTIONS: Section[] = [
   { key: "company", label: "Company Profile", icon: Building2, enabled: true },
+  { key: "emails", label: "Emails", icon: Mail, enabled: true },
   { key: "billing", label: "Billing", icon: CreditCard, enabled: false },
   { key: "notifications", label: "Notifications", icon: Bell, enabled: false },
   { key: "integrations", label: "Integrations", icon: Plug, enabled: false },
@@ -62,8 +64,9 @@ export default function Settings() {
         </nav>
 
         {/* Right pane */}
-        <div className="min-w-0 max-w-3xl">
+        <div className={cn("min-w-0", active === "emails" ? "max-w-5xl" : "max-w-3xl")}>
           {active === "company" && <CompanyProfileForm />}
+          {active === "emails" && <EmailsSettings />}
         </div>
       </div>
     </>
