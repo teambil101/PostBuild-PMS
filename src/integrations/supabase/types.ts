@@ -4104,6 +4104,10 @@ export type Database = {
         Args: { p_stages: Json; p_ticket_id: string; p_workflow_key: string }
         Returns: undefined
       }
+      is_publisher_workspace: {
+        Args: { _workspace_id: string }
+        Returns: boolean
+      }
       is_workspace_member: { Args: { _workspace_id: string }; Returns: boolean }
       list_auth_users_with_person: {
         Args: never
