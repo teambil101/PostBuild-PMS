@@ -475,14 +475,15 @@ export function UnitFormDialog({
         <DialogContent className="max-w-[560px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-display text-2xl">
-              {initial?.id ? "Edit unit" : "New unit"}
+              {titleOverride ?? (initial?.id ? "Edit unit" : "New unit")}
             </DialogTitle>
             <DialogDescription>
-              {initial?.id ? "Update unit details." : "Add a unit to this building."}
+              {descriptionOverride ?? (initial?.id ? "Update unit details." : "Add a unit to this building.")}
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={submit} className="space-y-4 pt-2" noValidate>
+            {topSlot}
             {/* Row 1: Unit number + Type */}
             <div className="grid grid-cols-2 gap-3">
               <div>
