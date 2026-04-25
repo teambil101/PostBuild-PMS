@@ -422,6 +422,7 @@ export type Database = {
       }
       buildings: {
         Row: {
+          address: string | null
           building_type: string
           building_type_other: string | null
           city: string
@@ -437,6 +438,7 @@ export type Database = {
           workspace_id: string | null
         }
         Insert: {
+          address?: string | null
           building_type?: string
           building_type_other?: string | null
           city: string
@@ -452,6 +454,7 @@ export type Database = {
           workspace_id?: string | null
         }
         Update: {
+          address?: string | null
           building_type?: string
           building_type_other?: string | null
           city?: string
