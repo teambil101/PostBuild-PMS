@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { newPersonCode } from "@/lib/refcode";
 
-const ALL_ROLES = ["tenant", "owner", "prospect", "staff", "vendor"] as const;
+const ALL_ROLES = ["tenant", "owner", "staff", "vendor"] as const;
 
 interface Props {
   open: boolean;
