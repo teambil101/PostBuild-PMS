@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { BalanceBadge } from "@/components/financials/BalanceBadge";
 import { RecordPaymentDialog } from "@/components/financials/RecordPaymentDialog";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import {
   invoiceBalance,
   daysPastDue,
@@ -45,6 +46,7 @@ export function LeaseFinancialsSection({
   tenantPersonId,
   contractStatus,
 }: LeaseFinancialsSectionProps) {
+  const { activeWorkspace } = useWorkspace();
   const [invs, setInvs] = useState<InvRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -71,6 +73,10 @@ export function LeaseFinancialsSection({
       toast.error("Lease is missing rent amount, start date or installment count.");
       return;
     }
+    if (!activeWorkspace?.id) {
+      toast.error("No active workspace selected.");
+      return;
+    }
     setGenerating(true);
     try {
       const res = await generateLeaseInvoiceSchedule({
@@ -81,6 +87,7 @@ export function LeaseFinancialsSection({
         numberOfCheques,
         currency,
         tenantPersonId,
+        workspaceId: activeWorkspace.id,
       });
       if (res.skipped) {
         toast.info("Schedule already generated for this lease.");

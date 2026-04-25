@@ -16,7 +16,6 @@ import PropertyDetail from "./pages/PropertyDetail";
 import UnitDetail from "./pages/UnitDetail";
 import People from "./pages/People";
 import PersonDetail from "./pages/PersonDetail";
-import ComingSoon from "./pages/ComingSoon";
 import NotFound from "./pages/NotFound.tsx";
 import Settings from "./pages/Settings";
 import VendorDetail from "./pages/VendorDetail";

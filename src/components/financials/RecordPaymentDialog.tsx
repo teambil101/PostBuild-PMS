@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { invoiceBalance, round2, toNum } from "@/lib/financialFormulas";
 import { docPrefix, nextDocNumber } from "@/lib/financials";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { cn } from "@/lib/utils";
 
 type InvoiceForAlloc = {
@@ -68,6 +69,7 @@ export function RecordPaymentDialog({
   currency,
   onSaved,
 }: Props) {
+  const { activeWorkspace } = useWorkspace();
   const [paidOn, setPaidOn] = useState<string>(() => new Date().toISOString().slice(0, 10));
   const [method, setMethod] = useState<string>("cheque");
   const [reference, setReference] = useState<string>("");
@@ -135,7 +137,12 @@ export function RecordPaymentDialog({
 
     setSaving(true);
     try {
-      const number = await nextDocNumber(docPrefix("payment"));
+      if (!activeWorkspace?.id) {
+        toast.error("No active workspace selected.");
+        setSaving(false);
+        return;
+      }
+      const number = await nextDocNumber(docPrefix("payment"), activeWorkspace.id);
       const { data: pay, error: payErr } = await supabase
         .from("payments")
         .insert({

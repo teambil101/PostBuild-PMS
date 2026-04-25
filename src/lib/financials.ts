@@ -1,31 +1,21 @@
 import { supabase } from "@/integrations/supabase/client";
 import { buildLeaseInstallments } from "./financialFormulas";
 
-/** Generate the next number for a given prefix (INV, BILL, PAY, STMT, QUO). */
-export async function nextDocNumber(prefix: string): Promise<string> {
-  const year = new Date().getFullYear();
-  const { data: existing } = await supabase
-    .from("number_sequences")
-    .select("last_seq")
-    .eq("prefix", prefix)
-    .eq("year", year)
-    .maybeSingle();
-
-  const next = (existing?.last_seq ?? 0) + 1;
-
-  if (existing) {
-    await supabase
-      .from("number_sequences")
-      .update({ last_seq: next })
-      .eq("prefix", prefix)
-      .eq("year", year);
-  } else {
-    await supabase
-      .from("number_sequences")
-      .insert({ prefix, year, last_seq: next });
+/**
+ * Generate the next document number for a given prefix (INV, BILL, PAY, STMT, QUO).
+ * Atomic and per-workspace — concurrent calls cannot collide and counters
+ * are not shared across tenants.
+ */
+export async function nextDocNumber(prefix: string, workspaceId: string): Promise<string> {
+  if (!workspaceId) {
+    throw new Error("nextDocNumber: workspaceId is required");
   }
-
-  return `${prefix}-${year}-${String(next).padStart(4, "0")}`;
+  const { data, error } = await supabase.rpc("next_doc_number", {
+    _prefix: prefix,
+    _workspace_id: workspaceId,
+  });
+  if (error) throw error;
+  return data as string;
 }
 
 export const FINANCIAL_DOC_PREFIXES = {
@@ -59,6 +49,7 @@ export interface GenerateLeaseInvoicesArgs {
   numberOfCheques: number;
   currency: string;
   tenantPersonId: string | null;
+  workspaceId: string;
 }
 
 /**
@@ -89,7 +80,7 @@ export async function generateLeaseInvoiceSchedule(
 
   let created = 0;
   for (const inst of installments) {
-    const number = await nextDocNumber(FINANCIAL_DOC_PREFIXES.invoice);
+    const number = await nextDocNumber(FINANCIAL_DOC_PREFIXES.invoice, args.workspaceId);
     const { data: inv, error: invErr } = await supabase
       .from("invoices")
       .insert({
