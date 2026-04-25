@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, User as UserIcon, Wrench } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import {
   BILLING_LABEL,
@@ -23,6 +22,8 @@ import {
   type WorkflowStep,
 } from "@/lib/services";
 import { WorkflowStepsEditor } from "./WorkflowStepsEditor";
+import { PersonCombobox } from "@/components/owners/PersonCombobox";
+import { VendorPicker, type PickedVendor } from "@/components/contracts/VendorPicker";
 
 export interface CatalogEntry {
   id: string;
@@ -39,6 +40,8 @@ export interface CatalogEntry {
   is_workflow: boolean;
   workflow_steps: WorkflowStep[];
   is_active: boolean;
+  default_assignee_person_id: string | null;
+  default_assignee_vendor_id: string | null;
 }
 
 interface Props {
@@ -63,19 +66,50 @@ const BLANK: CatalogEntry = {
   is_workflow: false,
   workflow_steps: [],
   is_active: true,
+  default_assignee_person_id: null,
+  default_assignee_vendor_id: null,
 };
 
 export function CatalogEntryDialog({ open, onOpenChange, entry, onSaved }: Props) {
   const [form, setForm] = useState<CatalogEntry>(BLANK);
   const [saving, setSaving] = useState(false);
-  const [tab, setTab] = useState("basics");
+  const [assigneePersonLabel, setAssigneePersonLabel] = useState<string>("");
+  const [assigneeVendor, setAssigneeVendor] = useState<PickedVendor | null>(null);
 
   useEffect(() => {
     if (open) {
       setForm(entry ?? BLANK);
-      setTab("basics");
+      setAssigneePersonLabel("");
+      setAssigneeVendor(null);
     }
   }, [open, entry]);
+
+  // Hydrate the default assignee labels when editing an existing entry.
+  useEffect(() => {
+    if (!open) return;
+    void (async () => {
+      if (form.default_assignee_person_id) {
+        const { data } = await supabase
+          .from("people")
+          .select("first_name, last_name, company")
+          .eq("id", form.default_assignee_person_id)
+          .maybeSingle();
+        if (data) {
+          setAssigneePersonLabel(
+            `${data.first_name ?? ""} ${data.last_name ?? ""}`.trim() || data.company || "—",
+          );
+        }
+      }
+      if (form.default_assignee_vendor_id) {
+        const { data } = await supabase
+          .from("vendors")
+          .select("id, vendor_number, legal_name, display_name, vendor_type, status, primary_email, primary_phone, default_call_out_fee, default_hourly_rate, currency")
+          .eq("id", form.default_assignee_vendor_id)
+          .maybeSingle();
+        if (data) setAssigneeVendor(data as PickedVendor);
+      }
+    })();
+  }, [open, form.default_assignee_person_id, form.default_assignee_vendor_id]);
 
   const update = <K extends keyof CatalogEntry>(key: K, val: CatalogEntry[K]) =>
     setForm((f) => ({ ...f, [key]: val }));
@@ -123,6 +157,8 @@ export function CatalogEntryDialog({ open, onOpenChange, entry, onSaved }: Props
         is_workflow: form.is_workflow,
         workflow_steps: form.is_workflow ? (form.workflow_steps as any) : [],
         is_active: form.is_active,
+        default_assignee_person_id: form.default_assignee_person_id,
+        default_assignee_vendor_id: form.default_assignee_vendor_id,
       };
       const { error } = entry
         ? await supabase.from("service_catalog").update(payload).eq("id", entry.id)
@@ -147,20 +183,14 @@ export function CatalogEntryDialog({ open, onOpenChange, entry, onSaved }: Props
             {entry ? "Edit catalog entry" : "New catalog entry"}
           </DialogTitle>
           <DialogDescription>
-            Define how this service is normally delivered, billed and scheduled. Atomic services have one job; workflow templates explode into ordered sub-steps.
+            Define how this service is normally delivered, billed, scheduled and who handles it. Atomic services have one job; workflow templates explode into ordered sub-steps.
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={tab} onValueChange={setTab}>
-          <TabsList>
-            <TabsTrigger value="basics">Basics</TabsTrigger>
-            <TabsTrigger value="defaults">Defaults</TabsTrigger>
-            <TabsTrigger value="workflow">
-              Workflow {form.is_workflow && form.workflow_steps.length > 0 ? `(${form.workflow_steps.length})` : ""}
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="basics" className="space-y-4 mt-5">
+        <div className="space-y-8 mt-2">
+          {/* ─────────── Basics ─────────── */}
+          <section className="space-y-4">
+            <h3 className="label-eyebrow text-muted-foreground">Basics</h3>
             <div className="grid md:grid-cols-3 gap-4">
               <div className="md:col-span-2">
                 <Label htmlFor="name">Name</Label>
@@ -231,9 +261,11 @@ export function CatalogEntryDialog({ open, onOpenChange, entry, onSaved }: Props
                 <div className="text-[11px] text-muted-foreground">Off = staff can't pick this when creating new requests.</div>
               </div>
             </div>
-          </TabsContent>
+          </section>
 
-          <TabsContent value="defaults" className="space-y-4 mt-5">
+          {/* ─────────── Defaults ─────────── */}
+          <section className="space-y-4 border-t hairline pt-6">
+            <h3 className="label-eyebrow text-muted-foreground">Defaults</h3>
             <div className="grid md:grid-cols-3 gap-4">
               <div>
                 <Label>Default delivery</Label>
@@ -302,9 +334,72 @@ export function CatalogEntryDialog({ open, onOpenChange, entry, onSaved }: Props
                 </div>
               )}
             </div>
-          </TabsContent>
 
-          <TabsContent value="workflow" className="space-y-4 mt-5">
+            {/* Default assignee — staff or vendor */}
+            <div className="grid md:grid-cols-2 gap-4 pt-2">
+              <div>
+                <Label className="flex items-center gap-1.5">
+                  <UserIcon className="h-3.5 w-3.5" /> Default staff
+                </Label>
+                <div className="mt-1.5">
+                  <PersonCombobox
+                    value={form.default_assignee_person_id ?? ""}
+                    valueLabel={assigneePersonLabel || undefined}
+                    roleFilter={["staff"]}
+                    hideAddNew
+                    placeholder="Pick staff…"
+                    onChange={(p) => {
+                      setAssigneePersonLabel(
+                        `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim() || p.company || "—",
+                      );
+                      update("default_assignee_person_id", p.id);
+                      update("default_assignee_vendor_id", null);
+                      setAssigneeVendor(null);
+                    }}
+                  />
+                  {form.default_assignee_person_id && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        update("default_assignee_person_id", null);
+                        setAssigneePersonLabel("");
+                      }}
+                      className="text-[10px] text-muted-foreground hover:text-destructive mt-1"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div>
+                <Label className="flex items-center gap-1.5">
+                  <Wrench className="h-3.5 w-3.5" /> Default vendor
+                </Label>
+                <div className="mt-1.5">
+                  <VendorPicker
+                    value={assigneeVendor}
+                    onChange={(v) => {
+                      setAssigneeVendor(v);
+                      if (v) {
+                        update("default_assignee_vendor_id", v.id);
+                        update("default_assignee_person_id", null);
+                        setAssigneePersonLabel("");
+                      } else {
+                        update("default_assignee_vendor_id", null);
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              Pick either a staff member OR a vendor as default assignee — selecting one clears the other. Used as a default when staff create a new request from this service.
+            </p>
+          </section>
+
+          {/* ─────────── Workflow ─────────── */}
+          <section className="space-y-4 border-t hairline pt-6">
+            <h3 className="label-eyebrow text-muted-foreground">Workflow</h3>
             <div className="flex items-center gap-3 p-3 border hairline rounded-sm">
               <Switch checked={form.is_workflow} onCheckedChange={(v) => update("is_workflow", v)} />
               <div className="flex-1">
@@ -326,8 +421,8 @@ export function CatalogEntryDialog({ open, onOpenChange, entry, onSaved }: Props
                 Atomic service — one job, no sub-steps. Toggle the switch above to add steps.
               </div>
             )}
-          </TabsContent>
-        </Tabs>
+          </section>
+        </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
