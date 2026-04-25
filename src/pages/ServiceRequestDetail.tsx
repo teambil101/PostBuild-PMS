@@ -522,6 +522,15 @@ export default function ServiceRequestDetail() {
             </Card>
           )}
 
+          {(req.delivery === "vendor" || req.delivery === "either") && !req.is_workflow && (
+            <QuotesCard
+              requestId={req.id}
+              category={req.category}
+              hasAssignedVendor={!!req.assigned_vendor_id}
+              onChanged={load}
+            />
+          )}
+
           <Card className="hairline">
             <CardHeader>
               <CardTitle className="text-sm">Internal notes</CardTitle>
