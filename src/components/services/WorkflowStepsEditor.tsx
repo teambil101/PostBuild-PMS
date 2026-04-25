@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, ChevronDown, ChevronUp, GripVertical, Plus, Trash2 } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronUp, GripVertical, Plus, Trash2, User as UserIcon, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +14,8 @@ import {
   type WorkflowStep,
 } from "@/lib/services";
 import { CatalogServicePicker, type CatalogPickerEntry } from "./CatalogServicePicker";
+import { PersonCombobox } from "@/components/owners/PersonCombobox";
+import { VendorPicker, type PickedVendor } from "@/components/contracts/VendorPicker";
 
 interface Props {
   value: WorkflowStep[];
@@ -25,6 +27,9 @@ interface Props {
 export function WorkflowStepsEditor({ value, onChange, selfCatalogId }: Props) {
   // Resolve referenced catalog entries so we can show defaults inline.
   const [resolved, setResolved] = useState<Record<string, CatalogPickerEntry>>({});
+  // Resolve assignee labels for display.
+  const [personLabels, setPersonLabels] = useState<Record<string, string>>({});
+  const [vendorById, setVendorById] = useState<Record<string, PickedVendor>>({});
 
   useEffect(() => {
     const ids = value.map((s) => s.catalog_id).filter((id) => id && !resolved[id]);
@@ -44,6 +49,51 @@ export function WorkflowStepsEditor({ value, onChange, selfCatalogId }: Props) {
       });
     })();
   }, [value, resolved]);
+
+  // Resolve assigned person labels.
+  useEffect(() => {
+    const ids = value
+      .map((s) => s.assigned_person_id)
+      .filter((id): id is string => !!id && !personLabels[id]);
+    if (ids.length === 0) return;
+    void (async () => {
+      const { data } = await supabase
+        .from("people")
+        .select("id, first_name, last_name, company")
+        .in("id", ids);
+      if (!data) return;
+      setPersonLabels((prev) => {
+        const next = { ...prev };
+        (data as any[]).forEach((p) => {
+          const name = `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim() || p.company || "—";
+          next[p.id] = name;
+        });
+        return next;
+      });
+    })();
+  }, [value, personLabels]);
+
+  // Resolve assigned vendor objects.
+  useEffect(() => {
+    const ids = value
+      .map((s) => s.assigned_vendor_id)
+      .filter((id): id is string => !!id && !vendorById[id]);
+    if (ids.length === 0) return;
+    void (async () => {
+      const { data } = await supabase
+        .from("vendors")
+        .select("id, vendor_number, legal_name, display_name, vendor_type, status, primary_email, primary_phone, default_call_out_fee, default_hourly_rate, currency")
+        .in("id", ids);
+      if (!data) return;
+      setVendorById((prev) => {
+        const next = { ...prev };
+        (data as PickedVendor[]).forEach((v) => {
+          next[v.id] = v;
+        });
+        return next;
+      });
+    })();
+  }, [value, vendorById]);
 
   const update = (i: number, patch: Partial<WorkflowStep>) => {
     const next = value.map((s, idx) => (idx === i ? { ...s, ...patch } : s));
@@ -187,6 +237,68 @@ export function WorkflowStepsEditor({ value, onChange, selfCatalogId }: Props) {
                     />
                   </div>
                 </div>
+
+                <div className="grid sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <Label className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                      <UserIcon className="h-3 w-3" /> Assign staff
+                    </Label>
+                    <div className="mt-1">
+                      <PersonCombobox
+                        value={step.assigned_person_id ?? ""}
+                        valueLabel={
+                          step.assigned_person_id ? personLabels[step.assigned_person_id] : undefined
+                        }
+                        roleFilter={["staff"]}
+                        hideAddNew
+                        placeholder="Pick staff…"
+                        onChange={(p) => {
+                          setPersonLabels((prev) => ({
+                            ...prev,
+                            [p.id]: `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim() || p.company || "—",
+                          }));
+                          update(i, {
+                            assigned_person_id: p.id,
+                            assigned_vendor_id: null,
+                          });
+                        }}
+                      />
+                      {step.assigned_person_id && (
+                        <button
+                          type="button"
+                          onClick={() => update(i, { assigned_person_id: null })}
+                          className="text-[10px] text-muted-foreground hover:text-destructive mt-1"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                      <Wrench className="h-3 w-3" /> Assign vendor
+                    </Label>
+                    <div className="mt-1">
+                      <VendorPicker
+                        value={step.assigned_vendor_id ? vendorById[step.assigned_vendor_id] ?? null : null}
+                        onChange={(v) => {
+                          if (v) {
+                            setVendorById((prev) => ({ ...prev, [v.id]: v }));
+                            update(i, {
+                              assigned_vendor_id: v.id,
+                              assigned_person_id: null,
+                            });
+                          } else {
+                            update(i, { assigned_vendor_id: null });
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+                <p className="text-[10px] text-muted-foreground -mt-1">
+                  Pick either a staff member OR a vendor (not both). Selecting one clears the other.
+                </p>
 
                 <label className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Switch
