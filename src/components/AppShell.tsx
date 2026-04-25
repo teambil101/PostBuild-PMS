@@ -32,6 +32,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { YahyaDock } from "@/components/yahya/YahyaDock";
 
 const MODULE_ORDER_STORAGE_KEY = "tb.sidebar.moduleOrder.v1";
 
@@ -304,6 +305,7 @@ export function AppShell({ children }: AppShellProps) {
           </div>
         </main>
       </div>
+      <YahyaDock />
     </div>
   );
 }
