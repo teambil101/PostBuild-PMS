@@ -1,69 +1,53 @@
+## Goal
 
-# Lock down the Broker portal: requesters, not publishers
+Only show service catalog entries that are actually **deliverable for the user's context** (city/country of their properties), instead of a global marketplace list.
 
-## Problem
-Today brokers (`workspace.kind = 'broker'`) get the same `AppShell` as internal operators with zero restrictions. That means they can:
-- Create/edit `service_catalog` items (they shouldn't — only the platform/providers publish)
-- Open the **Marketplace Inbox** at `/services/marketplace` (incoming external requests — only providers should see this)
-- Manage vendors and run a fulfillment pipeline as if they were a service provider
+## Current behavior
 
-A broker is a **buyer**, like an owner with more property volume. They should only be able to **browse the marketplace and request services**, mirroring the owner portal pattern.
+- `OwnerServices.tsx` (used by Owners and Brokers) loads every `service_catalog` row where `is_marketplace=true AND is_active=true`, regardless of where the user's properties are.
+- `vendor_services` already encodes geographic coverage (`service_area_cities`, `service_area_all_cities`) and there is a working SQL helper `match_vendors_for_catalog(catalog_id, city)`.
+- Seeded marketplace items are Dubai/UAE-specific (Notice 25, RDC eviction filing) — showing them globally is wrong.
 
-## Target behavior
+So we already have the data needed; we just need to use it as a filter.
 
-Inside a broker workspace:
-- **Services page** → swap the operator's "Manage catalog" view for a **marketplace browse + request** view (same shape as `OwnerServices.tsx` but with the broker's full property list).
-- **Marketplace inbox route** → blocked / hidden.
-- **Catalog management** (create/edit/archive `service_catalog` rows) → hidden in nav, blocked at the route, and rejected at the RLS layer for safety.
-- **Vendors module** → keep (brokers do manage their own subcontractor list for non-marketplace work), but cannot publish those vendors to the marketplace.
-- All other operator modules (Properties, Contracts, People, Leads, Financials, Dashboard) → unchanged. Brokers run their PM ops as before.
+## Approach
 
-Internal operators are unaffected.
+Add a single SQL helper that returns the catalog entries deliverable for a given **workspace** (based on the cities of that workspace's buildings) and the marketplace flag, then call it from the UI instead of the raw `service_catalog` query.
 
-## Implementation
+### Database
 
-### 1. Frontend nav + routing gates
-- Add a `useIsBroker()` helper from `WorkspaceContext` (returns `activeWorkspace?.kind === 'broker'`).
-- In `src/lib/modules.ts` (or wherever the AppShell sidebar is built), filter out:
-  - "Marketplace inbox" link
-  - "Manage service catalog" / catalog editing entry points
-- In `src/App.tsx` route table, wrap broker-restricted routes in a `<RequireNotBroker>` guard that redirects to `/services` with a toast.
-- Routes affected: `/services/marketplace`, any `/services/catalog/new`, `/services/catalog/:id/edit`.
+New migration adding:
 
-### 2. Replace the broker's Services page
-- Detect `kind === 'broker'` inside `src/pages/Services.tsx`. If true, render a broker-flavored marketplace view (reuse the component body of `src/pages/owner/OwnerServices.tsx`).
-- Difference vs owner: property selector lists *all* the broker's managed buildings/units (not just owner-linked ones).
-- Submits via the existing `create_marketplace_service_request` RPC — already routes to the fulfilling provider workspace correctly.
+1. `public.list_marketplace_catalog_for_workspace(_workspace_id uuid)` — `SECURITY DEFINER`, returns catalog rows where:
+   - `is_marketplace=true AND is_active=true`
+   - At least one active `vendor_services` row matches the catalog and one of the workspace's building cities (uses the existing coverage logic: `service_area_all_cities` OR city in `service_area_cities`).
+   - If the workspace has **no buildings yet**, return all marketplace+active entries (so first-time owners aren't shown an empty page).
+2. `GRANT EXECUTE ... TO authenticated`.
 
-### 3. Database safety net (defense in depth)
-A SQL migration so even a manipulated client can't write:
-- Add RLS policy on `service_catalog`: `INSERT/UPDATE/DELETE` only allowed when the caller's workspace is `kind IN ('internal','provider')`. Brokers fail at the database.
-- Same restriction on `service_request_steps` write paths used by the fulfillment side.
-- Brokers retain `SELECT` on marketplace-flagged catalog rows (already in place via the Phase 3 policy).
+No schema changes to `service_catalog`; coverage is derived from `vendor_services` which already has city data. This keeps the model consistent with what brokers see when matching vendors.
 
-### 4. Tracker note
-Update `.lovable/plan.md` Phase 4 to record: "Broker = buyer-only. No catalog publishing. No marketplace inbox."
+### UI
 
-## Files touched
-- `src/contexts/WorkspaceContext.tsx` — add `isBroker` derived flag
-- `src/lib/modules.ts` — filter sidebar items by workspace kind
-- `src/App.tsx` — route guard for broker-restricted paths
-- `src/pages/Services.tsx` — render marketplace view when broker
-- New: `src/components/RequireNotBroker.tsx` (small wrapper)
-- New migration: tighten `service_catalog` write RLS by workspace kind
-- `.lovable/plan.md` — note the rule
+`src/pages/owner/OwnerServices.tsx`:
+- Replace the direct `service_catalog` query with `supabase.rpc('list_marketplace_catalog_for_workspace', { _workspace_id: activeWorkspace.id })`.
+- Empty-state copy: when buildings exist but the RPC returns 0, show "No services available in your area yet" instead of the generic "marketplace will be live shortly".
+- Keep the existing "Add a property first" inline message inside the request dialog (already present).
 
-## Out of scope (call out before building)
-- Provider portal / `kind='provider'` workspaces — still pending Phase 4 of the bigger plan. This task only restricts what brokers see; it does not yet introduce a separate provider experience.
-- Brokers offering their *own* PM services on the marketplace — would require turning their workspace into a hybrid buyer+provider. Deferred until provider infra lands.
+No other surfaces need changes:
+- The internal catalog page (`Services.tsx` non-broker view) is for the operator's own workspace and is correctly scoped already.
+- `CatalogPicker` / `CoveredServicesPicker` are operator-only and stay as-is.
 
-Approve and I'll implement in one pass.
+## Test plan
 
----
+Manual checks against seed data (all current buildings are in Dubai):
 
-## Status update
+1. Owner with a Dubai building → sees the Dubai-only marketplace items.
+2. Owner with no buildings → sees the full marketplace list (graceful fallback) and the request dialog blocks submission with the existing "Add a property first" message.
+3. Add a building in a city with no covering vendor (e.g. Sharjah) and only that building → marketplace list is empty; copy reads "No services available in your area yet".
+4. Toggle a `vendor_services` row's `service_area_all_cities` on → that catalog entry appears for every workspace regardless of city.
+5. Broker view (`BrokerServicesView`) — same RPC drives it via reused `OwnerServices`, so behavior matches owner.
 
-- ✅ **Broker lockdown** — Brokers are buyers only:
-  - Frontend: `Services` page renders a Browse + My Requests view for `kind='broker'` workspaces (no catalog tab, no marketplace inbox button).
-  - Routing: `/services/marketplace` blocked by `RequireNotBroker` guard.
-  - Database: `service_catalog` write policies require `is_publisher_workspace(workspace_id)` — only `internal` (future `provider`) workspaces can publish.
+## Out of scope
+
+- Filtering by property type (residential vs commercial), language, or vendor capacity — can be layered onto the same RPC later.
+- Cross-country expansion UI; we only filter by city today since that is what `vendor_services` tracks.

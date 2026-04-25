@@ -4610,6 +4610,15 @@ export type Database = {
           person_roles: Database["public"]["Enums"]["person_role"][]
         }[]
       }
+      list_marketplace_catalog_for_workspace: {
+        Args: { _workspace_id: string }
+        Returns: {
+          category: string
+          description: string
+          id: string
+          name: string
+        }[]
+      }
       match_vendors_for_catalog: {
         Args: {
           _catalog_id: string
