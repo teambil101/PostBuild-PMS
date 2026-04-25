@@ -51,17 +51,13 @@ export default function OwnerServices() {
   useEffect(() => {
     if (!activeWorkspace) return;
     (async () => {
-      // Marketplace = any active catalog entry visible to this user.
-      // Owner workspaces have no catalog of their own; the operator workspace's
-      // catalog is exposed once cross-workspace marketplace policies land in
-      // Phase 3. For now we read whatever is visible (RLS may show none).
+      // Marketplace = active catalog entries that can actually be delivered
+      // in the cities where this workspace owns properties. Vendor coverage
+      // (vendor_services.service_area_cities) drives availability.
       const [cat, bld] = await Promise.all([
-        supabase
-          .from("service_catalog")
-          .select("id, name, description, category")
-          .eq("is_marketplace", true)
-          .eq("is_active", true)
-          .order("name"),
+        supabase.rpc("list_marketplace_catalog_for_workspace", {
+          _workspace_id: activeWorkspace.id,
+        }),
         supabase
           .from("buildings")
           .select("id, name")
@@ -119,8 +115,16 @@ export default function OwnerServices() {
       {loading ? null : catalog.length === 0 ? (
         <EmptyState
           icon={<Sparkles className="h-8 w-8" strokeWidth={1.5} />}
-          title="No services available yet"
-          description="The marketplace will be live shortly. In the meantime, contact our team directly."
+          title={
+            buildings.length === 0
+              ? "No services available yet"
+              : "No services available in your area yet"
+          }
+          description={
+            buildings.length === 0
+              ? "Add a property to see services available in your city."
+              : "We're expanding coverage. Contact our team if you need something specific."
+          }
         />
       ) : (
         Object.entries(groupedByCategory).map(([category, items]) => (
