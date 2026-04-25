@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Plus, Wrench, Search, Pencil, Workflow, Power, PowerOff, Filter, Trash2, CalendarDays } from "lucide-react";
+import { Plus, Wrench, Search, Pencil, Workflow, Power, PowerOff, Filter, Trash2, CalendarDays, Inbox } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
@@ -144,12 +144,20 @@ export default function Services() {
         description="The catalog of services your team offers — atomic jobs and multi-step workflows. Drives every service request."
         actions={
           tab === "requests" ? (
-            <Button asChild>
-              <Link to="/services/requests/new">
-                <Plus className="h-4 w-4" />
-                New request
-              </Link>
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button asChild variant="outline">
+                <Link to="/services/marketplace">
+                  <Inbox className="h-4 w-4" />
+                  Marketplace inbox
+                </Link>
+              </Button>
+              <Button asChild>
+                <Link to="/services/requests/new">
+                  <Plus className="h-4 w-4" />
+                  New request
+                </Link>
+              </Button>
+            </div>
           ) : tab === "calendar" ? (
             <Button asChild>
               <Link to="/services/requests/new">
