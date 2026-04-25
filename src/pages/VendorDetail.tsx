@@ -362,6 +362,7 @@ export default function VendorDetail() {
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="services">Services</TabsTrigger>
           <TabsTrigger value="contacts">
             Contacts {contacts.length > 0 && <span className="ml-1 text-muted-foreground">({contacts.length})</span>}
           </TabsTrigger>
