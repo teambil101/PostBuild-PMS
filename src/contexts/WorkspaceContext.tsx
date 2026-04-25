@@ -20,6 +20,9 @@ export interface Workspace {
 interface WorkspaceContextValue {
   workspaces: Workspace[];
   activeWorkspace: Workspace | null;
+  isBroker: boolean;
+  isOwner: boolean;
+  isInternal: boolean;
   loading: boolean;
   setActive: (workspaceId: string) => void;
   refresh: () => Promise<void>;
@@ -92,13 +95,19 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   };
 
   const value = useMemo<WorkspaceContextValue>(
-    () => ({
-      workspaces,
-      activeWorkspace: workspaces.find((w) => w.id === activeId) ?? null,
-      loading,
-      setActive,
-      refresh: loadWorkspaces,
-    }),
+    () => {
+      const active = workspaces.find((w) => w.id === activeId) ?? null;
+      return {
+        workspaces,
+        activeWorkspace: active,
+        isBroker: active?.kind === "broker",
+        isOwner: active?.kind === "owner",
+        isInternal: active?.kind === "internal",
+        loading,
+        setActive,
+        refresh: loadWorkspaces,
+      };
+    },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [workspaces, activeId, loading],
   );

@@ -19,6 +19,8 @@ import { DeleteCatalogEntryDialog } from "@/components/services/DeleteCatalogEnt
 import ServiceRequests from "./ServiceRequests";
 import { ServiceCalendar } from "@/components/services/ServiceCalendar";
 import { cn } from "@/lib/utils";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import OwnerServices from "./owner/OwnerServices";
 
 type CatalogFilter = "all" | "active" | "inactive" | "workflow" | "atomic";
 
@@ -31,6 +33,12 @@ const FILTERS: { key: CatalogFilter; label: string }[] = [
 ];
 
 export default function Services() {
+  const { isBroker } = useWorkspace();
+
+  // Brokers consume the marketplace — they don't manage a catalog or run a fulfillment inbox.
+  // Render the same browse-and-request UI as owners, plus a view of their own outgoing requests.
+  if (isBroker) return <BrokerServicesView />;
+
   const [searchParams, setSearchParams] = useSearchParams();
   const tabRaw = searchParams.get("tab");
   const tabParam = tabRaw === "requests" || tabRaw === "calendar" ? tabRaw : "catalog";
@@ -357,5 +365,51 @@ export default function Services() {
         onDeleted={() => void load()}
       />
     </>
+  );
+}
+
+/**
+ * Broker-facing Services page.
+ * Brokers are buyers on the marketplace, not publishers — no catalog tab,
+ * no marketplace inbox. They browse services and view their own requests.
+ */
+function BrokerServicesView() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabRaw = searchParams.get("tab");
+  const tabParam = tabRaw === "requests" ? "requests" : "browse";
+  const [tab, setTab] = useState<string>(tabParam);
+  const [requestCount, setRequestCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    void (async () => {
+      const { count } = await supabase
+        .from("service_requests")
+        .select("*", { count: "exact", head: true });
+      setRequestCount(count ?? 0);
+    })();
+  }, []);
+
+  const onTabChange = (v: string) => {
+    setTab(v);
+    setSearchParams(v === "browse" ? {} : { tab: v });
+  };
+
+  return (
+    <Tabs value={tab} onValueChange={onTabChange}>
+      <TabsList>
+        <TabsTrigger value="browse">Browse marketplace</TabsTrigger>
+        <TabsTrigger value="requests">
+          My requests{requestCount !== null ? ` (${requestCount})` : ""}
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="browse" className="mt-6">
+        <OwnerServices />
+      </TabsContent>
+
+      <TabsContent value="requests" className="mt-6">
+        <ServiceRequests />
+      </TabsContent>
+    </Tabs>
   );
 }
