@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
+import { OverdueRentAlert } from "@/components/owner/OverdueRentAlert";
 
 interface LeaseRow {
   id: string;
@@ -46,6 +47,8 @@ export default function OwnerLeases() {
           </Button>
         }
       />
+
+      <OverdueRentAlert servicesHref="/owner/services" />
 
       {loading ? null : leases.length === 0 ? (
         <EmptyState
