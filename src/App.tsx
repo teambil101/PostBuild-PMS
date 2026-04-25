@@ -42,6 +42,11 @@ import OwnerLeases from "./pages/owner/OwnerLeases";
 import OwnerDocuments from "./pages/owner/OwnerDocuments";
 import OwnerServices from "./pages/owner/OwnerServices";
 import OwnerAccount from "./pages/owner/OwnerAccount";
+import LandingHome from "./pages/landing/Home";
+import ForOwners from "./pages/landing/ForOwners";
+import ForBrokers from "./pages/landing/ForBrokers";
+import ForPropertyManagers from "./pages/landing/ForPropertyManagers";
+import { useAuth } from "@/contexts/AuthContext";
 
 const queryClient = new QueryClient();
 
@@ -69,9 +74,15 @@ const OwnerOnly = ({ children }: { children: React.ReactNode }) => (
   </ProtectedRoute>
 );
 
-const IndexRedirect = () => {
-  const { activeWorkspace, loading } = useWorkspace();
-  if (loading) return null;
+/**
+ * Root route: signed-in users land on their app, everyone else sees the marketing homepage.
+ */
+const IndexRoute = () => {
+  const { user, loading: authLoading } = useAuth();
+  const { activeWorkspace, loading: wsLoading } = useWorkspace();
+  if (authLoading) return null;
+  if (!user) return <LandingHome />;
+  if (wsLoading) return null;
   if (activeWorkspace?.kind === "owner") return <Navigate to="/owner" replace />;
   return <Navigate to="/dashboard" replace />;
 };
@@ -89,7 +100,11 @@ const App = () => (
             <Route path="/q/:token" element={<PublicQuoteSubmit />} />
             <Route path="/t/:token" element={<PublicTenantDecision />} />
             <Route path="/invite/:token" element={<AcceptInvite />} />
-            <Route path="/" element={<ProtectedRoute><IndexRedirect /></ProtectedRoute>} />
+            <Route path="/" element={<IndexRoute />} />
+            {/* Public marketing pages */}
+            <Route path="/for-owners" element={<ForOwners />} />
+            <Route path="/for-brokers" element={<ForBrokers />} />
+            <Route path="/for-property-managers" element={<ForPropertyManagers />} />
             <Route path="/dashboard" element={<Shell><Dashboard /></Shell>} />
             <Route path="/properties" element={<Shell><Properties /></Shell>} />
             <Route path="/properties/:id" element={<Shell><PropertyDetail /></Shell>} />
