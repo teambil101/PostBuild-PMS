@@ -4086,53 +4086,6 @@ export type Database = {
           },
         ]
       }
-      workspace_invitations: {
-        Row: {
-          accepted_at: string | null
-          accepted_by: string | null
-          created_at: string
-          email: string
-          expires_at: string
-          id: string
-          invited_by: string | null
-          role: Database["public"]["Enums"]["workspace_member_role"]
-          token: string
-          workspace_id: string
-        }
-        Insert: {
-          accepted_at?: string | null
-          accepted_by?: string | null
-          created_at?: string
-          email: string
-          expires_at?: string
-          id?: string
-          invited_by?: string | null
-          role?: Database["public"]["Enums"]["workspace_member_role"]
-          token?: string
-          workspace_id: string
-        }
-        Update: {
-          accepted_at?: string | null
-          accepted_by?: string | null
-          created_at?: string
-          email?: string
-          expires_at?: string
-          id?: string
-          invited_by?: string | null
-          role?: Database["public"]["Enums"]["workspace_member_role"]
-          token?: string
-          workspace_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "workspace_invitations_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspaces"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       workspace_members: {
         Row: {
           id: string
@@ -4404,7 +4357,6 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      accept_workspace_invitation: { Args: { _token: string }; Returns: string }
       add_service_request_step: {
         Args: {
           p_billing?: Database["public"]["Enums"]["service_billing"]
@@ -4653,18 +4605,6 @@ export type Database = {
           person_last_name: string
           person_ref_code: string
           person_roles: Database["public"]["Enums"]["person_role"][]
-        }[]
-      }
-      lookup_invitation: {
-        Args: { _token: string }
-        Returns: {
-          accepted_at: string
-          email: string
-          expires_at: string
-          role: Database["public"]["Enums"]["workspace_member_role"]
-          workspace_id: string
-          workspace_kind: Database["public"]["Enums"]["workspace_kind"]
-          workspace_name: string
         }[]
       }
       match_vendors_for_catalog: {
