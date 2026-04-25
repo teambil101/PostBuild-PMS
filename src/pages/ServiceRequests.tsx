@@ -63,7 +63,7 @@ export default function ServiceRequests() {
   if (items.length === 0) {
     return (
       <EmptyState
-        icon={Wrench}
+        icon={<Wrench className="h-8 w-8" />}
         title="No service requests yet"
         description="Create a request to get vendors quoting and the work scheduled."
         action={
