@@ -2345,6 +2345,7 @@ export type Database = {
           description: string | null
           id: string
           is_active: boolean
+          is_marketplace: boolean
           is_workflow: boolean
           name: string
           recurrence_interval_days: number | null
@@ -2367,6 +2368,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          is_marketplace?: boolean
           is_workflow?: boolean
           name: string
           recurrence_interval_days?: number | null
@@ -2389,6 +2391,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          is_marketplace?: boolean
           is_workflow?: boolean
           name?: string
           recurrence_interval_days?: number | null
@@ -2799,6 +2802,7 @@ export type Database = {
           currency: string
           delivery: Database["public"]["Enums"]["service_delivery"]
           description: string | null
+          fulfilling_workspace_id: string | null
           id: string
           internal_notes: string | null
           is_workflow: boolean
@@ -2854,6 +2858,7 @@ export type Database = {
           currency?: string
           delivery?: Database["public"]["Enums"]["service_delivery"]
           description?: string | null
+          fulfilling_workspace_id?: string | null
           id?: string
           internal_notes?: string | null
           is_workflow?: boolean
@@ -2909,6 +2914,7 @@ export type Database = {
           currency?: string
           delivery?: Database["public"]["Enums"]["service_delivery"]
           description?: string | null
+          fulfilling_workspace_id?: string | null
           id?: string
           internal_notes?: string | null
           is_workflow?: boolean
@@ -2965,6 +2971,13 @@ export type Database = {
             columns: ["catalog_id"]
             isOneToOne: false
             referencedRelation: "service_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_requests_fulfilling_workspace_id_fkey"
+            columns: ["fulfilling_workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
           {
@@ -3935,6 +3948,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      create_marketplace_service_request: {
+        Args: {
+          _building_id: string
+          _catalog_id: string
+          _description?: string
+          _requester_workspace_id: string
+        }
+        Returns: string
+      }
       create_service_request_from_catalog: {
         Args: {
           p_assigned_person_id?: string
@@ -3991,6 +4013,7 @@ export type Database = {
           currency: string
           delivery: Database["public"]["Enums"]["service_delivery"]
           description: string | null
+          fulfilling_workspace_id: string | null
           id: string
           internal_notes: string | null
           is_workflow: boolean
@@ -4150,6 +4173,7 @@ export type Database = {
           currency: string
           delivery: Database["public"]["Enums"]["service_delivery"]
           description: string | null
+          fulfilling_workspace_id: string | null
           id: string
           internal_notes: string | null
           is_workflow: boolean
@@ -4222,6 +4246,7 @@ export type Database = {
           currency: string
           delivery: Database["public"]["Enums"]["service_delivery"]
           description: string | null
+          fulfilling_workspace_id: string | null
           id: string
           internal_notes: string | null
           is_workflow: boolean
@@ -4312,6 +4337,7 @@ export type Database = {
           currency: string
           delivery: Database["public"]["Enums"]["service_delivery"]
           description: string | null
+          fulfilling_workspace_id: string | null
           id: string
           internal_notes: string | null
           is_workflow: boolean
