@@ -42,7 +42,7 @@ export function useEmailTemplates() {
         .order("name");
       if (error) throw error;
 
-      const rows = (data ?? []) as EmailTemplateRow[];
+      const rows = (data ?? []) as unknown as EmailTemplateRow[];
       const existingKeys = new Set(rows.map((r) => r.template_key));
       const missing = SEED_TEMPLATES.filter((s) => !existingKeys.has(s.template_key));
 
