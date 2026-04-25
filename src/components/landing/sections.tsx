@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Check, Sparkles } from "lucide-react";
+ import { ArrowRight, Check, Sparkles } from "lucide-react";
 
 /* -------------------------------------------------------------------------- */
 /*  Hero                                                                       */
@@ -20,7 +20,7 @@ export function Hero({
 }: {
   eyebrow: string;
   headline: ReactNode;
-  punchline?: ReactNode;
+  punchline?: string;
   sub: string;
   servicesHook?: string;
   primaryCta: { label: string; to?: string; href?: string };
@@ -46,16 +46,16 @@ export function Hero({
             {headline}
           </h1>
           {punchline && (
-            <div className="mt-5 inline-block font-display text-lg sm:text-xl text-architect border-l-2 border-accent pl-4 italic">
+            <p className="mt-4 text-xl italic font-display text-accent/80 tracking-tight">
               {punchline}
-            </div>
+            </p>
           )}
           <p className="mt-6 text-lg text-muted-foreground leading-relaxed max-w-xl">{sub}</p>
 
           {servicesHook && (
-            <div className="mt-6 inline-flex items-center gap-2.5 rounded-sm bg-accent/10 border border-accent/30 px-4 py-2.5 text-sm text-architect max-w-xl">
-              <Sparkles className="h-4 w-4 text-accent shrink-0" strokeWidth={1.75} />
-              <span>{servicesHook}</span>
+            <div className="mt-8 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent/10 border border-accent/20 text-[10px] uppercase tracking-[0.18em] text-accent">
+              <Sparkles className="h-3 w-3" />
+              {servicesHook}
             </div>
           )}
 
@@ -66,7 +66,7 @@ export function Hero({
         </div>
 
         <div className="relative">
-          <div className="absolute -inset-8 bg-gradient-to-br from-accent/30 via-warm-stone/20 to-accent/10 rounded-sm blur-3xl" aria-hidden />
+          <div className="absolute -inset-6 bg-gradient-to-br from-accent/15 via-transparent to-warm-stone/30 rounded-sm blur-2xl" aria-hidden />
           <img
             src={image}
             alt={imageAlt}
