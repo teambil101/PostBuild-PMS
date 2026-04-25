@@ -2,3 +2,6 @@ project_id = "qbponetbczxvqvnilavg"
 
 [functions.save-feedback]
 verify_jwt = false
+
+[functions.service-completed-webhook]
+verify_jwt = false
