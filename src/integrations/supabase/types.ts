@@ -3896,6 +3896,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      accept_workspace_invitation: { Args: { _token: string }; Returns: string }
       add_service_request_step: {
         Args: {
           p_billing?: Database["public"]["Enums"]["service_billing"]
@@ -4091,8 +4092,30 @@ export type Database = {
           person_roles: Database["public"]["Enums"]["person_role"][]
         }[]
       }
+      lookup_invitation: {
+        Args: { _token: string }
+        Returns: {
+          accepted_at: string
+          email: string
+          expires_at: string
+          role: Database["public"]["Enums"]["workspace_member_role"]
+          workspace_id: string
+          workspace_kind: Database["public"]["Enums"]["workspace_kind"]
+          workspace_name: string
+        }[]
+      }
       next_number: {
         Args: { p_prefix: string; p_year: number }
+        Returns: string
+      }
+      owner_onboard_property: {
+        Args: {
+          _address_line1: string
+          _city: string
+          _country?: string
+          _name: string
+          _workspace_id: string
+        }
         Returns: string
       }
       process_contract_lifecycle: { Args: never; Returns: Json }
