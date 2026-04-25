@@ -37,8 +37,10 @@ export default function ForOwners() {
     <LandingShell>
       <Hero
         eyebrow="For Property Owners"
-        headline={<>Your portfolio, <span className="text-accent">finally</span> under one roof.</>}
+        headline={<>Manage Your <span className="text-accent">Properties</span> Easily</>}
+        punchline="Stop the WhatsApp chaos. Start managing."
         sub="Free management tools for owners with 1–30 units. When something needs doing, request any service in one click — vetted vendors, transparent quotes, your approval. Designed for owners who don't live next door."
+        servicesHook="Vetted services marketplace included"
         primaryCta={{ label: "Sign up free", to: "/auth?signup=1&persona=owner" }}
         secondaryCta={{ label: "See how it works", href: "#how" }}
         image={heroImg}
