@@ -32,6 +32,8 @@ import { AddStepDialog } from "@/components/services/AddStepDialog";
 import { RecordFeedbackDialog } from "@/components/services/RecordFeedbackDialog";
 import { QuotesCard } from "@/components/services/QuotesCard";
 import { TenantCoordinationCard } from "@/components/services/TenantCoordinationCard";
+import { CostSplitAndApprovalCard } from "@/components/services/CostSplitAndApprovalCard";
+import type { BillToMode, PartyCostApprovalStatus } from "@/lib/vendor-services";
 import {
   PRIORITY_LABEL,
   PRIORITY_STYLES,
@@ -89,6 +91,16 @@ interface RequestRow {
   tenant_proposed_date: string | null;
   tenant_schedule_notes: string | null;
   schedule_counter_round: number;
+  bill_to_mode?: BillToMode;
+  landlord_share_percent?: number;
+  tenant_share_percent?: number;
+  winning_quote_id?: string | null;
+  landlord_cost_approval_status?: PartyCostApprovalStatus;
+  tenant_cost_approval_status?: PartyCostApprovalStatus;
+  landlord_cost_approved_at?: string | null;
+  tenant_cost_approved_at?: string | null;
+  service_area_city?: string | null;
+  service_area_community?: string | null;
 }
 
 interface StepRow {
@@ -141,6 +153,12 @@ export default function ServiceRequestDetail() {
   const [personLabels, setPersonLabels] = useState<Record<string, string>>({});
   const [feedback, setFeedback] = useState<{ id: string; rating: number; comment: string | null; submitted_at: string } | null>(null);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [winningQuote, setWinningQuote] = useState<{
+    id: string;
+    amount: number | null;
+    currency: string;
+    vendor_id: string;
+  } | null>(null);
 
   const load = async () => {
     if (!id) return;
@@ -169,6 +187,19 @@ export default function ServiceRequestDetail() {
     setEvents((e.data ?? []) as any);
     setFeedback((f.data as any) ?? null);
     setInternalNotes((r.data as any).internal_notes ?? "");
+
+    // Resolve winning quote, if any
+    const wqId = (r.data as any).winning_quote_id as string | null;
+    if (wqId) {
+      const { data: wq } = await supabase
+        .from("service_request_quotes")
+        .select("id, amount, currency, vendor_id")
+        .eq("id", wqId)
+        .maybeSingle();
+      setWinningQuote(wq as any);
+    } else {
+      setWinningQuote(null);
+    }
 
     // Fetch labels for assigned vendors / persons
     const stepRows: any[] = (s.data ?? []) as any[];
