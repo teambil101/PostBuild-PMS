@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Check } from "lucide-react";
+ import { ArrowRight, Check, Sparkles } from "lucide-react";
 
 /* -------------------------------------------------------------------------- */
 /*  Hero                                                                       */
@@ -10,7 +10,9 @@ import { ArrowRight, Check } from "lucide-react";
 export function Hero({
   eyebrow,
   headline,
+  punchline,
   sub,
+  servicesHook,
   primaryCta,
   secondaryCta,
   image,
@@ -18,7 +20,9 @@ export function Hero({
 }: {
   eyebrow: string;
   headline: ReactNode;
+  punchline?: string;
   sub: string;
+  servicesHook?: string;
   primaryCta: { label: string; to?: string; href?: string };
   secondaryCta?: { label: string; to?: string; href?: string };
   image: string;
@@ -41,7 +45,19 @@ export function Hero({
           <h1 className="font-display text-[2.6rem] sm:text-5xl lg:text-6xl leading-[1.05] tracking-tight text-architect">
             {headline}
           </h1>
+          {punchline && (
+            <p className="mt-4 text-xl italic font-display text-accent/80 tracking-tight">
+              {punchline}
+            </p>
+          )}
           <p className="mt-6 text-lg text-muted-foreground leading-relaxed max-w-xl">{sub}</p>
+
+          {servicesHook && (
+            <div className="mt-8 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent/10 border border-accent/20 text-[10px] uppercase tracking-[0.18em] text-accent">
+              <Sparkles className="h-3 w-3" />
+              {servicesHook}
+            </div>
+          )}
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <CTAButton variant="primary" cta={primaryCta} />
