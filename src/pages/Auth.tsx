@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,11 +17,26 @@ const PERSONAS: { value: Persona; label: string; sub: string }[] = [
 export default function Auth() {
   const { user, signIn, signUp } = useAuth();
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
-  const [persona, setPersona] = useState<Persona>("owner");
+  const [params] = useSearchParams();
+  const initialMode: "signin" | "signup" = params.get("signup") === "1" ? "signup" : "signin";
+  const personaParam = params.get("persona");
+  const initialPersona: Persona =
+    personaParam === "broker" || personaParam === "internal" || personaParam === "owner"
+      ? (personaParam as Persona)
+      : "owner";
+  const [mode, setMode] = useState<"signin" | "signup">(initialMode);
+  const [persona, setPersona] = useState<Persona>(initialPersona);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (params.get("signup") === "1") setMode("signup");
+    if (personaParam === "broker" || personaParam === "internal" || personaParam === "owner") {
+      setPersona(personaParam as Persona);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params]);
 
   if (user) return <Navigate to="/" replace />;
 
