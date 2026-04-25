@@ -576,6 +576,30 @@ export default function ServiceRequestDetail() {
             />
           )}
 
+          {(req.delivery === "vendor" || req.delivery === "either") && !req.is_workflow && (
+            <CostSplitAndApprovalCard
+              requestId={req.id}
+              billToMode={(req.bill_to_mode ?? "landlord_only") as BillToMode}
+              landlordSharePercent={Number(req.landlord_share_percent ?? 100)}
+              tenantSharePercent={Number(req.tenant_share_percent ?? 0)}
+              winningQuoteId={req.winning_quote_id ?? null}
+              winningQuoteAmount={winningQuote?.amount ?? null}
+              winningQuoteCurrency={winningQuote?.currency ?? req.currency}
+              winningVendorName={
+                winningQuote ? vendorLabels[winningQuote.vendor_id] ?? null : null
+              }
+              landlordCostApprovalStatus={
+                (req.landlord_cost_approval_status ?? "not_required") as PartyCostApprovalStatus
+              }
+              tenantCostApprovalStatus={
+                (req.tenant_cost_approval_status ?? "not_required") as PartyCostApprovalStatus
+              }
+              landlordCostApprovedAt={req.landlord_cost_approved_at ?? null}
+              tenantCostApprovedAt={req.tenant_cost_approved_at ?? null}
+              onChanged={load}
+            />
+          )}
+
           <TenantCoordinationCard
             requestId={req.id}
             tenantToken={req.tenant_token}
