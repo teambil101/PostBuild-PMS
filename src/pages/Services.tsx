@@ -19,6 +19,8 @@ import { DeleteCatalogEntryDialog } from "@/components/services/DeleteCatalogEnt
 import ServiceRequests from "./ServiceRequests";
 import { ServiceCalendar } from "@/components/services/ServiceCalendar";
 import { cn } from "@/lib/utils";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import OwnerServices from "./owner/OwnerServices";
 
 type CatalogFilter = "all" | "active" | "inactive" | "workflow" | "atomic";
 
@@ -31,6 +33,12 @@ const FILTERS: { key: CatalogFilter; label: string }[] = [
 ];
 
 export default function Services() {
+  const { isBroker } = useWorkspace();
+
+  // Brokers consume the marketplace — they don't manage a catalog or run a fulfillment inbox.
+  // Render the same browse-and-request UI as owners, plus a view of their own outgoing requests.
+  if (isBroker) return <BrokerServicesView />;
+
   const [searchParams, setSearchParams] = useSearchParams();
   const tabRaw = searchParams.get("tab");
   const tabParam = tabRaw === "requests" || tabRaw === "calendar" ? tabRaw : "catalog";
