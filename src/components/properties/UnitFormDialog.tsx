@@ -50,6 +50,17 @@ interface Props {
   buildingId: string;
   parentBuildingType: BuildingType | string;
   initial?: any;
+  /** Optional content rendered at the top of the form (e.g. building picker). */
+  topSlot?: React.ReactNode;
+  /** Override title/description (used when this dialog is reused for "global" new unit flow). */
+  titleOverride?: string;
+  descriptionOverride?: string;
+  /**
+   * Optional async hook called right before the unit is saved. Return a
+   * resolved buildingId (and optionally a buildingType) to use for the insert.
+   * Throw or return null/undefined to abort the save.
+   */
+  beforeSave?: () => Promise<{ buildingId: string; buildingType?: BuildingType | string } | null | undefined>;
 }
 
 interface FormState {
@@ -109,6 +120,10 @@ export function UnitFormDialog({
   buildingId,
   parentBuildingType,
   initial,
+  topSlot,
+  titleOverride,
+  descriptionOverride,
+  beforeSave,
 }: Props) {
   const typeOptions = useMemo(
     () => unitTypesForBuilding(parentBuildingType),
@@ -293,6 +308,23 @@ export function UnitFormDialog({
       }
     }
 
+    // Allow caller to resolve / create the parent building right before save.
+    let effectiveBuildingId = buildingId;
+    if (beforeSave) {
+      try {
+        const res = await beforeSave();
+        if (!res || !res.buildingId) {
+          setBusy(false);
+          return;
+        }
+        effectiveBuildingId = res.buildingId;
+      } catch (e: any) {
+        toast.error(e?.message ?? "Could not prepare building.");
+        setBusy(false);
+        return;
+      }
+    }
+
     saveSizePref(form.size_unit);
 
     const sizeNum = form.size.trim() === "" ? null : toCanonicalSqm(Number(form.size), form.size_unit);
@@ -303,7 +335,7 @@ export function UnitFormDialog({
     })();
 
     const payload: any = {
-      building_id: buildingId,
+      building_id: effectiveBuildingId,
       unit_number: form.unit_number.trim(),
       unit_type: form.unit_type,
       status: form.status,
