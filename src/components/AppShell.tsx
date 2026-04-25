@@ -171,7 +171,7 @@ export function AppShell({ children }: AppShellProps) {
       <aside className="hidden lg:flex w-[240px] shrink-0 flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border">
         <div className="px-6 pt-7 pb-8">
           <Link to="/" className="block">
-            <div className="font-display text-2xl text-chalk leading-none">True Build</div>
+            <div className="font-display text-2xl text-chalk leading-none">Post Build</div>
             <div className="label-eyebrow mt-1.5 text-sidebar-foreground/60">Property Operations</div>
           </Link>
         </div>
@@ -205,7 +205,7 @@ export function AppShell({ children }: AppShellProps) {
 
         <div className="px-6 py-5 border-t border-sidebar-border">
           <div className="label-eyebrow text-sidebar-foreground/40 mb-1">Workspace</div>
-          <div className="font-display text-base text-chalk">True Build HQ</div>
+          <div className="font-display text-base text-chalk">Post Build HQ</div>
           <div className="mono text-[10px] text-gold mt-0.5 uppercase">{role}</div>
         </div>
       </aside>
@@ -215,7 +215,7 @@ export function AppShell({ children }: AppShellProps) {
         {/* Top bar */}
         <header className="h-14 lg:h-16 border-b hairline bg-background flex items-center justify-between gap-2 px-4 lg:px-10 sticky top-0 z-30">
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <Link to="/" className="lg:hidden font-display text-lg text-architect shrink-0">True Build</Link>
+            <Link to="/" className="lg:hidden font-display text-lg text-architect shrink-0">Post Build</Link>
             {currentModule && (
               <span className="lg:hidden mono text-[10px] uppercase tracking-wider text-muted-foreground truncate">
                 · {currentModule.label}

@@ -78,7 +78,7 @@ Pure backend / plumbing work. Ship-and-forget.
 
 - Add `workspaces`, `workspace_members`, `workspace_invitations` tables.
 - Add `workspace_id` to every business table (`buildings`, `units`, `people`, `contracts`, `service_requests`, `invoices`, `bills`, `journal_lines`, `documents`, `notes`, `leads`, `vendors`, …).
-- Backfill: all existing rows get assigned to one bootstrap "True Build HQ" workspace of kind `internal`. Your current users become members with role `admin`.
+- Backfill: all existing rows get assigned to one bootstrap "Post Build HQ" workspace of kind `internal`. Your current users become members with role `admin`.
 - Rewrite RLS policies on every table from "any authenticated user" → "members of this workspace".
 - Add a `useActiveWorkspace()` hook + workspace context provider; every existing query gets a workspace filter applied centrally (via a small wrapper around the supabase client or a query helper).
 - Workspace switcher dropdown in the header (only visible if user has >1 workspace).
@@ -122,7 +122,7 @@ Mostly a re-skin + plan gating, since brokers want what your operators already h
 - Broker-only features:
   - Branded operator workspace (logo, company name on documents).
   - Invite teammates with roles (`admin`, `manager`, `agent`, `viewer`).
-  - "Outsource to True Build" button on any service request → forwards to your marketplace inbox.
+  - "Outsource to Post Build" button on any service request → forwards to your marketplace inbox.
 - Pricing plan gating (per-seat, per-property, or flat) — defer pricing implementation, scaffold the gates only.
 
 ### Phase 5 — Polish & growth
@@ -196,11 +196,11 @@ If you approve, the next concrete step is **Phase 1 only** (tenancy foundation).
   - `SmartShell` picks `OwnerShell` vs `AppShell` based on active workspace `kind`
   - Re-added the `address` column to `buildings` that had been dropped in an earlier migration
 - ✅ **Phase 3** — Services Marketplace:
-  - `service_catalog.is_marketplace` flag (all True Build HQ items auto-flagged)
+  - `service_catalog.is_marketplace` flag (all Post Build HQ items auto-flagged)
   - `service_requests.fulfilling_workspace_id` for cross-workspace routing
   - RLS opens marketplace catalog to all authenticated users; service requests visible to either workspace
   - `create_marketplace_service_request` RPC creates the request in the requester workspace and routes to the catalog publisher
   - **Operator marketplace inbox** at `/services/marketplace` — incoming requests from external workspaces
   - Owner portal "Request Services" now reads marketplace items and submits via the new RPC
-- ⏳ **Phase 4** — Broker Portal: branded operator workspace, teammate roles, "Outsource to True Build".
+- ⏳ **Phase 4** — Broker Portal: branded operator workspace, teammate roles, "Outsource to Post Build".
 - ⏳ **Phase 5** — Polish & growth.

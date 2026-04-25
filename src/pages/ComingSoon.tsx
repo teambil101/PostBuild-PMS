@@ -15,7 +15,7 @@ export default function ComingSoon() {
       <PageHeader
         eyebrow="Module"
         title={mod?.label ?? "Coming Soon"}
-        description="This module is part of the True Build roadmap. We'll build it in a focused pass once Properties and People feel rock solid."
+        description="This module is part of the Post Build roadmap. We'll build it in a focused pass once Properties and People feel rock solid."
         actions={
           <Button variant="outline" onClick={() => navigate("/")}>
             <ArrowLeft className="h-4 w-4" />

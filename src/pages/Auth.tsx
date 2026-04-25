@@ -37,7 +37,7 @@ export default function Auth() {
     if (error) {
       toast.error(error);
     } else {
-      if (mode === "signup") toast.success("Account created. Welcome to True Build.");
+      if (mode === "signup") toast.success("Account created. Welcome to Post Build.");
       navigate("/");
     }
   };
@@ -45,7 +45,7 @@ export default function Auth() {
   const fillTestAccount = (p: Persona) => {
     const stamp = Date.now().toString(36);
     setPersona(p);
-    setEmail(`${p}+${stamp}@test.truebuild.local`);
+    setEmail(`${p}+${stamp}@test.postbuild.local`);
     setPassword("test1234");
     setMode("signup");
   };
@@ -55,7 +55,7 @@ export default function Auth() {
       {/* Left: brand panel */}
       <div className="hidden lg:flex flex-col justify-between bg-architect text-chalk p-12 relative overflow-hidden">
         <div>
-          <div className="font-display text-3xl">True Build</div>
+          <div className="font-display text-3xl">Post Build</div>
           <div className="label-eyebrow text-chalk/60 mt-1">Property Operations</div>
         </div>
         <div className="space-y-6 max-w-md">
@@ -76,7 +76,7 @@ export default function Auth() {
       <div className="flex items-center justify-center p-8">
         <div className="w-full max-w-sm space-y-6">
           <div className="lg:hidden text-center">
-            <div className="font-display text-3xl text-architect">True Build</div>
+            <div className="font-display text-3xl text-architect">Post Build</div>
             <div className="label-eyebrow mt-1">Property Operations</div>
           </div>
 
