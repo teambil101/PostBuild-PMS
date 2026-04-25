@@ -37,7 +37,7 @@ export default function ForBrokers() {
     <LandingShell>
       <Hero
         eyebrow="For Brokers & PM Companies"
-        headline={<>Operations as your <span className="text-accent">competitive edge.</span></>}
+         headline={<>Tools & Services to <span className="text-accent">Manage Properties Easily</span></>}
         punchline="Win more owners with institutional-grade reporting."
         sub="A complete workspace for boutique brokers and property management firms. Run your day-to-day, delight your owners, and tap a vendor marketplace whenever you need an extra hand."
         servicesHook="Tap into our vendor network on demand"
