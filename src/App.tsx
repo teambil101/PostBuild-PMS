@@ -67,6 +67,13 @@ const OwnerOnly = ({ children }: { children: React.ReactNode }) => (
   </ProtectedRoute>
 );
 
+const IndexRedirect = () => {
+  const { activeWorkspace, loading } = useWorkspace();
+  if (loading) return null;
+  if (activeWorkspace?.kind === "owner") return <Navigate to="/owner" replace />;
+  return <Navigate to="/dashboard" replace />;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -80,7 +87,7 @@ const App = () => (
             <Route path="/q/:token" element={<PublicQuoteSubmit />} />
             <Route path="/t/:token" element={<PublicTenantDecision />} />
             <Route path="/invite/:token" element={<AcceptInvite />} />
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/" element={<ProtectedRoute><IndexRedirect /></ProtectedRoute>} />
             <Route path="/dashboard" element={<Shell><Dashboard /></Shell>} />
             <Route path="/properties" element={<Shell><Properties /></Shell>} />
             <Route path="/properties/:id" element={<Shell><PropertyDetail /></Shell>} />
