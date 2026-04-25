@@ -38,7 +38,9 @@ export default function ForBrokers() {
       <Hero
         eyebrow="For Brokers & PM Companies"
         headline={<>Operations as your <span className="text-accent">competitive edge.</span></>}
+        punchline="Win more owners with institutional-grade reporting."
         sub="A complete workspace for boutique brokers and property management firms. Run your day-to-day, delight your owners, and tap a vendor marketplace whenever you need an extra hand."
+        servicesHook="Tap into our vendor network on demand"
         primaryCta={{ label: "Talk to us", href: "mailto:sales@postbuild.com?subject=Broker%20%2F%20PM%20demo&body=Hi%20Post%20Build%20team%2C%0A%0AI'd%20like%20to%20see%20a%20demo%20of%20the%20broker%20%2F%20PM%20workspace.%0A%0ACompany%3A%0AUnits%20managed%3A%0ABest%20time%20to%20call%3A" }}
         secondaryCta={{ label: "Book a 20-min call", href: "https://cal.com/postbuild/broker-demo" }}
         image={heroImg}

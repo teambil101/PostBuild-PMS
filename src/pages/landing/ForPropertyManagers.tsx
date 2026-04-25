@@ -32,7 +32,9 @@ export default function ForPropertyManagers() {
       <Hero
         eyebrow="Fully Managed by Post Build"
         headline={<>Hands off. <span className="text-accent">Done right.</span></>}
+        punchline="The concierge-level service your portfolio deserves."
         sub="We become your property management company — leasing, maintenance, finances, reporting, compliance. You just receive the rent and the reports. Designed for owners who want to forget they own a property until quarterly review."
+        servicesHook="Complete hands-off management stack"
         primaryCta={{ label: "Talk to our team", href: "mailto:concierge@postbuild.com?subject=Fully%20Managed%20enquiry&body=Hi%20Post%20Build%20team%2C%0A%0AI'd%20like%20to%20discuss%20fully%20managed%20property%20management.%0A%0AProperties%3A%0ALocation%3A%0ABest%20time%20to%20call%3A" }}
         secondaryCta={{ label: "Book a discovery call", href: "https://cal.com/postbuild/managed-discovery" }}
         image={heroImg}
