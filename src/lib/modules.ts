@@ -6,7 +6,6 @@ import {
   FileText,
   Wrench,
   Wallet,
-  Mail,
   type LucideIcon,
 } from "lucide-react";
 
@@ -25,6 +24,5 @@ export const MODULES: ModuleDef[] = [
   { key: "services", label: "Services", path: "/services", icon: Wrench, active: true },
   { key: "financials", label: "Financials", path: "/financials", icon: Wallet, active: true },
   { key: "people", label: "Directory", path: "/people", icon: Users, active: true },
-  { key: "invitations", label: "Invitations", path: "/invitations", icon: Mail, active: true },
   { key: "settings", label: "Settings", path: "/settings", icon: SettingsIcon, active: true },
 ];
