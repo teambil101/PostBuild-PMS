@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight, Check, Sparkles } from "lucide-react";
 
 /* -------------------------------------------------------------------------- */
 /*  Hero                                                                       */
@@ -10,7 +10,9 @@ import { ArrowRight, Check } from "lucide-react";
 export function Hero({
   eyebrow,
   headline,
+  punchline,
   sub,
+  servicesHook,
   primaryCta,
   secondaryCta,
   image,
@@ -18,7 +20,9 @@ export function Hero({
 }: {
   eyebrow: string;
   headline: ReactNode;
+  punchline?: ReactNode;
   sub: string;
+  servicesHook?: string;
   primaryCta: { label: string; to?: string; href?: string };
   secondaryCta?: { label: string; to?: string; href?: string };
   image: string;
@@ -41,7 +45,19 @@ export function Hero({
           <h1 className="font-display text-[2.6rem] sm:text-5xl lg:text-6xl leading-[1.05] tracking-tight text-architect">
             {headline}
           </h1>
+          {punchline && (
+            <div className="mt-5 inline-block font-display text-lg sm:text-xl text-architect border-l-2 border-accent pl-4 italic">
+              {punchline}
+            </div>
+          )}
           <p className="mt-6 text-lg text-muted-foreground leading-relaxed max-w-xl">{sub}</p>
+
+          {servicesHook && (
+            <div className="mt-6 inline-flex items-center gap-2.5 rounded-sm bg-accent/10 border border-accent/30 px-4 py-2.5 text-sm text-architect max-w-xl">
+              <Sparkles className="h-4 w-4 text-accent shrink-0" strokeWidth={1.75} />
+              <span>{servicesHook}</span>
+            </div>
+          )}
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <CTAButton variant="primary" cta={primaryCta} />
@@ -50,7 +66,7 @@ export function Hero({
         </div>
 
         <div className="relative">
-          <div className="absolute -inset-6 bg-gradient-to-br from-accent/15 via-transparent to-warm-stone/30 rounded-sm blur-2xl" aria-hidden />
+          <div className="absolute -inset-8 bg-gradient-to-br from-accent/30 via-warm-stone/20 to-accent/10 rounded-sm blur-3xl" aria-hidden />
           <img
             src={image}
             alt={imageAlt}
