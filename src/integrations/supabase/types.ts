@@ -2361,14 +2361,27 @@ export type Database = {
           internal_notes: string | null
           is_workflow: boolean
           priority: Database["public"]["Enums"]["service_request_priority"]
+          proposed_scheduled_date: string | null
           request_number: string
           requested_by_person_id: string | null
+          schedule_counter_round: number
           scheduled_date: string | null
           source: string
           started_at: string | null
           status: Database["public"]["Enums"]["service_request_status"]
           target_id: string | null
           target_type: string
+          tenant_approval_decided_at: string | null
+          tenant_approval_notes: string | null
+          tenant_approval_reason: string | null
+          tenant_approval_requested_at: string | null
+          tenant_approval_required: boolean
+          tenant_approval_status: Database["public"]["Enums"]["tenant_approval_status"]
+          tenant_proposed_date: string | null
+          tenant_schedule_decided_at: string | null
+          tenant_schedule_notes: string | null
+          tenant_schedule_status: Database["public"]["Enums"]["tenant_schedule_status"]
+          tenant_token: string | null
           title: string
           updated_at: string
         }
@@ -2402,14 +2415,27 @@ export type Database = {
           internal_notes?: string | null
           is_workflow?: boolean
           priority?: Database["public"]["Enums"]["service_request_priority"]
+          proposed_scheduled_date?: string | null
           request_number: string
           requested_by_person_id?: string | null
+          schedule_counter_round?: number
           scheduled_date?: string | null
           source?: string
           started_at?: string | null
           status?: Database["public"]["Enums"]["service_request_status"]
           target_id?: string | null
           target_type: string
+          tenant_approval_decided_at?: string | null
+          tenant_approval_notes?: string | null
+          tenant_approval_reason?: string | null
+          tenant_approval_requested_at?: string | null
+          tenant_approval_required?: boolean
+          tenant_approval_status?: Database["public"]["Enums"]["tenant_approval_status"]
+          tenant_proposed_date?: string | null
+          tenant_schedule_decided_at?: string | null
+          tenant_schedule_notes?: string | null
+          tenant_schedule_status?: Database["public"]["Enums"]["tenant_schedule_status"]
+          tenant_token?: string | null
           title: string
           updated_at?: string
         }
@@ -2443,14 +2469,27 @@ export type Database = {
           internal_notes?: string | null
           is_workflow?: boolean
           priority?: Database["public"]["Enums"]["service_request_priority"]
+          proposed_scheduled_date?: string | null
           request_number?: string
           requested_by_person_id?: string | null
+          schedule_counter_round?: number
           scheduled_date?: string | null
           source?: string
           started_at?: string | null
           status?: Database["public"]["Enums"]["service_request_status"]
           target_id?: string | null
           target_type?: string
+          tenant_approval_decided_at?: string | null
+          tenant_approval_notes?: string | null
+          tenant_approval_reason?: string | null
+          tenant_approval_requested_at?: string | null
+          tenant_approval_required?: boolean
+          tenant_approval_status?: Database["public"]["Enums"]["tenant_approval_status"]
+          tenant_proposed_date?: string | null
+          tenant_schedule_decided_at?: string | null
+          tenant_schedule_notes?: string | null
+          tenant_schedule_status?: Database["public"]["Enums"]["tenant_schedule_status"]
+          tenant_token?: string | null
           title?: string
           updated_at?: string
         }
@@ -3281,6 +3320,69 @@ export type Database = {
         Args: { p_decision: string; p_notes?: string; p_step_id: string }
         Returns: Database["public"]["Enums"]["service_request_approval_status"]
       }
+      decide_tenant_approval: {
+        Args: { p_decision: string; p_notes?: string; p_token: string }
+        Returns: {
+          approval_decided_at: string | null
+          approval_decided_by: string | null
+          approval_decision_notes: string | null
+          approval_management_agreement_id: string | null
+          approval_requested_at: string | null
+          approval_required_reason: string | null
+          approval_rule_snapshot: string | null
+          approval_status: Database["public"]["Enums"]["service_request_approval_status"]
+          approval_threshold_amount: number | null
+          approval_threshold_currency: string | null
+          assigned_person_id: string | null
+          assigned_vendor_id: string | null
+          bill_to: Database["public"]["Enums"]["bill_to_role"]
+          billing: Database["public"]["Enums"]["service_billing"]
+          catalog_id: string | null
+          category: Database["public"]["Enums"]["service_category"]
+          category_other: string | null
+          completed_at: string | null
+          cost_estimate: number | null
+          cost_final: number | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          delivery: Database["public"]["Enums"]["service_delivery"]
+          description: string | null
+          id: string
+          internal_notes: string | null
+          is_workflow: boolean
+          priority: Database["public"]["Enums"]["service_request_priority"]
+          proposed_scheduled_date: string | null
+          request_number: string
+          requested_by_person_id: string | null
+          schedule_counter_round: number
+          scheduled_date: string | null
+          source: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["service_request_status"]
+          target_id: string | null
+          target_type: string
+          tenant_approval_decided_at: string | null
+          tenant_approval_notes: string | null
+          tenant_approval_reason: string | null
+          tenant_approval_requested_at: string | null
+          tenant_approval_required: boolean
+          tenant_approval_status: Database["public"]["Enums"]["tenant_approval_status"]
+          tenant_proposed_date: string | null
+          tenant_schedule_decided_at: string | null
+          tenant_schedule_notes: string | null
+          tenant_schedule_status: Database["public"]["Enums"]["tenant_schedule_status"]
+          tenant_token: string | null
+          title: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "service_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       evaluate_service_request_approval: {
         Args: { p_request_id: string }
         Returns: Database["public"]["Enums"]["service_request_approval_status"]
@@ -3346,6 +3448,69 @@ export type Database = {
         Returns: string
       }
       process_contract_lifecycle: { Args: never; Returns: Json }
+      propose_tenant_schedule: {
+        Args: { p_date: string; p_notes?: string; p_request_id: string }
+        Returns: {
+          approval_decided_at: string | null
+          approval_decided_by: string | null
+          approval_decision_notes: string | null
+          approval_management_agreement_id: string | null
+          approval_requested_at: string | null
+          approval_required_reason: string | null
+          approval_rule_snapshot: string | null
+          approval_status: Database["public"]["Enums"]["service_request_approval_status"]
+          approval_threshold_amount: number | null
+          approval_threshold_currency: string | null
+          assigned_person_id: string | null
+          assigned_vendor_id: string | null
+          bill_to: Database["public"]["Enums"]["bill_to_role"]
+          billing: Database["public"]["Enums"]["service_billing"]
+          catalog_id: string | null
+          category: Database["public"]["Enums"]["service_category"]
+          category_other: string | null
+          completed_at: string | null
+          cost_estimate: number | null
+          cost_final: number | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          delivery: Database["public"]["Enums"]["service_delivery"]
+          description: string | null
+          id: string
+          internal_notes: string | null
+          is_workflow: boolean
+          priority: Database["public"]["Enums"]["service_request_priority"]
+          proposed_scheduled_date: string | null
+          request_number: string
+          requested_by_person_id: string | null
+          schedule_counter_round: number
+          scheduled_date: string | null
+          source: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["service_request_status"]
+          target_id: string | null
+          target_type: string
+          tenant_approval_decided_at: string | null
+          tenant_approval_notes: string | null
+          tenant_approval_reason: string | null
+          tenant_approval_requested_at: string | null
+          tenant_approval_required: boolean
+          tenant_approval_status: Database["public"]["Enums"]["tenant_approval_status"]
+          tenant_proposed_date: string | null
+          tenant_schedule_decided_at: string | null
+          tenant_schedule_notes: string | null
+          tenant_schedule_status: Database["public"]["Enums"]["tenant_schedule_status"]
+          tenant_token: string | null
+          title: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "service_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       remove_ticket_workflow: {
         Args: { p_ticket_id: string }
         Returns: undefined
@@ -3353,6 +3518,69 @@ export type Database = {
       reorder_service_request_steps: {
         Args: { p_request_id: string; p_step_ids: string[] }
         Returns: undefined
+      }
+      request_tenant_approval: {
+        Args: { p_reason?: string; p_request_id: string }
+        Returns: {
+          approval_decided_at: string | null
+          approval_decided_by: string | null
+          approval_decision_notes: string | null
+          approval_management_agreement_id: string | null
+          approval_requested_at: string | null
+          approval_required_reason: string | null
+          approval_rule_snapshot: string | null
+          approval_status: Database["public"]["Enums"]["service_request_approval_status"]
+          approval_threshold_amount: number | null
+          approval_threshold_currency: string | null
+          assigned_person_id: string | null
+          assigned_vendor_id: string | null
+          bill_to: Database["public"]["Enums"]["bill_to_role"]
+          billing: Database["public"]["Enums"]["service_billing"]
+          catalog_id: string | null
+          category: Database["public"]["Enums"]["service_category"]
+          category_other: string | null
+          completed_at: string | null
+          cost_estimate: number | null
+          cost_final: number | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          delivery: Database["public"]["Enums"]["service_delivery"]
+          description: string | null
+          id: string
+          internal_notes: string | null
+          is_workflow: boolean
+          priority: Database["public"]["Enums"]["service_request_priority"]
+          proposed_scheduled_date: string | null
+          request_number: string
+          requested_by_person_id: string | null
+          schedule_counter_round: number
+          scheduled_date: string | null
+          source: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["service_request_status"]
+          target_id: string | null
+          target_type: string
+          tenant_approval_decided_at: string | null
+          tenant_approval_notes: string | null
+          tenant_approval_reason: string | null
+          tenant_approval_requested_at: string | null
+          tenant_approval_required: boolean
+          tenant_approval_status: Database["public"]["Enums"]["tenant_approval_status"]
+          tenant_proposed_date: string | null
+          tenant_schedule_decided_at: string | null
+          tenant_schedule_notes: string | null
+          tenant_schedule_status: Database["public"]["Enums"]["tenant_schedule_status"]
+          tenant_token: string | null
+          title: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "service_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       reset_service_request_approval: {
         Args: { p_request_id: string }
@@ -3374,6 +3602,74 @@ export type Database = {
           person_id: string
           source: string
         }[]
+      }
+      respond_to_schedule: {
+        Args: {
+          p_action: string
+          p_counter_date?: string
+          p_notes?: string
+          p_token: string
+        }
+        Returns: {
+          approval_decided_at: string | null
+          approval_decided_by: string | null
+          approval_decision_notes: string | null
+          approval_management_agreement_id: string | null
+          approval_requested_at: string | null
+          approval_required_reason: string | null
+          approval_rule_snapshot: string | null
+          approval_status: Database["public"]["Enums"]["service_request_approval_status"]
+          approval_threshold_amount: number | null
+          approval_threshold_currency: string | null
+          assigned_person_id: string | null
+          assigned_vendor_id: string | null
+          bill_to: Database["public"]["Enums"]["bill_to_role"]
+          billing: Database["public"]["Enums"]["service_billing"]
+          catalog_id: string | null
+          category: Database["public"]["Enums"]["service_category"]
+          category_other: string | null
+          completed_at: string | null
+          cost_estimate: number | null
+          cost_final: number | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          delivery: Database["public"]["Enums"]["service_delivery"]
+          description: string | null
+          id: string
+          internal_notes: string | null
+          is_workflow: boolean
+          priority: Database["public"]["Enums"]["service_request_priority"]
+          proposed_scheduled_date: string | null
+          request_number: string
+          requested_by_person_id: string | null
+          schedule_counter_round: number
+          scheduled_date: string | null
+          source: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["service_request_status"]
+          target_id: string | null
+          target_type: string
+          tenant_approval_decided_at: string | null
+          tenant_approval_notes: string | null
+          tenant_approval_reason: string | null
+          tenant_approval_requested_at: string | null
+          tenant_approval_required: boolean
+          tenant_approval_status: Database["public"]["Enums"]["tenant_approval_status"]
+          tenant_proposed_date: string | null
+          tenant_schedule_decided_at: string | null
+          tenant_schedule_notes: string | null
+          tenant_schedule_status: Database["public"]["Enums"]["tenant_schedule_status"]
+          tenant_token: string | null
+          title: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "service_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       skip_ticket_stage: {
         Args: { p_reason: string; p_stage_key: string; p_ticket_id: string }
@@ -3492,6 +3788,12 @@ export type Database = {
         | "completed"
         | "skipped"
       statement_status: "draft" | "issued" | "paid"
+      tenant_approval_status:
+        | "not_required"
+        | "pending"
+        | "approved"
+        | "rejected"
+      tenant_schedule_status: "none" | "proposed" | "confirmed" | "rescheduled"
       unit_type:
         | "studio"
         | "apartment"
@@ -3758,6 +4060,13 @@ export const Constants = {
         "skipped",
       ],
       statement_status: ["draft", "issued", "paid"],
+      tenant_approval_status: [
+        "not_required",
+        "pending",
+        "approved",
+        "rejected",
+      ],
+      tenant_schedule_status: ["none", "proposed", "confirmed", "rescheduled"],
       unit_type: [
         "studio",
         "apartment",
