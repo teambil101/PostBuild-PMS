@@ -2124,6 +2124,81 @@ export type Database = {
           },
         ]
       }
+      service_request_quotes: {
+        Row: {
+          amount: number | null
+          created_at: string
+          currency: string
+          decided_at: string | null
+          eta_days: number | null
+          expires_at: string
+          id: string
+          internal_notes: string | null
+          invited_at: string
+          invited_by: string | null
+          request_id: string
+          status: Database["public"]["Enums"]["service_quote_status"]
+          submission_token: string
+          submitted_at: string | null
+          updated_at: string
+          vendor_id: string
+          vendor_notes: string | null
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          currency?: string
+          decided_at?: string | null
+          eta_days?: number | null
+          expires_at?: string
+          id?: string
+          internal_notes?: string | null
+          invited_at?: string
+          invited_by?: string | null
+          request_id: string
+          status?: Database["public"]["Enums"]["service_quote_status"]
+          submission_token?: string
+          submitted_at?: string | null
+          updated_at?: string
+          vendor_id: string
+          vendor_notes?: string | null
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          currency?: string
+          decided_at?: string | null
+          eta_days?: number | null
+          expires_at?: string
+          id?: string
+          internal_notes?: string | null
+          invited_at?: string
+          invited_by?: string | null
+          request_id?: string
+          status?: Database["public"]["Enums"]["service_quote_status"]
+          submission_token?: string
+          submitted_at?: string | null
+          updated_at?: string
+          vendor_id?: string
+          vendor_notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_request_quotes_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_request_quotes_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_request_steps: {
         Row: {
           approval_decided_at: string | null
@@ -3116,6 +3191,34 @@ export type Database = {
       }
     }
     Functions: {
+      accept_service_request_quote: {
+        Args: { p_notes?: string; p_quote_id: string }
+        Returns: {
+          amount: number | null
+          created_at: string
+          currency: string
+          decided_at: string | null
+          eta_days: number | null
+          expires_at: string
+          id: string
+          internal_notes: string | null
+          invited_at: string
+          invited_by: string | null
+          request_id: string
+          status: Database["public"]["Enums"]["service_quote_status"]
+          submission_token: string
+          submitted_at: string | null
+          updated_at: string
+          vendor_id: string
+          vendor_notes: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "service_request_quotes"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       add_service_request_step: {
         Args: {
           p_billing?: Database["public"]["Enums"]["service_billing"]
@@ -3362,6 +3465,13 @@ export type Database = {
         | "administrative"
         | "other"
       service_delivery: "vendor" | "staff" | "either"
+      service_quote_status:
+        | "invited"
+        | "submitted"
+        | "accepted"
+        | "rejected"
+        | "withdrawn"
+        | "expired"
       service_request_approval_status:
         | "not_required"
         | "pending"
@@ -3617,6 +3727,14 @@ export const Constants = {
         "other",
       ],
       service_delivery: ["vendor", "staff", "either"],
+      service_quote_status: [
+        "invited",
+        "submitted",
+        "accepted",
+        "rejected",
+        "withdrawn",
+        "expired",
+      ],
       service_request_approval_status: [
         "not_required",
         "pending",

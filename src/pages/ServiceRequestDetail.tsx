@@ -30,6 +30,7 @@ import { ApprovalCard } from "@/components/services/ApprovalCard";
 import { StepCard, type WorkflowStepRow } from "@/components/services/StepCard";
 import { AddStepDialog } from "@/components/services/AddStepDialog";
 import { RecordFeedbackDialog } from "@/components/services/RecordFeedbackDialog";
+import { QuotesCard } from "@/components/services/QuotesCard";
 import {
   PRIORITY_LABEL,
   PRIORITY_STYLES,
@@ -63,6 +64,8 @@ interface RequestRow {
   description: string | null;
   internal_notes: string | null;
   created_at: string;
+  assigned_vendor_id: string | null;
+  assigned_person_id: string | null;
   approval_status: ServiceRequestApprovalStatus;
   approval_required_reason: string | null;
   approval_threshold_amount: number | null;
@@ -517,6 +520,15 @@ export default function ServiceRequestDetail() {
                 <p className="text-sm text-architect whitespace-pre-wrap">{req.description}</p>
               </CardContent>
             </Card>
+          )}
+
+          {(req.delivery === "vendor" || req.delivery === "either") && !req.is_workflow && (
+            <QuotesCard
+              requestId={req.id}
+              category={req.category}
+              hasAssignedVendor={!!req.assigned_vendor_id}
+              onChanged={load}
+            />
           )}
 
           <Card className="hairline">
